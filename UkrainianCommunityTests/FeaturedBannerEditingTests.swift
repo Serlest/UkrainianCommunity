@@ -214,7 +214,7 @@ struct FeaturedBannerEditingTests {
         #expect(banner.localizedSubtitle == "Legacy subtitle")
     }
 
-    @Test func successfulEditReplacesImageAndDeletesOnlyPreviousAsset() async throws {
+    @Test func successfulEditReplacesImageAndLeavesReferenceAwareCleanupToServer() async throws {
         let oldURL = try #require(URL(string: "https://firebasestorage.googleapis.com/old.jpg"))
         let newURL = try #require(URL(string: "https://firebasestorage.googleapis.com/new.jpg"))
         let repository = RecordingBannerRepository()
@@ -236,7 +236,7 @@ struct FeaturedBannerEditingTests {
         #expect(updated.title.isEmpty)
         #expect(updated.subtitle == nil)
         #expect(updated.imageURL == newURL.absoluteString)
-        #expect(images.deletedURLs == [oldURL])
+        #expect(images.deletedURLs.isEmpty) // A duplicate may still reference the original asset.
     }
 
     @Test func failedEditDeletesNewUploadAndKeepsPreviousAsset() async throws {

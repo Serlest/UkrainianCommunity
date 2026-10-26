@@ -1,0 +1,431 @@
+{
+  "block": 14,
+  "totalBlocks": 19,
+  "date": "2026-10-26",
+  "name": "Банери та статистика",
+  "status": "implemented_verified_pending_final_ci_and_user_signed_build_acceptance",
+  "inventory": "Docs/Verification/BannersInventory20261026.json",
+  "scenarioChecks": 79,
+  "clientSourceCommit": "03eb652d",
+  "serverSourceCommit": "64398b2a",
+  "artifactBase": "build/audit-banners-20261026",
+  "scope": [
+    "Banner catalog, owner editor, nested windows, targets, role guards, countdown, carousel, consent-aware measurement and exact-banner report"
+  ],
+  "excluded": [
+    "Seasonal app-wide theme",
+    "General analytics block15",
+    "Production banner test mutations",
+    "New TestFlight upload",
+    "Public App Store release"
+  ],
+  "fixes": [
+    "Optional countdown with bilingual40UTF16 label, Vienna timezone date/time, days/hours/minutes, preview, validated target, three completion actions.",
+    "Private presentation sidecar keeps strict legacy public banner schema unchanged. hideBanner writes compatible effective endsAt while retaining original explicit schedule privately.",
+    "Separated scroll-snapping cards with12pointgap and next-card peek; no full-carousel fade. Manual interaction/background/VoiceOver/ReduceMotion pause automatic rotation. Only settled visible loaded artwork qualifies for impression.",
+    "Largest text uses natural vertical countdown/image/text layout and measured carousel height. Scaled editor decorative icon, separate native date labels, shared search, short screen titles, scrollable confirmations.",
+    "Management incorrectly filtered global all-banner metric rows by individual ID, producing false zero values. Removed invalid per-row totals and direct route opens exact-ID report. Role/account changes clear report state.",
+    "Target picker pages50 records and can load beyond former250 cap. Selected older target recovered by exactID; loaded-search scope visible.",
+    "Stable save command identity, principal binding, expectedUpdatedAt conflict protection, immutable saving draft. Lost reply recovers only after exact authoritative normalized payload readback. Another image starts another command; ambiguous failure retains uploaded image.",
+    "Shared image references protected server-side on deletion/replacement and daily orphan cleanup; client no longer deletes images used by copies. Delete wording no longer promises deleting shared assets."
+  ],
+  "verification": {
+    "unit": {
+      "passedTests": 898,
+      "failedTests": 0,
+      "skippedTests": 40,
+      "failures": []
+    },
+    "unitSkipBoundary": "40 opt-in SDK/emulator cases are skipped in ordinary run, not counted as passing. Block14 real Swift SDK and JS measurement cases executed separately below.",
+    "swiftActualFirebaseSDK": {
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "failures": []
+    },
+    "swiftSDKScenario": "Actual Auth/Firestore/Functions/Storage emulators; commit then injected network lost reply, authoritative recovery, countdown create/update/reopen, image upload/download/decode, member denials, owner deletion and fixture asset cleanup.",
+    "serverRegression": {
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0,
+      "artifact": "server-final-regression.log"
+    },
+    "measurementActualJSFirebaseSDK": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "artifact": "measurement-real-sdk.log",
+      "coverage": "consent off/on/withdrawal, duplicate event suppression, click/impression/region and owner/member metric access"
+    },
+    "uiBundles": {
+      "CompleteBlock14UnitRegression": {
+        "passedTests": 898,
+        "failedTests": 0,
+        "skippedTests": 40,
+        "failures": []
+      },
+      "SavedCountdownAndStatisticsWindows": {
+        "passedTests": 2,
+        "failedTests": 0,
+        "skippedTests": 0,
+        "failures": []
+      },
+      "FinalAccessibleEditorAndTargets": {
+        "passedTests": 3,
+        "failedTests": 0,
+        "skippedTests": 0,
+        "failures": []
+      },
+      "FinalRoleAndDeletionWindows": {
+        "passedTests": 2,
+        "failedTests": 0,
+        "skippedTests": 0,
+        "failures": []
+      },
+      "NativePickersAndRotation": {
+        "passedTests": 2,
+        "failedTests": 1,
+        "skippedTests": 0,
+        "failures": [
+          "BannersAuditUITests/testNativePhotoPickerSelectionReturnsProcessedPreviewWithoutSaving()"
+        ]
+      },
+      "NativePhotoSelection": {
+        "passedTests": 1,
+        "failedTests": 0,
+        "skippedTests": 0,
+        "failures": []
+      },
+      "FinalLostReplyAndImageSDK": {
+        "passedTests": 1,
+        "failedTests": 0,
+        "skippedTests": 0,
+        "failures": []
+      },
+      "FinalBannerWindows": {
+        "passedTests": 6,
+        "failedTests": 2,
+        "skippedTests": 0,
+        "failures": [
+          "BannersAuditUITests/testOwnerSavesCountdownAndReopensThenCancelsAndConfirmsDeletion()",
+          "BannerMeasurementJourneyUITests/testReportFiltersAndExportInBothLanguages()"
+        ]
+      }
+    },
+    "uiBoundary": "Historical mixed bundles are retained honestly. In FinalBannerWindows6passed2failed, owner-save keyboard driver and report-role fixture were corrected and both reran passing in SavedCountdownAndStatisticsWindows. In NativePickersAndRotation2passed1failed, calendar and rotation passed; PhotoKit driver false isHittable was fixed using observed native grid frame and actual processed preview, passing NativePhotoSelection. No whole mixed bundle is labelled green.",
+    "releaseBuild": {
+      "result": "BUILD SUCCEEDED",
+      "signing": "disabled; compilation only",
+      "artifact": "final-release-build.log",
+      "existingWarnings": [
+        "DirectoryEditorAccessStore.swift:50 isolated Decodable",
+        "SystemLogDeliveryQueue.swift:52 captured self"
+      ]
+    },
+    "staticValidators": [
+      "repository structure",
+      "uk/de localization3397entries",
+      "118Firestore composite index contracts",
+      "property lists",
+      "release configuration build125",
+      "legal document structure with pre-existing public-release gates open",
+      "git diff --check"
+    ],
+    "ci": {
+      "status": "pending_final_head_push_readback",
+      "boundary": "Local success is not GitHub success"
+    },
+    "emulators": "Owned fixed demo-uac-release-audit Auth/Firestore/Functions/Storage stack stopped with SIGINT after final SDK pass, export-on-exit completed. No production test records or metrics created."
+  },
+  "visualReview": {
+    "environment": "iPhone17e simulator iOS26.5, uk/light and de/dark, normal/largest accessibility type; native calendar, photo picker, completion menu, keyboard/search, discard/delete/export.",
+    "actuallyViewedFinalFrames": [
+      "accessible-carousel-captures/F3EA9012-BB50-4944-B270-5053435755D0.png",
+      "accessible-carousel-captures/319FDEF7-FCD9-40F9-815F-364675AE1DAD.png",
+      "final-accessible-captures/506C874B-7031-4600-967E-4C342C55B75B.png",
+      "final-accessible-captures/0F400326-DF56-4FD4-9BC0-18E22C327FA8.png",
+      "saved-statistics-captures/06910113-C3B2-4997-98E6-8538BC3CBFF5.png",
+      "saved-statistics-captures/681392EE-9D11-4320-9C57-F50ED8504B0C.png",
+      "final-photo-captures/B4491A91-4717-4440-8B6F-3BDC71BAC32A.png",
+      "final-role-captures/BDA42A87-04E1-444E-8BE4-23E52A8D29CA.png",
+      "native-picker-captures/092FFEDE-EB25-4BF5-A63B-8179C8974AAA.png"
+    ],
+    "boundary": "Not every exported image was visually viewed; no physical iPhone or exhaustive width/orientation matrix proof this turn."
+  },
+  "production": {
+    "functions": [
+      {
+        "name": "saveFeaturedBanner",
+        "state": "ACTIVE",
+        "policyOnDeploy": true,
+        "revision": "savefeaturedbanner-00011-vin",
+        "ready": true,
+        "traffic100": true,
+        "files": [
+          {
+            "file": "src/featured/featuredBannerMutations.ts",
+            "matches": true,
+            "sha256": "b29146e33d864163dc69b26fde61b280d83e66572cd8217904447a4af1a428b7"
+          },
+          {
+            "file": "lib/featured/featuredBannerMutations.js",
+            "matches": true,
+            "sha256": "75b0491a414ef60db6bbf8c273cc3256a0f66dbbb056d2095e1958247f4930bc"
+          }
+        ]
+      },
+      {
+        "name": "deleteFeaturedBanner",
+        "state": "ACTIVE",
+        "policyOnDeploy": true,
+        "revision": "deletefeaturedbanner-00008-hid",
+        "ready": true,
+        "traffic100": true,
+        "files": [
+          {
+            "file": "src/featured/featuredBannerMutations.ts",
+            "matches": true,
+            "sha256": "b29146e33d864163dc69b26fde61b280d83e66572cd8217904447a4af1a428b7"
+          },
+          {
+            "file": "lib/featured/featuredBannerMutations.js",
+            "matches": true,
+            "sha256": "75b0491a414ef60db6bbf8c273cc3256a0f66dbbb056d2095e1958247f4930bc"
+          }
+        ]
+      },
+      {
+        "name": "getFeaturedBannerPresentations",
+        "state": "ACTIVE",
+        "policyOnDeploy": true,
+        "revision": "getfeaturedbannerpresentations-00002-qor",
+        "ready": true,
+        "traffic100": true,
+        "files": [
+          {
+            "file": "src/featured/featuredBannerMutations.ts",
+            "matches": true,
+            "sha256": "b29146e33d864163dc69b26fde61b280d83e66572cd8217904447a4af1a428b7"
+          },
+          {
+            "file": "lib/featured/featuredBannerMutations.js",
+            "matches": true,
+            "sha256": "75b0491a414ef60db6bbf8c273cc3256a0f66dbbb056d2095e1958247f4930bc"
+          }
+        ]
+      },
+      {
+        "name": "cleanupFeaturedBannerImagesOnDelete",
+        "state": "ACTIVE",
+        "policyOnDeploy": true,
+        "revision": "cleanupfeaturedbannerimagesondelete-00006-bik",
+        "ready": true,
+        "traffic100": true,
+        "files": [
+          {
+            "file": "src/featured/featuredBannerCleanup.ts",
+            "matches": true,
+            "sha256": "ace39846cb6e07529910c5611ab1181d40433a7f987bd88a87a01b82d71de364"
+          },
+          {
+            "file": "lib/featured/featuredBannerCleanup.js",
+            "matches": true,
+            "sha256": "b2b7bfbbcee7a8fff65e37acfd5da1503eb1dd4b15a9031b0ddbb572dacce784"
+          },
+          {
+            "file": "src/featured/featuredBannerAssets.ts",
+            "matches": true,
+            "sha256": "c2bf9fbf27d91ceca8104df550a477a91199c4b649659727667e0f3dda376f43"
+          },
+          {
+            "file": "lib/featured/featuredBannerAssets.js",
+            "matches": true,
+            "sha256": "59254258deb10fb9c8eeed15404069882ac8e716e04254ef0f8a1206bf65b73c"
+          }
+        ],
+        "eventarc": {
+          "eventType": "google.cloud.firestore.document.v1.deleted",
+          "retryPolicy": "RETRY_POLICY_RETRY",
+          "conditions": {},
+          "destinationFunction": "projects/ukrainiancommunity-dbd5f/locations/europe-west3/functions/cleanupFeaturedBannerImagesOnDelete",
+          "documentPatternVerified": true
+        },
+        "eventarcConfiguration": {
+          "createTime": "2026-08-23T16:08:54.888891282Z",
+          "destination": {
+            "cloudFunction": "projects/ukrainiancommunity-dbd5f/locations/europe-west3/functions/cleanupFeaturedBannerImagesOnDelete"
+          },
+          "eventDataContentType": "application/protobuf",
+          "eventFilters": [
+            {
+              "attribute": "type",
+              "value": "google.cloud.firestore.document.v1.deleted"
+            },
+            {
+              "attribute": "database",
+              "value": "(default)"
+            },
+            {
+              "attribute": "namespace",
+              "value": "(default)"
+            },
+            {
+              "attribute": "document",
+              "operator": "match-path-pattern",
+              "value": "featuredBanners/{bannerId}"
+            }
+          ],
+          "labels": {
+            "goog-managed-by": "cloudfunctions"
+          },
+          "name": "projects/ukrainiancommunity-dbd5f/locations/eur3/triggers/cleanupfeaturedbannerimagesondelete-348965",
+          "serviceAccount": "919042658790-compute@developer.gserviceaccount.com",
+          "transport": {
+            "pubsub": {
+              "subscription": "projects/ukrainiancommunity-dbd5f/subscriptions/eventarc-eur3-cleanupfeaturedbannerimagesondelete-348965-sub-782",
+              "topic": "projects/ukrainiancommunity-dbd5f/topics/eventarc-eur3-cleanupfeaturedbannerimagesondelete-348965-148"
+            }
+          },
+          "uid": "c1d45e16-279a-433e-be6b-f3cf21fef3e9",
+          "updateTime": "2026-08-23T16:09:11.581557689Z"
+        }
+      },
+      {
+        "name": "cleanupReplacedFeaturedBannerImage",
+        "state": "ACTIVE",
+        "policyOnDeploy": true,
+        "revision": "cleanupreplacedfeaturedbannerimage-00002-lag",
+        "ready": true,
+        "traffic100": true,
+        "files": [
+          {
+            "file": "src/featured/featuredBannerCleanup.ts",
+            "matches": true,
+            "sha256": "ace39846cb6e07529910c5611ab1181d40433a7f987bd88a87a01b82d71de364"
+          },
+          {
+            "file": "lib/featured/featuredBannerCleanup.js",
+            "matches": true,
+            "sha256": "b2b7bfbbcee7a8fff65e37acfd5da1503eb1dd4b15a9031b0ddbb572dacce784"
+          },
+          {
+            "file": "src/featured/featuredBannerAssets.ts",
+            "matches": true,
+            "sha256": "c2bf9fbf27d91ceca8104df550a477a91199c4b649659727667e0f3dda376f43"
+          },
+          {
+            "file": "lib/featured/featuredBannerAssets.js",
+            "matches": true,
+            "sha256": "59254258deb10fb9c8eeed15404069882ac8e716e04254ef0f8a1206bf65b73c"
+          }
+        ],
+        "eventarc": {
+          "eventType": "google.cloud.firestore.document.v1.updated",
+          "retryPolicy": "RETRY_POLICY_RETRY",
+          "conditions": {},
+          "destinationFunction": "projects/ukrainiancommunity-dbd5f/locations/europe-west3/functions/cleanupReplacedFeaturedBannerImage",
+          "documentPatternVerified": true
+        },
+        "eventarcConfiguration": {
+          "createTime": "2026-10-26T16:54:55.803651141Z",
+          "destination": {
+            "cloudFunction": "projects/ukrainiancommunity-dbd5f/locations/europe-west3/functions/cleanupReplacedFeaturedBannerImage"
+          },
+          "eventDataContentType": "application/protobuf",
+          "eventFilters": [
+            {
+              "attribute": "namespace",
+              "value": "(default)"
+            },
+            {
+              "attribute": "document",
+              "operator": "match-path-pattern",
+              "value": "featuredBanners/{bannerId}"
+            },
+            {
+              "attribute": "type",
+              "value": "google.cloud.firestore.document.v1.updated"
+            },
+            {
+              "attribute": "database",
+              "value": "(default)"
+            }
+          ],
+          "labels": {
+            "goog-managed-by": "cloudfunctions"
+          },
+          "name": "projects/ukrainiancommunity-dbd5f/locations/eur3/triggers/cleanupreplacedfeaturedbannerimage-890068",
+          "serviceAccount": "919042658790-compute@developer.gserviceaccount.com",
+          "transport": {
+            "pubsub": {
+              "subscription": "projects/ukrainiancommunity-dbd5f/subscriptions/eventarc-eur3-cleanupreplacedfeaturedbannerimage-890068-sub-664",
+              "topic": "projects/ukrainiancommunity-dbd5f/topics/eventarc-eur3-cleanupreplacedfeaturedbannerimage-890068-624"
+            }
+          },
+          "uid": "7944d9d4-d42b-4536-8f03-6334173b2c97",
+          "updateTime": "2026-10-26T16:55:09.444440306Z"
+        }
+      },
+      {
+        "name": "cleanupStaleFeaturedBannerOrphans",
+        "state": "ACTIVE",
+        "policyOnDeploy": true,
+        "revision": "cleanupstalefeaturedbannerorphans-00004-hov",
+        "ready": true,
+        "traffic100": true,
+        "files": [
+          {
+            "file": "src/content/storageOrphanCleanup.ts",
+            "matches": true,
+            "sha256": "022d28943205d34f12149dc9ebf66eee9638848deca5eea00a76a77d792f0499"
+          },
+          {
+            "file": "lib/content/storageOrphanCleanup.js",
+            "matches": true,
+            "sha256": "669f05ae2b950a01d56e658787d8115fd419283ade241fdb9bc63b8044fd0731"
+          },
+          {
+            "file": "src/featured/featuredBannerAssets.ts",
+            "matches": true,
+            "sha256": "c2bf9fbf27d91ceca8104df550a477a91199c4b649659727667e0f3dda376f43"
+          },
+          {
+            "file": "lib/featured/featuredBannerAssets.js",
+            "matches": true,
+            "sha256": "59254258deb10fb9c8eeed15404069882ac8e716e04254ef0f8a1206bf65b73c"
+          }
+        ]
+      }
+    ],
+    "rulesChanged": false,
+    "indexesChanged": false,
+    "publicCallable": "200 for safe existing-active-banner presentation IDs",
+    "privateOwnerAndMutationProbes": "Unauthenticated includeInactive/save/delete401, rejection proof only",
+    "proof": "deployment-proof.json; production-callable-probes.json; cleanup-scheduler.json",
+    "boundary": "SourceTS and compiledJS hashes matched; each active Ready revision receives100percent traffic, on-deploy runtime policy preserved; trigger destination/pattern/retry configuration read back. No actual production mutation/event used as test."
+  },
+  "performanceAndSemantics": {
+    "countdown": "Local timeline minute/exact-completion updates, no repeated database reads; elapsed target triggers local visibility refresh.",
+    "bounds": "Presentation IDs batched100; target pages50; reference scans pages200; existing public catalog TTL1800seconds retained.",
+    "measurement": "Optional consent preserved. Region means selected feed federal state, not GPS. UTC-day report and existing rollup delay up to5minutes remain.",
+    "claims": "No quantified speedup, load test, exhaustive physical accessibility interaction, Android binary delivery, or instant remote-catalog invalidation claimed."
+  },
+  "delivery": {
+    "testFlightChanged": false,
+    "currentTestFlight": "1.2.1(125)",
+    "includedBlocks": "1–13; block14 not included",
+    "publicRelease": false,
+    "physicalAcceptance": "pending new signed build and user review",
+    "nextBlock": 15,
+    "nextBlockStarted": false
+  },
+  "acceptanceChecklist": [
+    "Create inactive banner; enable countdown, set Vienna date, UK/DE labels; preview/save/reopen.",
+    "Verify all3completion behaviors near deadline: hide counter, show started, hide banner; disable countdown and reopen.",
+    "Swipe first/last cards; check gap/peek and manual interaction resets autoplay; background/return and ReduceMotion.",
+    "Check exact active/inactive banner report, region/period/section and CSV, distinguish zero from loading/error.",
+    "Choose/replace photo, duplicate, delete original and confirm copy artwork remains; cancel unsaved edits and deletion.",
+    "Check target search/loadmore, destination/back, fourplacements and region targeting.",
+    "Check uk/de, light/dark, large text and actual iPhone widths/orientations."
+  ]
+}

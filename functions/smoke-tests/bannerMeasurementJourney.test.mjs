@@ -11,7 +11,7 @@ import {getFirestore, connectFirestoreEmulator, collection, getDocs, orderBy, qu
   where} from "firebase/firestore";
 import {getFunctions, connectFunctionsEmulator, httpsCallable} from "firebase/functions";
 
-const projectID = "demo-uac-banner-journey";
+const projectID = process.env.UAC_BANNER_JOURNEY_PROJECT === "demo-uac-release-audit" ? "demo-uac-release-audit" : "demo-uac-banner-journey";
 const enabled = process.env.UAC_BANNER_JOURNEY === "1";
 
 test("verified choice, banner events and owner report use real SDK and callable boundaries", {

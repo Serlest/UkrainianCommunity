@@ -3,7 +3,7 @@
   "totalBlocks": 19,
   "completedBlocks": 10,
   "remainingBlocks": 9,
-  "nextBlock": 14,
+  "nextBlock": 15,
   "blocks": [
     {
       "number": 1,
@@ -245,8 +245,24 @@
     {
       "number": 14,
       "name": "Баннеры",
-      "status": "pending",
-      "openChecks": []
+      "status": "implemented_verified_pending_final_ci_and_user_signed_build_acceptance",
+      "openChecks": [
+        "B14-FINAL-CI",
+        "B14-72-DEVICE-MATRIX",
+        "B14-79"
+      ],
+      "inventory": "Docs/Verification/BannersInventory20261026.json",
+      "authorizedByUser": "2026-10-26: приступай к 14 пункту, исправь все, сделай каунтдаун; сезонную тему отдельно",
+      "report": "Docs/Verification/BannersAudit20261026.json",
+      "sourceCommit": "03eb652d",
+      "serverCommit": "64398b2a",
+      "reviewedScenarioGroups": 77,
+      "sourceReviewedDeviceMatrixDeferred": 1,
+      "deferredScenarioGroups": 1,
+      "testFlightChanged": false,
+      "serverRulesChanged": false,
+      "serverIndexesChanged": false,
+      "serverFunctionsChanged": true
     },
     {
       "number": 15,
@@ -376,13 +392,13 @@
     "block13AuthorizedByUser": "2026-10-26: Вперед. Думаю что после этого я проверю детально оповещения и уведомления."
   },
   "schemaVersion": 2,
-  "blocksWithImplementedFixes": 13,
+  "blocksWithImplementedFixes": 14,
   "blocksReopenedForCompletion": 0,
-  "notStartedBlocks": 6,
-  "nextNewBlock": 14,
+  "notStartedBlocks": 5,
+  "nextNewBlock": 15,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "User acceptance of blocks11–13 in TestFlight125; block14 requires user approval.",
+  "nextAction": "Block14 source and compatible server implemented/verified; final CI and new signed-build user acceptance remain separate. Block15 requires user instruction.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,
@@ -417,5 +433,5 @@
     "block12PhysicalReadback": "pending user acceptance",
     "block13PhysicalReadback": "pending user acceptance and actual APNs delivery"
   },
-  "currentBlock": 13
+  "currentBlock": 14
 }

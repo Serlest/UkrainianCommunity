@@ -85,7 +85,7 @@ final class BannerMeasurementJourneyUITests: XCTestCase {
             app.launchArguments = ["-ui-testing"]
             app.launchEnvironment = ["UITestBannerReportAudit": "1", "UITestAppLanguage": language,
                                      "UITestAppAppearance": language == "uk" ? "light" : "dark",
-                                     "UITestForceAuthenticatedSession": "1"]
+                                     "UITestForceOwnerSession": "1"]
             app.launch()
             XCTAssertTrue(app.otherElements["screen.bannerReport"].waitForExistence(timeout: 15))
             XCTAssertTrue(app.buttons["bannerReport.bannerFilter"].waitForExistence(timeout: 8))

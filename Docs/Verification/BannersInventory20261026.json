@@ -1,0 +1,1031 @@
+{
+  "block": 14,
+  "totalBlocks": 19,
+  "name": "Баннеры и статистика баннеров",
+  "authorizedByUser": "Давай приступай к 14 пункту по плану, исправь все, сделай каунтдаун, а сезонную тему сделаем отдельно",
+  "baseline": "d9e7955d",
+  "excluded": [
+    "Seasonal app-wide presentation",
+    "General analytics audit (block15)",
+    "Public App Store release",
+    "New TestFlight upload unless requested"
+  ],
+  "oldClientConstraint": "Known banner schema rejects unknown keys; countdown presentation must be stored separately without changing existing featuredBanners keys.",
+  "scenarioChecks": [
+    {
+      "id": "B14-01",
+      "family": "Access",
+      "scenario": "Owner management and statistics; admin",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerManagementViewModel.swift",
+        "UkrainianCommunity/Views/Profile/BannerMeasurementReportView.swift",
+        "functions/src/featured/featuredBannerCountdown.integration.test.ts",
+        "FinalRoleAndDeletionWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-02",
+      "family": "Access",
+      "scenario": "organization roles",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerManagementViewModel.swift",
+        "UkrainianCommunity/Views/Profile/BannerMeasurementReportView.swift",
+        "functions/src/featured/featuredBannerCountdown.integration.test.ts",
+        "FinalRoleAndDeletionWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-03",
+      "family": "Access",
+      "scenario": "member",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerManagementViewModel.swift",
+        "UkrainianCommunity/Views/Profile/BannerMeasurementReportView.swift",
+        "functions/src/featured/featuredBannerCountdown.integration.test.ts",
+        "FinalRoleAndDeletionWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-04",
+      "family": "Access",
+      "scenario": "warned",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerManagementViewModel.swift",
+        "UkrainianCommunity/Views/Profile/BannerMeasurementReportView.swift",
+        "functions/src/featured/featuredBannerCountdown.integration.test.ts",
+        "FinalRoleAndDeletionWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-05",
+      "family": "Access",
+      "scenario": "restricted and guest routes",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerManagementViewModel.swift",
+        "UkrainianCommunity/Views/Profile/BannerMeasurementReportView.swift",
+        "functions/src/featured/featuredBannerCountdown.integration.test.ts",
+        "FinalRoleAndDeletionWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-06",
+      "family": "Catalog",
+      "scenario": "Initial loading",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerManagementViewModel.swift",
+        "UkrainianCommunityTests/FeaturedBannerEditingTests.swift",
+        "CompleteBlock14UnitRegression.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-07",
+      "family": "Catalog",
+      "scenario": "empty",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerManagementViewModel.swift",
+        "UkrainianCommunityTests/FeaturedBannerEditingTests.swift",
+        "CompleteBlock14UnitRegression.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-08",
+      "family": "Catalog",
+      "scenario": "failure",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerManagementViewModel.swift",
+        "UkrainianCommunityTests/FeaturedBannerEditingTests.swift",
+        "CompleteBlock14UnitRegression.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-09",
+      "family": "Catalog",
+      "scenario": "retry",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerManagementViewModel.swift",
+        "UkrainianCommunityTests/FeaturedBannerEditingTests.swift",
+        "CompleteBlock14UnitRegression.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-10",
+      "family": "Catalog",
+      "scenario": "refresh",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerManagementViewModel.swift",
+        "UkrainianCommunityTests/FeaturedBannerEditingTests.swift",
+        "CompleteBlock14UnitRegression.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-11",
+      "family": "Catalog",
+      "scenario": "ordering",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerManagementViewModel.swift",
+        "UkrainianCommunityTests/FeaturedBannerEditingTests.swift",
+        "CompleteBlock14UnitRegression.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-12",
+      "family": "Catalog",
+      "scenario": "search and lifecycle filters",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerManagementViewModel.swift",
+        "UkrainianCommunityTests/FeaturedBannerEditingTests.swift",
+        "CompleteBlock14UnitRegression.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-13",
+      "family": "Editor",
+      "scenario": "Create",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerEditorViewModel.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalLostReplyAndImageSDK.xcresult",
+        "SavedCountdownAndStatisticsWindows.xcresult",
+        "NativePhotoSelection.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-14",
+      "family": "Editor",
+      "scenario": "full edit and independent readback",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerEditorViewModel.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalLostReplyAndImageSDK.xcresult",
+        "SavedCountdownAndStatisticsWindows.xcresult",
+        "NativePhotoSelection.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-15",
+      "family": "Editor",
+      "scenario": "duplicate inactive",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerEditorViewModel.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalLostReplyAndImageSDK.xcresult",
+        "SavedCountdownAndStatisticsWindows.xcresult",
+        "NativePhotoSelection.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-16",
+      "family": "Editor",
+      "scenario": "validation",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerEditorViewModel.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalLostReplyAndImageSDK.xcresult",
+        "SavedCountdownAndStatisticsWindows.xcresult",
+        "NativePhotoSelection.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-17",
+      "family": "Editor",
+      "scenario": "translation",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerEditorViewModel.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalLostReplyAndImageSDK.xcresult",
+        "SavedCountdownAndStatisticsWindows.xcresult",
+        "NativePhotoSelection.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-18",
+      "family": "Editor",
+      "scenario": "image selection/replacement/failure",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerEditorViewModel.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalLostReplyAndImageSDK.xcresult",
+        "SavedCountdownAndStatisticsWindows.xcresult",
+        "NativePhotoSelection.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-19",
+      "family": "Editor",
+      "scenario": "cancellation and unsaved changes",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerEditorViewModel.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalLostReplyAndImageSDK.xcresult",
+        "SavedCountdownAndStatisticsWindows.xcresult",
+        "NativePhotoSelection.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-20",
+      "family": "Targeting",
+      "scenario": "Four placements",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Models/Featured/FeaturedBanner.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "CompleteBlock14UnitRegression.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-21",
+      "family": "Targeting",
+      "scenario": "all Austria/nine states",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Models/Featured/FeaturedBanner.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "CompleteBlock14UnitRegression.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-22",
+      "family": "Targeting",
+      "scenario": "priority",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Models/Featured/FeaturedBanner.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "CompleteBlock14UnitRegression.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-23",
+      "family": "Targeting",
+      "scenario": "active switch",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Models/Featured/FeaturedBanner.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "CompleteBlock14UnitRegression.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-24",
+      "family": "Targeting",
+      "scenario": "schedule and time boundaries",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Models/Featured/FeaturedBanner.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "CompleteBlock14UnitRegression.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-25",
+      "family": "Actions",
+      "scenario": "None/news/event/organization/external",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerActionTargetLoader.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalAccessibleEditorAndTargets.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-26",
+      "family": "Actions",
+      "scenario": "unavailable target",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerActionTargetLoader.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalAccessibleEditorAndTargets.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-27",
+      "family": "Actions",
+      "scenario": "exact destination and back",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Featured/FeaturedBannerActionTargetLoader.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalAccessibleEditorAndTargets.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-28",
+      "family": "Countdown",
+      "scenario": "Off by default",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Models/Featured/FeaturedBannerCountdown.swift",
+        "UkrainianCommunity/Views/Featured/Components/FeaturedBannerCountdownView.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalLostReplyAndImageSDK.xcresult",
+        "NativePickersAndRotation.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-29",
+      "family": "Countdown",
+      "scenario": "optional bilingual label",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Models/Featured/FeaturedBannerCountdown.swift",
+        "UkrainianCommunity/Views/Featured/Components/FeaturedBannerCountdownView.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalLostReplyAndImageSDK.xcresult",
+        "NativePickersAndRotation.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-30",
+      "family": "Countdown",
+      "scenario": "Vienna date/time",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Models/Featured/FeaturedBannerCountdown.swift",
+        "UkrainianCommunity/Views/Featured/Components/FeaturedBannerCountdownView.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalLostReplyAndImageSDK.xcresult",
+        "NativePickersAndRotation.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-31",
+      "family": "Countdown",
+      "scenario": "elapsed days/hours/minutes",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Models/Featured/FeaturedBannerCountdown.swift",
+        "UkrainianCommunity/Views/Featured/Components/FeaturedBannerCountdownView.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalLostReplyAndImageSDK.xcresult",
+        "NativePickersAndRotation.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-32",
+      "family": "Countdown",
+      "scenario": "three completion behaviors",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Models/Featured/FeaturedBannerCountdown.swift",
+        "UkrainianCommunity/Views/Featured/Components/FeaturedBannerCountdownView.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalLostReplyAndImageSDK.xcresult",
+        "NativePickersAndRotation.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-33",
+      "family": "Countdown",
+      "scenario": "preview",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Models/Featured/FeaturedBannerCountdown.swift",
+        "UkrainianCommunity/Views/Featured/Components/FeaturedBannerCountdownView.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalLostReplyAndImageSDK.xcresult",
+        "NativePickersAndRotation.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-34",
+      "family": "Countdown",
+      "scenario": "save/reopen/copy",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Models/Featured/FeaturedBannerCountdown.swift",
+        "UkrainianCommunity/Views/Featured/Components/FeaturedBannerCountdownView.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalLostReplyAndImageSDK.xcresult",
+        "NativePickersAndRotation.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-35",
+      "family": "Countdown",
+      "scenario": "disable",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Models/Featured/FeaturedBannerCountdown.swift",
+        "UkrainianCommunity/Views/Featured/Components/FeaturedBannerCountdownView.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalLostReplyAndImageSDK.xcresult",
+        "NativePickersAndRotation.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-36",
+      "family": "Countdown",
+      "scenario": "offline/resume",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Models/Featured/FeaturedBannerCountdown.swift",
+        "UkrainianCommunity/Views/Featured/Components/FeaturedBannerCountdownView.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalLostReplyAndImageSDK.xcresult",
+        "NativePickersAndRotation.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-37",
+      "family": "Countdown",
+      "scenario": "DST and max text",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Models/Featured/FeaturedBannerCountdown.swift",
+        "UkrainianCommunity/Views/Featured/Components/FeaturedBannerCountdownView.swift",
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "FinalLostReplyAndImageSDK.xcresult",
+        "NativePickersAndRotation.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-38",
+      "family": "Carousel",
+      "scenario": "Separated cards",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Views/Featured/FeaturedBannerCarouselView.swift",
+        "FinalAccessibleEditorAndTargets.xcresult",
+        "NativePickersAndRotation.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-39",
+      "family": "Carousel",
+      "scenario": "next-edge hint",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Views/Featured/FeaturedBannerCarouselView.swift",
+        "FinalAccessibleEditorAndTargets.xcresult",
+        "NativePickersAndRotation.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-40",
+      "family": "Carousel",
+      "scenario": "swipe/auto pause/reset",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Views/Featured/FeaturedBannerCarouselView.swift",
+        "FinalAccessibleEditorAndTargets.xcresult",
+        "NativePickersAndRotation.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-41",
+      "family": "Carousel",
+      "scenario": "first/last transition",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Views/Featured/FeaturedBannerCarouselView.swift",
+        "FinalAccessibleEditorAndTargets.xcresult",
+        "NativePickersAndRotation.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-42",
+      "family": "Carousel",
+      "scenario": "one/zero cards",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Views/Featured/FeaturedBannerCarouselView.swift",
+        "FinalAccessibleEditorAndTargets.xcresult",
+        "NativePickersAndRotation.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-43",
+      "family": "Carousel",
+      "scenario": "refresh/removal",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Views/Featured/FeaturedBannerCarouselView.swift",
+        "FinalAccessibleEditorAndTargets.xcresult",
+        "NativePickersAndRotation.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-44",
+      "family": "Carousel",
+      "scenario": "background",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Views/Featured/FeaturedBannerCarouselView.swift",
+        "FinalAccessibleEditorAndTargets.xcresult",
+        "NativePickersAndRotation.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-45",
+      "family": "Carousel",
+      "scenario": "Reduce Motion",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Views/Featured/FeaturedBannerCarouselView.swift",
+        "FinalAccessibleEditorAndTargets.xcresult",
+        "NativePickersAndRotation.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-46",
+      "family": "Carousel",
+      "scenario": "VoiceOver",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/Views/Featured/FeaturedBannerCarouselView.swift",
+        "FinalAccessibleEditorAndTargets.xcresult",
+        "NativePickersAndRotation.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-47",
+      "family": "Measurement",
+      "scenario": "Selected settled visible artwork dwell",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "functions/smoke-tests/bannerMeasurementJourney.test.mjs",
+        "measurement-real-sdk.log",
+        "FinalBannerWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-48",
+      "family": "Measurement",
+      "scenario": "adjacent edge excluded",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "functions/smoke-tests/bannerMeasurementJourney.test.mjs",
+        "measurement-real-sdk.log",
+        "FinalBannerWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-49",
+      "family": "Measurement",
+      "scenario": "early click",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "functions/smoke-tests/bannerMeasurementJourney.test.mjs",
+        "measurement-real-sdk.log",
+        "FinalBannerWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-50",
+      "family": "Measurement",
+      "scenario": "duplicate suppression",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "functions/smoke-tests/bannerMeasurementJourney.test.mjs",
+        "measurement-real-sdk.log",
+        "FinalBannerWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-51",
+      "family": "Measurement",
+      "scenario": "consent on/off/withdrawal",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "functions/smoke-tests/bannerMeasurementJourney.test.mjs",
+        "measurement-real-sdk.log",
+        "FinalBannerWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-52",
+      "family": "Measurement",
+      "scenario": "queue retry and account switch",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunityTests/BannerCountdownTests.swift",
+        "functions/smoke-tests/bannerMeasurementJourney.test.mjs",
+        "measurement-real-sdk.log",
+        "FinalBannerWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-53",
+      "family": "Statistics",
+      "scenario": "Exact active/inactive banner",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Analytics/BannerMeasurementReportViewModel.swift",
+        "UkrainianCommunity/Views/Profile/BannerMeasurementReportView.swift",
+        "SavedCountdownAndStatisticsWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-54",
+      "family": "Statistics",
+      "scenario": "current catalog only",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Analytics/BannerMeasurementReportViewModel.swift",
+        "UkrainianCommunity/Views/Profile/BannerMeasurementReportView.swift",
+        "SavedCountdownAndStatisticsWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-55",
+      "family": "Statistics",
+      "scenario": "UTC period",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Analytics/BannerMeasurementReportViewModel.swift",
+        "UkrainianCommunity/Views/Profile/BannerMeasurementReportView.swift",
+        "SavedCountdownAndStatisticsWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-56",
+      "family": "Statistics",
+      "scenario": "region means displayed feed selection",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Analytics/BannerMeasurementReportViewModel.swift",
+        "UkrainianCommunity/Views/Profile/BannerMeasurementReportView.swift",
+        "SavedCountdownAndStatisticsWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-57",
+      "family": "Statistics",
+      "scenario": "sections",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Analytics/BannerMeasurementReportViewModel.swift",
+        "UkrainianCommunity/Views/Profile/BannerMeasurementReportView.swift",
+        "SavedCountdownAndStatisticsWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-58",
+      "family": "Statistics",
+      "scenario": "zero vs error",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Analytics/BannerMeasurementReportViewModel.swift",
+        "UkrainianCommunity/Views/Profile/BannerMeasurementReportView.swift",
+        "SavedCountdownAndStatisticsWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-59",
+      "family": "Statistics",
+      "scenario": "refresh/caching",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Analytics/BannerMeasurementReportViewModel.swift",
+        "UkrainianCommunity/Views/Profile/BannerMeasurementReportView.swift",
+        "SavedCountdownAndStatisticsWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-60",
+      "family": "Statistics",
+      "scenario": "CSV",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Analytics/BannerMeasurementReportViewModel.swift",
+        "UkrainianCommunity/Views/Profile/BannerMeasurementReportView.swift",
+        "SavedCountdownAndStatisticsWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-61",
+      "family": "Statistics",
+      "scenario": "deleted banner",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/Analytics/BannerMeasurementReportViewModel.swift",
+        "UkrainianCommunity/Views/Profile/BannerMeasurementReportView.swift",
+        "SavedCountdownAndStatisticsWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-62",
+      "family": "Safety",
+      "scenario": "Owner server authorization/MFA/legal",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "functions/src/featured/featuredBannerCountdown.integration.test.ts",
+        "functions/src/featured/featuredBannerAssets.test.ts",
+        "server-final-regression.log",
+        "FinalLostReplyAndImageSDK.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-63",
+      "family": "Safety",
+      "scenario": "canonical identity",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "functions/src/featured/featuredBannerCountdown.integration.test.ts",
+        "functions/src/featured/featuredBannerAssets.test.ts",
+        "server-final-regression.log",
+        "FinalLostReplyAndImageSDK.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-64",
+      "family": "Safety",
+      "scenario": "lost reply",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "functions/src/featured/featuredBannerCountdown.integration.test.ts",
+        "functions/src/featured/featuredBannerAssets.test.ts",
+        "server-final-regression.log",
+        "FinalLostReplyAndImageSDK.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-65",
+      "family": "Safety",
+      "scenario": "concurrent editing/mutations",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "functions/src/featured/featuredBannerCountdown.integration.test.ts",
+        "functions/src/featured/featuredBannerAssets.test.ts",
+        "server-final-regression.log",
+        "FinalLostReplyAndImageSDK.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-66",
+      "family": "Safety",
+      "scenario": "image ownership",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "functions/src/featured/featuredBannerCountdown.integration.test.ts",
+        "functions/src/featured/featuredBannerAssets.test.ts",
+        "server-final-regression.log",
+        "FinalLostReplyAndImageSDK.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-67",
+      "family": "Safety",
+      "scenario": "private data",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "functions/src/featured/featuredBannerCountdown.integration.test.ts",
+        "functions/src/featured/featuredBannerAssets.test.ts",
+        "server-final-regression.log",
+        "FinalLostReplyAndImageSDK.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-68",
+      "family": "Safety",
+      "scenario": "backwards-compatible old clients",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "functions/src/featured/featuredBannerCountdown.integration.test.ts",
+        "functions/src/featured/featuredBannerAssets.test.ts",
+        "server-final-regression.log",
+        "FinalLostReplyAndImageSDK.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-69",
+      "family": "Visual",
+      "scenario": "uk/de",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunityUITests/BannersAuditUITests.swift",
+        "FinalAccessibleEditorAndTargets.xcresult",
+        "FinalRoleAndDeletionWindows.xcresult",
+        "NativePhotoSelection.xcresult",
+        "SavedCountdownAndStatisticsWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-70",
+      "family": "Visual",
+      "scenario": "light/dark",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunityUITests/BannersAuditUITests.swift",
+        "FinalAccessibleEditorAndTargets.xcresult",
+        "FinalRoleAndDeletionWindows.xcresult",
+        "NativePhotoSelection.xcresult",
+        "SavedCountdownAndStatisticsWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-71",
+      "family": "Visual",
+      "scenario": "normal/largest type",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunityUITests/BannersAuditUITests.swift",
+        "FinalAccessibleEditorAndTargets.xcresult",
+        "FinalRoleAndDeletionWindows.xcresult",
+        "NativePhotoSelection.xcresult",
+        "SavedCountdownAndStatisticsWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-72",
+      "family": "Visual",
+      "scenario": "narrow width/landscape",
+      "status": "reviewed_adaptive_source_device_matrix_deferred",
+      "evidence": [
+        "UkrainianCommunityUITests/BannersAuditUITests.swift",
+        "FinalAccessibleEditorAndTargets.xcresult",
+        "FinalRoleAndDeletionWindows.xcresult",
+        "NativePhotoSelection.xcresult",
+        "SavedCountdownAndStatisticsWindows.xcresult"
+      ],
+      "coverageBoundary": "Adaptive layout reviewed and largest text exercised at simulator width390; exhaustive landscape/narrow-device runtime matrix remains part of signed-device acceptance."
+    },
+    {
+      "id": "B14-73",
+      "family": "Visual",
+      "scenario": "long real values",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunityUITests/BannersAuditUITests.swift",
+        "FinalAccessibleEditorAndTargets.xcresult",
+        "FinalRoleAndDeletionWindows.xcresult",
+        "NativePhotoSelection.xcresult",
+        "SavedCountdownAndStatisticsWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-74",
+      "family": "Visual",
+      "scenario": "keyboard",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunityUITests/BannersAuditUITests.swift",
+        "FinalAccessibleEditorAndTargets.xcresult",
+        "FinalRoleAndDeletionWindows.xcresult",
+        "NativePhotoSelection.xcresult",
+        "SavedCountdownAndStatisticsWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-75",
+      "family": "Visual",
+      "scenario": "shared icons/search",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunityUITests/BannersAuditUITests.swift",
+        "FinalAccessibleEditorAndTargets.xcresult",
+        "FinalRoleAndDeletionWindows.xcresult",
+        "NativePhotoSelection.xcresult",
+        "SavedCountdownAndStatisticsWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-76",
+      "family": "Visual",
+      "scenario": "confirmations and all nested windows",
+      "status": "reviewed_source_and_targeted_evidence",
+      "evidence": [
+        "UkrainianCommunityUITests/BannersAuditUITests.swift",
+        "FinalAccessibleEditorAndTargets.xcresult",
+        "FinalRoleAndDeletionWindows.xcresult",
+        "NativePhotoSelection.xcresult",
+        "SavedCountdownAndStatisticsWindows.xcresult"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-77",
+      "family": "Delivery",
+      "scenario": "Source/compiled server/readiness/callable evidence if deployed",
+      "status": "verified_deployed_source_runtime_and_callable",
+      "evidence": [
+        "Docs/Verification/BannersAudit20261026.json",
+        "deployment-proof.json"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-78",
+      "family": "Delivery",
+      "scenario": "local/CI/test binary separate",
+      "status": "verified_delivery_boundary_ci_pending",
+      "evidence": [
+        "Docs/Verification/BannersAudit20261026.json",
+        "deployment-proof.json"
+      ],
+      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+    },
+    {
+      "id": "B14-79",
+      "family": "Delivery",
+      "scenario": "physical acceptance boundary",
+      "status": "deferred_user_signed_build_acceptance",
+      "evidence": [
+        "Docs/Verification/BannersAudit20261026.json",
+        "deployment-proof.json"
+      ],
+      "coverageBoundary": "No new TestFlight build requested in this turn. Build125 excludes block14."
+    }
+  ],
+  "evidenceBase": "build/audit-banners-20261026; repository paths are relative to Git root",
+  "report": "Docs/Verification/BannersAudit20261026.json"
+}
