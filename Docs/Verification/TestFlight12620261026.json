@@ -1,0 +1,110 @@
+{
+  "version": "1.2.1",
+  "build": "126",
+  "requestedByUser": "Сделай билд",
+  "sourceCommit": "dfb7f3aa79441d56b09ebb4d12d615f6eda8f659",
+  "productSourceCommit": "cad4bf0b",
+  "bannerCompatibilityFixCommit": "ff4e0a4f",
+  "audience": "internal TestFlight",
+  "publicRelease": false,
+  "archive": "build/UAC-126.xcarchive",
+  "archiveResult": "ARCHIVE SUCCEEDED",
+  "exportResult": "EXPORT SUCCEEDED; Upload succeeded; Uploaded package is processing",
+  "uploadMethod": "existing signed-in Xcode account; same confirmed route as125; no credentials printed",
+  "exportOptions": "build/ExportOptions-TestFlight-Internal.plist",
+  "serverCompatibility": "validate_release_configuration.py --verify-deployed-analytics passed for126 before archive",
+  "productSourceCI": {
+    "runId": 40375126735,
+    "conclusion": "success",
+    "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40375126735"
+  },
+  "preBuildHeadCI": {
+    "runId": 40378760186,
+    "conclusion": "success"
+  },
+  "buildNumberCI": {
+    "runId": 40379810314,
+    "status": "in_progress",
+    "conclusion": "pending",
+    "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40379810314",
+    "boundary": "Separate full validation for version-number-only change; source implementation run already passed. Main workflow preserves active validation when this delivery report is pushed."
+  },
+  "archiveInfo": {
+    "CFBundleIdentifier": "at.serlest.UkrainianCommunity",
+    "CFBundleShortVersionString": "1.2.1",
+    "CFBundleVersion": "126",
+    "ITSAppUsesNonExemptEncryption": false
+  },
+  "processingState": "VALID",
+  "internalBuildState": "IN_BETA_TESTING",
+  "testFlightAvailable": true,
+  "assignedGroups": [
+    {
+      "name": "Beta Tester",
+      "internal": true,
+      "containsBuild": true
+    }
+  ],
+  "appleUploadState": [
+    {
+      "errors": [],
+      "warnings": [],
+      "infos": [],
+      "state": "COMPLETE"
+    }
+  ],
+  "readback": "build/testflight-126/asc-final.json",
+  "testNotes": {
+    "source": "build/testflight-126/notes.json",
+    "published": true,
+    "readBackExactly": true,
+    "locales": [
+      "uk",
+      "de-DE",
+      "en-US"
+    ]
+  },
+  "implementedBlocksIncluded": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+  ],
+  "physicalVerification": "Pending user acceptance on actual iPhone; delivery does not close B14-72 physical width/orientation matrix or B14-79 acceptance.",
+  "symbols": {
+    "appSymbolsMatch": true,
+    "uuid": "DF1513D6-2726-3B0D-8D82-F26A518C7C30",
+    "externalSDKMissingSymbols": [
+      "FirebaseFirestoreInternal",
+      "absl",
+      "grpc",
+      "grpcpp",
+      "openssl_grpc"
+    ],
+    "prior125ExternalSymbolWarnings": 5
+  },
+  "warningBoundary": "Five non-blocking export warnings concern missing vendor dSYMs for FirebaseFirestoreInternal/absl/grpc/grpcpp/openssl_grpc. Same warnings observed in125. Main application dSYM UUID matches the archive binary; Apple upload COMPLETE with empty error/warning arrays. No vendor SDK change made merely to suppress these diagnostics.",
+  "boundaries": [
+    "Internal TestFlight only; no public App Store submission/release.",
+    "Seasonal app-wide theme excluded as agreed.",
+    "No production banner/campaign/message created for testing.",
+    "Pre-existing package ordering and localization extraction-only changes preserved and excluded from commits; no translated values changed."
+  ],
+  "whatToCheck": [
+    "Countdown on/off, Vienna date/time, uk/de label, save/reopen and all3completion actions.",
+    "Card spacing/peek, swipe/autoplay reset, background/return.",
+    "Exact active/inactive banner report, period/region/section and CSV.",
+    "Photo selection/replacement, duplication/shared image, cancel/discard/delete and target search/loadmore/links.",
+    "Both languages, light/dark, large type and physical iPhone orientations."
+  ]
+}

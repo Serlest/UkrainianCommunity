@@ -3,7 +3,7 @@
   "totalBlocks": 19,
   "date": "2026-10-26",
   "name": "Банери та статистика",
-  "status": "implemented_verified_pending_user_signed_build_acceptance",
+  "status": "implemented_verified_pending_user_testflight_acceptance",
   "inventory": "Docs/Verification/BannersInventory20261026.json",
   "scenarioChecks": 79,
   "clientSourceCommit": "03eb652d",
@@ -466,13 +466,21 @@
     "claims": "No quantified speedup, load test, exhaustive physical accessibility interaction, Android binary delivery, or instant remote-catalog invalidation claimed."
   },
   "delivery": {
-    "testFlightChanged": false,
-    "currentTestFlight": "1.2.1(125)",
-    "includedBlocks": "1–13; block14 not included",
+    "testFlightChanged": true,
+    "currentTestFlight": "1.2.1(126)",
+    "includedBlocks": "1–14",
     "publicRelease": false,
-    "physicalAcceptance": "pending new signed build and user review",
+    "physicalAcceptance": "TestFlight126 available; user physical acceptance and width/orientation matrix pending",
     "nextBlock": 15,
-    "nextBlockStarted": false
+    "nextBlockStarted": false,
+    "deliveryReport": "Docs/Verification/TestFlight12620261026.json",
+    "buildNumberCI": {
+      "runId": 40379810314,
+      "status": "in_progress",
+      "conclusion": "pending",
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40379810314",
+      "boundary": "Separate full validation for version-number-only change; source implementation run already passed. Main workflow preserves active validation when this delivery report is pushed."
+    }
   },
   "acceptanceChecklist": [
     "Create inactive banner; enable countdown, set Vienna date, UK/DE labels; preview/save/reopen.",
