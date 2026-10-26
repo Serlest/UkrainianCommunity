@@ -96,18 +96,18 @@ struct NotificationInboxView: View {
             }
             Button(AppStrings.Common.cancel, role: .cancel) { pendingDelete = nil }
         } message: { Text(AppStrings.NotificationInbox.deleteConfirmationMessage) }
-        .confirmationDialog(
-            AppStrings.NotificationInbox.clearConfirmationTitle,
-            isPresented: $isShowingClearConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.NotificationInbox.clearAll, role: .destructive) {
-                Task { await viewModel.clearAll() }
+        .sheet(isPresented: $isShowingClearConfirmation) {
+            NotificationConfirmationSheet(title: AppStrings.NotificationInbox.clearConfirmationTitle,
+                message: AppStrings.NotificationInbox.clearConfirmationMessage,
+                cancel: { isShowingClearConfirmation = false }) {
+                NotificationConfirmationAction(title: AppStrings.NotificationInbox.clearAll,
+                    id: "notificationInbox.confirmClear", role: .destructive) {
+                    isShowingClearConfirmation = false
+                    Task { await viewModel.clearAll() }
+                }
+                NotificationConfirmationAction(title: AppStrings.Common.cancel,
+                    id: "notificationInbox.cancelClear", role: .cancel) { isShowingClearConfirmation = false }
             }
-            .accessibilityIdentifier("notificationInbox.confirmClear")
-            Button(AppStrings.Common.cancel, role: .cancel) {}.accessibilityIdentifier("notificationInbox.cancelClear")
-        } message: {
-            Text(AppStrings.NotificationInbox.clearConfirmationMessage)
         }
     }
 

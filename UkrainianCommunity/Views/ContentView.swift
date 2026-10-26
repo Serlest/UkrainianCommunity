@@ -503,6 +503,7 @@ struct ContentView: View {
     private func openAnnouncementFeedback(_ item: UserAnnouncement) {
         if authState.isAuthenticated {
             announcementFeedback = nil
+            guard ProfileAccessPolicy(user: authState.user).canContactSupport else { return }
             selectedTab = .profile
             profileNavigationPath.append(.announcementFeedback(item))
         } else {

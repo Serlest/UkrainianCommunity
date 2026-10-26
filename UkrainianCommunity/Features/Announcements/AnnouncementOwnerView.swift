@@ -169,20 +169,33 @@ struct AnnouncementEditorView: View {
             .sheet(isPresented: $preview) { AnnouncementPreviewView(item: draft, selectedUsers: selectedUsers) }
             .sheet(isPresented: $users) { NavigationStack { AnnouncementUserPicker(repository: repository, selected: $draft.userIds) } }
             .sheet(isPresented: $reviewSend) { reviewSheet }
-            .confirmationDialog(AnnouncementManagementText.value("discardTitle"), isPresented: $discard, titleVisibility: .visible) {
-                Button(AnnouncementStrings.save) { run { try await save(); dismiss() } }.disabled(!draft.saveIssues.isEmpty)
-                Button(AnnouncementManagementText.value("discard"), role: .destructive) { dismiss() }.accessibilityIdentifier("announcements.discard")
-                Button(AnnouncementManagementText.value("continue"), role: .cancel) { }
+            .sheet(isPresented: $discard) {
+                NotificationConfirmationSheet(title: AnnouncementManagementText.value("discardTitle"), cancel: { discard = false }) {
+                    NotificationConfirmationAction(title: AnnouncementStrings.save, id: "announcements.saveBeforeClose") {
+                        discard = false; run { try await save(); dismiss() }
+                    }.disabled(!draft.saveIssues.isEmpty)
+                    NotificationConfirmationAction(title: AnnouncementManagementText.value("discard"), id: "announcements.discard", role: .destructive) { discard = false; dismiss() }
+                    NotificationConfirmationAction(title: AnnouncementManagementText.value("continue"), id: "announcements.continueEditing", role: .cancel) { discard = false }
+                }
             }
-            .confirmationDialog(AnnouncementManagementText.value("stopTitle"), isPresented: $stop, titleVisibility: .visible) {
-                Button(AnnouncementStrings.cancel, role: .destructive) { run { try await cancelAnnouncement() } }
-                    .accessibilityIdentifier("announcements.confirmCancel")
-            } message: { Text(AnnouncementManagementText.value("stopHelp")) }
-            .alert(NotificationAuditCopy.reloadTitle, isPresented: $reloadConfirmation) {
-                Button(NotificationAuditCopy.reload, role: .destructive) { run { try await reloadSaved() } }
-                    .accessibilityIdentifier("announcements.confirmReload")
-                Button(AppStrings.Common.cancel, role: .cancel) {}
-            } message: { Text(NotificationAuditCopy.reloadMessage) }
+            .sheet(isPresented: $stop) {
+                NotificationConfirmationSheet(title: AnnouncementManagementText.value("stopTitle"),
+                    message: AnnouncementManagementText.value("stopHelp"), cancel: { stop = false }) {
+                    NotificationConfirmationAction(title: AnnouncementStrings.cancel, id: "announcements.confirmCancel", role: .destructive) {
+                        stop = false; run { try await cancelAnnouncement() }
+                    }
+                    NotificationConfirmationAction(title: AppStrings.Common.cancel, id: "announcements.cancelStop", role: .cancel) { stop = false }
+                }
+            }
+            .sheet(isPresented: $reloadConfirmation) {
+                NotificationConfirmationSheet(title: NotificationAuditCopy.reloadTitle,
+                    message: NotificationAuditCopy.reloadMessage, cancel: { reloadConfirmation = false }) {
+                    NotificationConfirmationAction(title: NotificationAuditCopy.reload, id: "announcements.confirmReload", role: .destructive) {
+                        reloadConfirmation = false; run { try await reloadSaved() }
+                    }
+                    NotificationConfirmationAction(title: AppStrings.Common.cancel, id: "announcements.cancelReload", role: .cancel) { reloadConfirmation = false }
+                }
+            }
         }
     }
     private var publicationSection: some View {

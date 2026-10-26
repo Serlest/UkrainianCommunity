@@ -64,6 +64,7 @@ final class MockAnnouncementRepository: AnnouncementRepository {
         if ProcessInfo.processInfo.environment["UITestAnnouncements"] == "1" {
             for key in UserDefaults.standard.dictionaryRepresentation().keys where key.hasPrefix("announcements.receipt.user-1.ui-announcement.") { UserDefaults.standard.removeObject(forKey: key) }
             var value = UserAnnouncement(); value.id = "ui-announcement"; value.status = "published"; value.mode = "acknowledge"
+            value.feedback = auditFixture("UITestAnnouncementFeedback")
             value.title = AnnouncementText(uk: "Перевірка оновлення", de: "Update prüfen")
             value.body = AnnouncementText(uk: "Перевірте нову функцію та напишіть нам через звернення.", de: "Bitte prüfen Sie die neue Funktion und senden Sie uns eine Rückmeldung.")
             value.startsAt -= 1000; items = [value]

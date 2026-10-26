@@ -5,6 +5,7 @@ struct AnnouncementPopup: View {
     @ObservedObject var coordinator: AnnouncementCoordinator
     let feedback: (UserAnnouncement) -> Void
     @State private var busy = false
+    @EnvironmentObject private var authState: AuthState
     var body: some View {
         NavigationStack {
             EditorScreenShell(title: AnnouncementStrings.history, closeStyle: .cancel,
@@ -13,7 +14,7 @@ struct AnnouncementPopup: View {
                     Text(item.title.localized()).font(.title2.bold())
                     Text(item.body.localized()).textSelection(.enabled)
                     if let error = coordinator.error { Text(error).font(.caption).foregroundStyle(AppTheme.textSecondary) }
-                    if item.feedback {
+                    if item.feedback && ProfileAccessPolicy(user: authState.user).canContactSupport {
                         Button(AnnouncementStrings.writeFeedback) {
                             let session = coordinator.sessionVersion
                             busy = true
@@ -25,7 +26,7 @@ struct AnnouncementPopup: View {
                                 guard session == coordinator.sessionVersion else { return }
                                 feedback(item)
                             }
-                        }.appActionButtonStyle(.primary)
+                        }.appActionButtonStyle(.primary).accessibilityIdentifier("announcements.writeFeedback")
                     }
                     if item.mode == "acknowledge" {
                         Button(AnnouncementStrings.ack) { close(acknowledge: true) }
@@ -54,6 +55,7 @@ struct AnnouncementPopup: View {
 
 struct AnnouncementHistoryView: View {
     @ObservedObject var coordinator: AnnouncementCoordinator
+    @EnvironmentObject private var authState: AuthState
     var body: some View {
         ProfileDestinationLayout(title: AnnouncementStrings.history, introSubtitle: AnnouncementStrings.subtitle) {
             if let error = coordinator.error {
@@ -67,7 +69,7 @@ struct AnnouncementHistoryView: View {
                     ProfileDestinationLayout(title: AnnouncementStrings.history, introSubtitle: "") { AnnouncementSection {
                         Text(item.title.localized()).font(.title2.bold())
                         Text(item.body.localized()).textSelection(.enabled)
-                        if item.feedback && item.active(at: coordinator.now) {
+                        if item.feedback && item.active(at: coordinator.now) && ProfileAccessPolicy(user: authState.user).canContactSupport {
                             Button(AnnouncementStrings.writeFeedback) {
                                 let session = coordinator.sessionVersion
                                 Task {
@@ -78,6 +80,7 @@ struct AnnouncementHistoryView: View {
                                 }
                             }
                             .disabled(coordinator.isProcessing(item))
+                            .accessibilityIdentifier("announcements.writeFeedback")
                         }
                         if item.mode == "acknowledge" && !coordinator.isAcknowledged(item) && item.active(at: coordinator.now) {
                             Button(AnnouncementStrings.ack) {
