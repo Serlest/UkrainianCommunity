@@ -764,9 +764,11 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
     }
 
     func fetchFeedback(id: String) async throws -> FeedbackItem {
-        let document = try await collection.document(id).getDocument()
-        guard document.exists else { throw AppError.notFound }
-        return makeFeedbackItem(from: document)
+        do {
+            let document = try await collection.document(id).getDocument(source: .server)
+            guard document.exists else { throw AppError.notFound }
+            return makeFeedbackItem(from: document)
+        } catch { throw Self.appError(from: error) }
     }
 
     func updateFeedbackStatus(id: String, status: FeedbackStatus) async throws {

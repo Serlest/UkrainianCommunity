@@ -88,6 +88,25 @@ struct FeedbackAuditStateTests {
         #expect(model.items.map(\.id) == ["current"])
     }
 
+    @Test func detailErrorMustBeRetriedBeforeActionsBecomeAvailable() async {
+        let repo = FeedbackStateProbe()
+        let model = FeedbackInboxViewModel(repository: repo)
+        await model.loadIfNeeded(actorID: "owner")
+        repo.failNextDetail = true
+        #expect(await model.prepareDetail(id: "request", actorID: "owner") == nil)
+        #expect(model.detailStates["request"]?.isReady == false)
+        #expect(await model.prepareDetail(id: "request", actorID: "owner") != nil)
+        #expect(model.detailStates["request"]?.isReady == true)
+    }
+
+    @Test func personalDetailRejectsAnotherSubmitterEvenIfAdapterReturnsIt() async {
+        let repo = FeedbackStateProbe()
+        let model = MyFeedbackViewModel(repository: repo)
+        await model.loadIfNeeded(userID: "A")
+        #expect(await model.prepareDetail(id: "request", userID: "A") == nil)
+        #expect(model.detailStates["request"]?.isReady == false)
+    }
+
     private func settle() async { for _ in 0..<60 { await Task.yield() } }
 }
 

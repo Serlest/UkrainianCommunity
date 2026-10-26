@@ -133,6 +133,7 @@ private struct DirectoryFeedbackComposer: View {
     @State private var isSending = false
     @State private var error: String?
     @State private var sent = false
+    @State private var pendingSubmission: FeedbackItem?
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
     private var trimmed: String { message.trimmingCharacters(in: .whitespacesAndNewlines) }
 
@@ -153,10 +154,12 @@ private struct DirectoryFeedbackComposer: View {
                             .font(.footnote)
                             .foregroundStyle(AppTheme.textSecondary)
                         TextEditor(text: $message)
+                            .scrollContentBackground(.hidden)
                             .frame(minHeight: 150)
                             .padding(8)
                             .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 12))
                             .accessibilityIdentifier("directory.feedback.message")
+                            .disabled(isSending)
                         Text("\(trimmed.count)/2000")
                             .font(.caption)
                             .foregroundStyle(trimmed.count > 2000 ? AppTheme.accentDestructiveForeground : AppTheme.textSecondary)
@@ -172,8 +175,9 @@ private struct DirectoryFeedbackComposer: View {
             .background(AppBackgroundView())
             .navigationTitle(kind.title(language))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button(AppStrings.Common.done) { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button(AppStrings.Common.done) { dismiss() }.disabled(isSending) } }
         }
+        .interactiveDismissDisabled(isSending)
     }
 
     private func submit() async {
@@ -183,15 +187,21 @@ private struct DirectoryFeedbackComposer: View {
         defer { isSending = false }
         error = nil
         let now = Date()
-        let item = FeedbackItem(id: UUID().uuidString, type: kind.type, subject: kind.subject(language),
+        let subject = kind.subject(language)
+        let previous = pendingSubmission
+        let item = previous.flatMap {
+            $0.userId == user.id && $0.type == kind.type && $0.subject == subject && $0.message == trimmed ? $0 : nil
+        } ?? FeedbackItem(id: UUID().uuidString, type: kind.type, subject: subject,
             message: trimmed, status: .open, createdAt: now, updatedAt: now,
             userId: user.id, userDisplayName: user.preferredDisplayName,
             ownerReply: nil, repliedAt: nil, repliedByUserId: nil,
             lastMessageText: trimmed, lastMessageAt: now, lastMessageByUserId: user.id,
             lastMessageByRole: .user, unreadForOwner: true, unreadForUser: false)
+        pendingSubmission = item
         do {
             try await repository.submitFeedback(item)
             guard ProfileAccessIdentity(user: authState.user) == identity else { return }
+            pendingSubmission = nil
             sent = true
         } catch {
             guard ProfileAccessIdentity(user: authState.user) == identity else { return }

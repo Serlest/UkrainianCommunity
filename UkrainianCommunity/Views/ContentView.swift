@@ -796,6 +796,7 @@ struct ContentView: View {
         }
 
         lastHandledAuthIdentityResetKey = key
+        contentReportCoordinator.dismiss()
 
         selectTabIfNeeded(.home)
         isShowingNotificationInbox = false

@@ -202,7 +202,8 @@ struct PrimaryActionButton: View {
                         .tint(.white)
                 } else if let systemImage {
                     Image(systemName: systemImage)
-                        .font(.subheadline.weight(.semibold))
+                        .font(.system(size: 17, weight: .semibold))
+                        .accessibilityHidden(true)
                 }
 
                 Text(isLoading ? loadingTitle : title)
@@ -210,6 +211,7 @@ struct PrimaryActionButton: View {
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
             .frame(minHeight: AppTheme.iconButtonSize)

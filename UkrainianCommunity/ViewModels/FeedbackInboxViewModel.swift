@@ -14,9 +14,21 @@ final class FeedbackInboxViewModel: ObservableObject {
     @Published private(set) var messageErrorsByFeedbackID: [String: AppError] = [:]
     @Published private(set) var error: AppError?
     @Published private(set) var actionError: AppError?
+    @Published private(set) var failedLoadMore = false
+    private var actionErrorRecordID: String?
+
+    func actionError(for feedbackID: String) -> AppError? {
+        actionErrorRecordID == feedbackID ? actionError : nil
+    }
+    private func setActionError(_ error: AppError, for feedbackID: String?) {
+        actionErrorRecordID = feedbackID; actionError = error
+    }
     @Published private(set) var updatingFeedbackIDs = Set<String>()
     @Published private(set) var deletingFeedbackIDs = Set<String>()
     @Published private(set) var isClearingInbox = false
+
+    @Published private(set) var detailStates: [String: FeedbackRecordState] = [:]
+    private var detailReadTokens: [String: UUID] = [:]
 
     private let repository: FeedbackRepository
     private let notificationInboxRepository: NotificationInboxRepository?
@@ -36,7 +48,7 @@ final class FeedbackInboxViewModel: ObservableObject {
     private var pendingOperations = PendingFeedbackOperationBuffer()
     private var pendingDsaDecisionAttempts: [String: (operationID: String, expectedRevision: String)] = [:]
     private var activeActorID: String?
-    private var inboxLoad: (id: UUID, session: UUID, query: FeedbackInboxQuery, task: Task<FeedbackInboxPage, Error>)?
+    private var inboxLoad: (id: UUID, session: UUID, query: FeedbackInboxQuery, loadedRange: Int, task: Task<FeedbackInboxPage, Error>)?
 
     init(
         repository: FeedbackRepository,
@@ -60,20 +72,32 @@ final class FeedbackInboxViewModel: ObservableObject {
         guard items.isEmpty else { _ = startListeningInbox(); return }
         await refresh(actorID: actorID)
     }
-    func refresh(actorID: String) async {
+    func refresh(actorID: String, preservingLoadedRange: Bool = false) async {
         if activeActorID != actorID { reset(for: actorID) }
         query.principalID = actorID
-        if let load = inboxLoad, load.session == session, load.query == query {
+        let loadedRange = preservingLoadedRange ? max(30, items.count) : 30
+        if let load = inboxLoad, load.session == session, load.query == query, load.loadedRange >= loadedRange {
             _ = await load.task.result
             return
         }
         inboxLoad?.task.cancel()
         generation = UUID(); let expected = generation
-        isLoading = true; isLoadingMore = false; error = nil
+        isLoading = true; isLoadingMore = false; error = nil; failedLoadMore = false
         let request = query
         let loadID = UUID()
-        let task = Task { [repository] in try await repository.fetchOwnerInbox(query: request, after: nil) }
-        inboxLoad = (loadID, session, request, task)
+        let task = Task { [repository] in
+            var page = try await repository.fetchOwnerInbox(query: request, after: nil)
+            var records = page.items
+            var seen = Set(records.map(\.id))
+            while records.count < loadedRange, let cursor = page.cursor {
+                let next = try await repository.fetchOwnerInbox(query: request, after: cursor)
+                guard next.cursor != cursor else { throw AppError.validationFailed }
+                records += next.items.filter { seen.insert($0.id).inserted }
+                page = next
+            }
+            return FeedbackInboxPage(items: records, counts: page.counts, cursor: page.cursor)
+        }
+        inboxLoad = (loadID, session, request, loadedRange, task)
         defer { if inboxLoad?.id == loadID { inboxLoad = nil } }
         do {
             let page = try await task.value
@@ -97,11 +121,17 @@ final class FeedbackInboxViewModel: ObservableObject {
             let page = try await repository.fetchOwnerInbox(query: request, after: cursor)
             guard generation == expected, activeActorID == actorID else { return }
             mergeFeedback(page.items); watchLoadedRecords(); nextCursor = page.cursor; hasMore = page.cursor != nil; counts = page.counts
-            error = nil
+            error = nil; failedLoadMore = false
         } catch {
-            if generation == expected, activeActorID == actorID { self.error = (error as? AppError) ?? .unknown }
+            if generation == expected, activeActorID == actorID { self.error = (error as? AppError) ?? .unknown; failedLoadMore = true }
         }
     }
+
+    func retry(actorID: String) async {
+        if failedLoadMore { await loadMore(actorID: actorID) }
+        else { await refresh(actorID: actorID) }
+    }
+    func clearActionError() { actionError = nil; actionErrorRecordID = nil }
 
     func feedback(id: String, actorID: String) async -> FeedbackItem? {
         let expectedSession = session
@@ -117,6 +147,29 @@ final class FeedbackInboxViewModel: ObservableObject {
         return nil
     }
 
+    func invalidateDetail(id: String) { detailStates[id] = nil; detailReadTokens[id] = nil }
+
+    func prepareDetail(id: String, actorID: String) async -> FeedbackItem? {
+        guard activeActorID == actorID, detailReadTokens[id] == nil else { return nil }
+        let expectedSession = session
+        let token = UUID()
+        detailReadTokens[id] = token; detailStates[id] = .loading
+        defer { if detailReadTokens[id] == token { detailReadTokens[id] = nil } }
+        do {
+            let fresh = try await repository.fetchFeedback(id: id)
+            guard activeActorID == actorID, session == expectedSession, detailReadTokens[id] == token else { return nil }
+            detailItems[id] = fresh
+            items = items.map { $0.id == id ? fresh : $0 }
+            detailStates[id] = .ready
+            return fresh
+        } catch {
+            guard activeActorID == actorID, session == expectedSession, detailReadTokens[id] == token else { return nil }
+            let failure = (error as? AppError) ?? .unknown
+            detailStates[id] = failure == .notFound || failure == .permissionDenied ? .unavailable : .failed(failure)
+        }
+        return nil
+    }
+
     func acknowledgeRead(_ item: FeedbackItem, actorID: String) async {
         let expectedSession = session
         guard activeActorID == actorID, session == expectedSession, item.unreadForOwner else { return }
@@ -129,9 +182,9 @@ final class FeedbackInboxViewModel: ObservableObject {
             }
         }
         catch let appError as AppError {
-            if activeActorID == actorID, session == expectedSession { actionError = appError }
+            if activeActorID == actorID, session == expectedSession { setActionError(appError, for: item.id) }
         } catch {
-            if activeActorID == actorID, session == expectedSession { actionError = .unknown }
+            if activeActorID == actorID, session == expectedSession { setActionError(.unknown, for: item.id) }
         }
     }
 
@@ -140,6 +193,7 @@ final class FeedbackInboxViewModel: ObservableObject {
         inboxLoad?.task.cancel(); inboxLoad = nil
         listenerBag.removeAll()
         watchedIDs = []; recordListenerKeys = []
+        detailStates = [:]; detailReadTokens = [:]
         counts = [:]; detailItems = [:]; query = FeedbackInboxQuery(principalID: actorID)
         items = []; messagesByFeedbackID = [:]; messageErrorsByFeedbackID = [:]
         loadingMessageFeedbackIDs = []; loadingMoreMessageFeedbackIDs = []
@@ -148,6 +202,7 @@ final class FeedbackInboxViewModel: ObservableObject {
         nextCursor = nil; messageCursors = [:]; moreMessages = [:]
         pendingOperations.removeAll()
         pendingDsaDecisionAttempts.removeAll()
+        failedLoadMore = false; actionErrorRecordID = nil
         error = nil; actionError = nil; activeActorID = actorID
     }
 
@@ -172,7 +227,7 @@ final class FeedbackInboxViewModel: ObservableObject {
     func delete(_ item: FeedbackItem) async -> Bool {
         guard let actorID = activeActorID else { return false }
         let expectedSession = session
-        guard !deletingFeedbackIDs.contains(item.id) else { return false }
+        guard !isClearingInbox, !updatingFeedbackIDs.contains(item.id), !deletingFeedbackIDs.contains(item.id) else { return false }
         deletingFeedbackIDs.insert(item.id)
         actionError = nil
         defer { if session == expectedSession { deletingFeedbackIDs.remove(item.id) } }
@@ -187,9 +242,9 @@ final class FeedbackInboxViewModel: ObservableObject {
             await refresh(actorID: actorID)
             return true
         } catch let appError as AppError {
-            if session == expectedSession { actionError = appError }
+            if session == expectedSession { setActionError(appError, for: item.id) }
         } catch {
-            if session == expectedSession { actionError = .unknown }
+            if session == expectedSession { setActionError(.unknown, for: item.id) }
         }
         return false
     }
@@ -197,7 +252,7 @@ final class FeedbackInboxViewModel: ObservableObject {
     @discardableResult
     func clearInbox() async -> Bool {
         let expectedSession = session
-        guard !isClearingInbox else { return false }
+        guard activeActorID != nil, !isClearingInbox, updatingFeedbackIDs.isEmpty, deletingFeedbackIDs.isEmpty else { return false }
         isClearingInbox = true
         actionError = nil
         defer { if session == expectedSession { isClearingInbox = false } }
@@ -212,9 +267,9 @@ final class FeedbackInboxViewModel: ObservableObject {
             if let actorID { await refresh(actorID: actorID) }
             return true
         } catch let appError as AppError {
-            if session == expectedSession { actionError = appError }
+            if session == expectedSession { setActionError(appError, for: nil) }
         } catch {
-            if session == expectedSession { actionError = .unknown }
+            if session == expectedSession { setActionError(.unknown, for: nil) }
         }
         return false
     }
@@ -232,7 +287,7 @@ final class FeedbackInboxViewModel: ObservableObject {
             return false
         }
 
-        guard activeActorID == owner.id, !updatingFeedbackIDs.contains(item.id) else { return false }
+        guard activeActorID == owner.id, !isClearingInbox, !deletingFeedbackIDs.contains(item.id), !updatingFeedbackIDs.contains(item.id) else { return false }
         updatingFeedbackIDs.insert(item.id)
         actionError = nil
         defer { if session == expectedSession { updatingFeedbackIDs.remove(item.id) } }
@@ -258,10 +313,10 @@ final class FeedbackInboxViewModel: ObservableObject {
             actionError = nil
             return true
         } catch let appError as AppError {
-            if session == expectedSession { actionError = appError }
+            if session == expectedSession { setActionError(appError, for: item.id) }
             return false
         } catch {
-            if session == expectedSession { actionError = .unknown }
+            if session == expectedSession { setActionError(.unknown, for: item.id) }
             return false
         }
     }
@@ -269,7 +324,7 @@ final class FeedbackInboxViewModel: ObservableObject {
     func decideDsaCase(_ request: DsaDecisionFunctionRequest, item: FeedbackItem) async -> Bool {
         guard let actorID = activeActorID else { return false }
         let expectedSession = session
-        guard !updatingFeedbackIDs.contains(item.id) else { return false }
+        guard !isClearingInbox, !deletingFeedbackIDs.contains(item.id), !updatingFeedbackIDs.contains(item.id) else { return false }
         updatingFeedbackIDs.insert(item.id)
         actionError = nil
         defer { if session == expectedSession { updatingFeedbackIDs.remove(item.id) } }
@@ -295,9 +350,9 @@ final class FeedbackInboxViewModel: ObservableObject {
             if let actorID = activeActorID { await refresh(actorID: actorID) }
             return true
         } catch let appError as AppError {
-            if session == expectedSession { actionError = appError }
+            if session == expectedSession { setActionError(appError, for: item.id) }
         } catch {
-            if session == expectedSession { actionError = .unknown }
+            if session == expectedSession { setActionError(.unknown, for: item.id) }
         }
         return false
     }
@@ -305,7 +360,7 @@ final class FeedbackInboxViewModel: ObservableObject {
     func decideDsaAppeal(_ request: DsaAppealDecisionFunctionRequest, item: FeedbackItem) async -> Bool {
         guard let actorID = activeActorID else { return false }
         let expectedSession = session
-        guard !updatingFeedbackIDs.contains(item.id) else { return false }
+        guard !isClearingInbox, !deletingFeedbackIDs.contains(item.id), !updatingFeedbackIDs.contains(item.id) else { return false }
         updatingFeedbackIDs.insert(item.id)
         actionError = nil
         defer { if session == expectedSession { updatingFeedbackIDs.remove(item.id) } }
@@ -326,9 +381,9 @@ final class FeedbackInboxViewModel: ObservableObject {
             if let actorID = activeActorID { await refresh(actorID: actorID) }
             return true
         } catch let appError as AppError {
-            if session == expectedSession { actionError = appError }
+            if session == expectedSession { setActionError(appError, for: item.id) }
         } catch {
-            if session == expectedSession { actionError = .unknown }
+            if session == expectedSession { setActionError(.unknown, for: item.id) }
         }
         return false
     }
@@ -336,7 +391,7 @@ final class FeedbackInboxViewModel: ObservableObject {
     @discardableResult
     func close(_ item: FeedbackItem, owner: AppUser) async -> Bool {
         let expectedSession = session
-        guard activeActorID == owner.id, !updatingFeedbackIDs.contains(item.id) else { return false }
+        guard activeActorID == owner.id, !isClearingInbox, !deletingFeedbackIDs.contains(item.id), !updatingFeedbackIDs.contains(item.id) else { return false }
         updatingFeedbackIDs.insert(item.id)
         actionError = nil
         defer { if session == expectedSession { updatingFeedbackIDs.remove(item.id) } }
@@ -361,9 +416,9 @@ final class FeedbackInboxViewModel: ObservableObject {
             actionError = nil
             return true
         } catch let appError as AppError {
-            if session == expectedSession { actionError = appError }
+            if session == expectedSession { setActionError(appError, for: item.id) }
         } catch {
-            if session == expectedSession { actionError = .unknown }
+            if session == expectedSession { setActionError(.unknown, for: item.id) }
         }
         return false
     }
@@ -438,22 +493,45 @@ final class FeedbackInboxViewModel: ObservableObject {
         guard let realtime = repository as? FeedbackRealtimeRepository, let actorID = activeActorID else { return false }
         guard !listenerBag.contains(key) else { return true }
         let expectedSession = session
+        var previousSnapshot: [String: FeedbackItem]?
         listenerBag.set(realtime.listenOwnerFeedbackInbox { [weak self] fresh in
             guard let self, self.session == expectedSession, self.activeActorID == actorID else { return }
-            // The snapshot invalidates the server query, including removals. Never merge
-            // an incomplete top-page snapshot into a globally filtered/paginated list.
-            fresh.forEach { self.detailItems[$0.id] = $0 }
-            self.inboxRefreshTask?.cancel()
-            self.inboxRefreshTask = Task { [weak self] in
-                try? await Task.sleep(for: .milliseconds(250))
-                guard !Task.isCancelled, let self, self.session == expectedSession else { return }
-                await self.refresh(actorID: actorID)
+            let current = Dictionary(fresh.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
+            let changed: Bool
+            if let previousSnapshot {
+                changed = Set(previousSnapshot.keys) != Set(current.keys) || fresh.contains { item in
+                    previousSnapshot[item.id].map { !Self.sameInboxSource($0, item) } ?? true
+                }
+            } else {
+                // Initial snapshots and unread acknowledgements must not throw away
+                // already confirmed pages or start a duplicate full inbox query.
+                changed = fresh.contains { item in self.detailItems[item.id].map { !Self.sameInboxSource($0, item) } ?? false }
             }
+            previousSnapshot = current
+            fresh.forEach { self.detailItems[$0.id] = $0 }
+            self.items = self.items.map { current[$0.id] ?? $0 }
+            if changed { self.scheduleInboxRefresh(actorID: actorID, session: expectedSession) }
         } onError: { [weak self] error in
             guard let self, self.session == expectedSession else { return }
             self.listenerBag.remove(key); self.error = error
         }, for: key)
         return true
+    }
+
+    private func scheduleInboxRefresh(actorID: String, session expectedSession: UUID) {
+        inboxRefreshTask?.cancel()
+        inboxRefreshTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled, let self, self.session == expectedSession else { return }
+            await self.refresh(actorID: actorID, preservingLoadedRange: true)
+        }
+    }
+
+    private static func sameInboxSource(_ lhs: FeedbackItem, _ rhs: FeedbackItem) -> Bool {
+        lhs.status == rhs.status && lhs.updatedAt == rhs.updatedAt && lhs.lastMessageAt == rhs.lastMessageAt
+            && lhs.subject == rhs.subject && lhs.message == rhs.message && lhs.lastMessageText == rhs.lastMessageText
+            && lhs.userDisplayName == rhs.userDisplayName && lhs.userId == rhs.userId && lhs.type == rhs.type
+            && lhs.revision == rhs.revision
     }
 
     private func watchLoadedRecords() {
@@ -472,18 +550,18 @@ final class FeedbackInboxViewModel: ObservableObject {
                 let removed = Set(batch).subtracting(received)
                 // Derived search fields change without updating the source revision.
                 // Subsequent snapshots must invalidate the query even when the DTO is identical.
-                let changed = receivedInitialSnapshot || !removed.isEmpty || fresh.contains { self.detailItems[$0.id]?.revision != $0.revision }
-                receivedInitialSnapshot = true
-                guard changed else { return }
-                removed.forEach { self.detailItems[$0] = nil }
-                self.items.removeAll { removed.contains($0.id) }
-                fresh.forEach { self.detailItems[$0.id] = $0 }
-                self.inboxRefreshTask?.cancel()
-                self.inboxRefreshTask = Task { [weak self] in
-                    try? await Task.sleep(for: .milliseconds(250))
-                    guard !Task.isCancelled, let self, self.session == expectedSession else { return }
-                    await self.refresh(actorID: actorID)
+                let sourceChanged = fresh.contains { item in self.detailItems[item.id].map { !Self.sameInboxSource($0, item) } ?? true }
+                let readFlagsChanged = fresh.contains { item in
+                    self.detailItems[item.id].map { $0.unreadForOwner != item.unreadForOwner || $0.unreadForUser != item.unreadForUser } ?? false
                 }
+                let changed = !removed.isEmpty || sourceChanged || (receivedInitialSnapshot && !readFlagsChanged)
+                receivedInitialSnapshot = true
+                removed.forEach { self.detailItems[$0] = nil; self.detailStates[$0] = .unavailable }
+                self.items.removeAll { removed.contains($0.id) }
+                let byID = Dictionary(fresh.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
+                self.items = self.items.map { byID[$0.id] ?? $0 }
+                fresh.forEach { self.detailItems[$0.id] = $0 }
+                if changed { self.scheduleInboxRefresh(actorID: actorID, session: expectedSession) }
             } onError: { [weak self] error in
                 guard let self, self.session == expectedSession else { return }
                 self.actionError = error
@@ -518,7 +596,7 @@ final class FeedbackInboxViewModel: ObservableObject {
     }
 
     private func update(_ item: FeedbackItem, status: FeedbackStatus) async {
-        guard let actorID = activeActorID, !updatingFeedbackIDs.contains(item.id) else { return }
+        guard let actorID = activeActorID, !isClearingInbox, !deletingFeedbackIDs.contains(item.id), !updatingFeedbackIDs.contains(item.id) else { return }
         let expectedSession = session
         updatingFeedbackIDs.insert(item.id); actionError = nil
         defer { if session == expectedSession { updatingFeedbackIDs.remove(item.id) } }
@@ -529,7 +607,7 @@ final class FeedbackInboxViewModel: ObservableObject {
             detailItems[item.id] = updated
             await refresh(actorID: actorID)
         } catch {
-            if session == expectedSession { actionError = (error as? AppError) ?? .unknown }
+            if session == expectedSession { setActionError((error as? AppError) ?? .unknown, for: item.id) }
         }
     }
 

@@ -1011,6 +1011,7 @@ struct ProfileView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("profile.feedback.compose")
 
                 if isProjectSupportAvailable {
                     NavigationLink(value: ProfileNavigationRoute.supportProject) {

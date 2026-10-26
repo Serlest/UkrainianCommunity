@@ -15,9 +15,21 @@ final class MyFeedbackViewModel: ObservableObject {
     @Published private(set) var messageErrorsByFeedbackID: [String: AppError] = [:]
     @Published private(set) var error: AppError?
     @Published private(set) var actionError: AppError?
+    @Published private(set) var failedLoadMore = false
+    private var actionErrorRecordID: String?
+
+    func actionError(for feedbackID: String) -> AppError? {
+        actionErrorRecordID == feedbackID ? actionError : nil
+    }
+    private func setActionError(_ error: AppError, for feedbackID: String?) {
+        actionErrorRecordID = feedbackID; actionError = error
+    }
 
     private static let feedbackPageSize = 50
     private static let messagePageSize = 100
+    @Published private(set) var detailStates: [String: FeedbackRecordState] = [:]
+    private var detailReadTokens: [String: UUID] = [:]
+
     private let repository: FeedbackRepository
     private let listenerBag = RealtimeListenerBag()
     private var nextCursor: FeedbackPageCursor?
@@ -46,7 +58,7 @@ final class MyFeedbackViewModel: ObservableObject {
         }
         let expectedSession = session
         generation = UUID(); let expectedGeneration = generation
-        isLoading = true; isLoadingMore = false
+        isLoading = true; isLoadingMore = false; failedLoadMore = false
         error = nil
         let loadID = UUID()
         let task = Task { [repository] in
@@ -81,12 +93,17 @@ final class MyFeedbackViewModel: ObservableObject {
             mergeFeedback(page.items)
             nextCursor = page.nextCursor
             hasMore = page.hasMore
-            error = nil
+            error = nil; failedLoadMore = false
         } catch let appError as AppError {
-            if activeUserID == userID, session == expectedSession, generation == expectedGeneration { error = appError }
+            if activeUserID == userID, session == expectedSession, generation == expectedGeneration { error = appError; failedLoadMore = true }
         } catch {
-            if activeUserID == userID, session == expectedSession, generation == expectedGeneration { self.error = .unknown }
+            if activeUserID == userID, session == expectedSession, generation == expectedGeneration { self.error = .unknown; failedLoadMore = true }
         }
+    }
+
+    func retry(userID: String) async {
+        if failedLoadMore { await loadMore(userID: userID) }
+        else { await refresh(userID: userID) }
     }
 
     func feedback(id: String, userID: String) async -> FeedbackItem? {
@@ -106,6 +123,29 @@ final class MyFeedbackViewModel: ObservableObject {
         return nil
     }
 
+    func invalidateDetail(id: String) { detailStates[id] = nil; detailReadTokens[id] = nil }
+
+    func prepareDetail(id: String, userID: String) async -> FeedbackItem? {
+        guard activeUserID == userID, detailReadTokens[id] == nil else { return nil }
+        let expectedSession = session
+        let token = UUID()
+        detailReadTokens[id] = token; detailStates[id] = .loading
+        defer { if detailReadTokens[id] == token { detailReadTokens[id] = nil } }
+        do {
+            let fresh = try await repository.fetchFeedback(id: id)
+            guard activeUserID == userID, session == expectedSession, detailReadTokens[id] == token else { return nil }
+            guard fresh.userId == userID else { detailStates[id] = .unavailable; return nil }
+            mergeFeedback([fresh])
+            detailStates[id] = .ready
+            return fresh
+        } catch {
+            guard activeUserID == userID, session == expectedSession, detailReadTokens[id] == token else { return nil }
+            let failure = (error as? AppError) ?? .unknown
+            detailStates[id] = failure == .notFound || failure == .permissionDenied ? .unavailable : .failed(failure)
+        }
+        return nil
+    }
+
     func acknowledgeRead(_ item: FeedbackItem, userID: String) async {
         let expectedSession = session
         guard activeUserID == userID, item.userId == userID, item.unreadForUser else { return }
@@ -114,9 +154,9 @@ final class MyFeedbackViewModel: ObservableObject {
             let updated = try await repository.fetchFeedback(id: item.id)
             if activeUserID == userID, session == expectedSession { mergeFeedback([updated]) }
         } catch let appError as AppError {
-            if activeUserID == userID, session == expectedSession { actionError = appError }
+            if activeUserID == userID, session == expectedSession { setActionError(appError, for: item.id) }
         } catch {
-            if activeUserID == userID, session == expectedSession { actionError = .unknown }
+            if activeUserID == userID, session == expectedSession { setActionError(.unknown, for: item.id) }
         }
     }
 
@@ -125,11 +165,13 @@ final class MyFeedbackViewModel: ObservableObject {
     private func reset(for userID: String?) {
         session = UUID(); generation = UUID()
         firstPageLoad?.task.cancel(); firstPageLoad = nil
+        detailStates = [:]; detailReadTokens = [:]
         listenerBag.removeAll()
         items = []; messagesByFeedbackID = [:]; messageErrorsByFeedbackID = [:]
         loadingMessageFeedbackIDs = []; loadingMoreMessageFeedbackIDs = []; sendingMessageFeedbackIDs = []
         isLoading = false; isLoadingMore = false; hasMore = false; nextCursor = nil
         messageCursors = [:]; moreMessages = [:]; error = nil; actionError = nil
+        failedLoadMore = false; actionErrorRecordID = nil
         pendingOperations.removeAll()
         pendingDsaAppealAttempts.removeAll()
         activeUserID = userID
@@ -236,14 +278,14 @@ final class MyFeedbackViewModel: ObservableObject {
             pendingOperations.complete(operation)
             await loadMessages(for: feedback); actionError = nil; return true
         } catch let appError as AppError {
-            if activeUserID == user.id, session == expectedSession { actionError = appError }
+            if activeUserID == user.id, session == expectedSession { setActionError(appError, for: feedback.id) }
         } catch {
-            if activeUserID == user.id, session == expectedSession { actionError = .unknown }
+            if activeUserID == user.id, session == expectedSession { setActionError(.unknown, for: feedback.id) }
         }
         return false
     }
 
-    func clearActionError() { actionError = nil }
+    func clearActionError() { actionError = nil; actionErrorRecordID = nil }
 
     func submitDsaAppeal(reason: String, feedback: FeedbackItem, userID: String) async -> Bool {
         let expectedSession = session
@@ -273,9 +315,9 @@ final class MyFeedbackViewModel: ObservableObject {
             pendingDsaAppealAttempts[feedback.id] = nil
             await refresh(userID: userID); return true
         } catch let appError as AppError {
-            if activeUserID == userID, session == expectedSession { actionError = appError }
+            if activeUserID == userID, session == expectedSession { setActionError(appError, for: feedback.id) }
         } catch {
-            if activeUserID == userID, session == expectedSession { actionError = .unknown }
+            if activeUserID == userID, session == expectedSession { setActionError(.unknown, for: feedback.id) }
         }
         return false
     }

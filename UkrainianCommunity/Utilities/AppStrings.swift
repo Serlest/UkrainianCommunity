@@ -2017,7 +2017,7 @@ enum AppStrings {
 
     enum Feedback {
         static var title: String { text("feedback.title", "Feedback") }
-        static var subtitle: String { text("feedback.subtitle", "Send feedback or questions directly to the developer.") }
+        static var subtitle: String { FeedbackSupportCopy.composerSubtitle }
         static var fieldType: String { text("feedback.field.type", "Type") }
         static var fieldMessage: String { text("feedback.field.message", "Message") }
         static var submit: String { text("feedback.submit", "Send Feedback") }
@@ -2026,7 +2026,7 @@ enum AppStrings {
         static var messageRequired: String { text("feedback.validation.message_required", "Please enter a message.") }
         static var messageTooLong: String { text("feedback.validation.message_too_long", "Повідомлення має містити не більше 2000 символів.") }
         static var myFeedbackTitle: String { text("feedback.my.title", "Мої звернення") }
-        static var myFeedbackSubtitle: String { text("feedback.my.subtitle", "Ваші звернення та відповіді власника додатку.") }
+        static var myFeedbackSubtitle: String { FeedbackSupportCopy.personalSubtitle }
         static var myFeedbackEmpty: String { text("feedback.my.empty", "У вас поки немає звернень.") }
         static var myFeedbackSearchPlaceholder: String { text("feedback.my.search.placeholder", "Пошук у моїх зверненнях") }
         static var clearMyFeedback: String { text("feedback.my.clear", "Видалити всі звернення") }

@@ -4,6 +4,7 @@ struct ContentReportSheet: View {
     let target: ContentReportTarget
     @ObservedObject var coordinator: ContentReportCoordinator
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var authState: AuthState
     @State private var selectedReason: ContentReportReason?
     @State private var details = ""
     @State private var legalBasis = ""
@@ -20,10 +21,10 @@ struct ContentReportSheet: View {
 
     private var canSubmit: Bool {
         guard selectedReason != nil, !isSubmitting, receipt == nil else { return false }
-        return normalizedDetails.count >= 20
-            && details.count <= 5_000
-            && legalBasis.count <= 1_000
-            && evidence.count <= 5_000
+        return FeedbackSupportValidation.text(normalizedDetails, minimum: 20, maximum: 5_000)
+            && details.utf16.count <= 5_000
+            && legalBasis.utf16.count <= 1_000
+            && evidence.utf16.count <= 5_000
             && goodFaithConfirmed
     }
 
@@ -36,7 +37,7 @@ struct ContentReportSheet: View {
                     if let receipt {
                         successCard(receipt)
                     } else {
-                        reportForm
+                        reportForm.disabled(isSubmitting)
                     }
                 }
                 .padding(AppTheme.pageHorizontal)
@@ -65,6 +66,7 @@ struct ContentReportSheet: View {
             }
         }
         .interactiveDismissDisabled(isSubmitting)
+        .onChange(of: ProfileAccessIdentity(user: authState.user)) { _, _ in dismissReport() }
     }
 
     private var targetCard: some View {
@@ -124,9 +126,9 @@ struct ContentReportSheet: View {
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(AppTheme.textPrimary)
                         Spacer(minLength: 0)
-                        Text("\(details.count)/5000")
+                        Text("\(details.utf16.count)/5000")
                             .font(.caption)
-                            .foregroundStyle(details.count > 1_000 ? AppTheme.accentDestructiveForeground : AppTheme.textSecondary)
+                            .foregroundStyle(details.utf16.count > 5_000 ? AppTheme.accentDestructiveForeground : AppTheme.textSecondary)
                     }
 
                     ZStack(alignment: .topLeading) {
@@ -278,21 +280,25 @@ struct ContentReportSheet: View {
         isSubmitting = true
         errorMessage = nil
 
+        let identity = ProfileAccessIdentity(user: authState.user)
+        let submission = ContentReportSubmission(
+            illegalExplanation: normalizedDetails, legalBasis: normalizedValue(legalBasis),
+            evidence: normalizedValue(evidence), goodFaithConfirmed: goodFaithConfirmed
+        )
         Task {
             do {
-                receipt = try await coordinator.submit(
+                let result = try await coordinator.submit(
                     target: target,
                     reason: selectedReason,
-                    submission: ContentReportSubmission(
-                        illegalExplanation: normalizedDetails,
-                        legalBasis: normalizedValue(legalBasis),
-                        evidence: normalizedValue(evidence),
-                        goodFaithConfirmed: goodFaithConfirmed
-                    )
+                    submission: submission
                 )
+                guard ProfileAccessIdentity(user: authState.user) == identity else { return }
+                receipt = result
             } catch let error as ContentReportSubmissionError {
+                guard ProfileAccessIdentity(user: authState.user) == identity else { return }
                 errorMessage = message(for: error)
             } catch {
+                guard ProfileAccessIdentity(user: authState.user) == identity else { return }
                 errorMessage = AppStrings.Safety.errorUnknown
             }
             isSubmitting = false

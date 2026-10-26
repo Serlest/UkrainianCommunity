@@ -70,6 +70,30 @@ struct FeedbackReliabilityTests {
         await pending.value
         #expect(model.items.map(\.id) == ["new"]); #expect(!model.hasMore); #expect(!model.isLoading)
     }
+    @Test func initialRealtimeSnapshotDoesNotReloadConfirmedInbox() async throws {
+        let repo = FeedbackAuditRepository(items: [item()])
+        let model = FeedbackInboxViewModel(repository: repo)
+        await model.loadIfNeeded(actorID: "owner")
+        let callback = try #require(repo.inboxCallbacks.first)
+        let before = repo.fetchCalls
+        callback(repo.records)
+        try await Task.sleep(for: .milliseconds(350))
+        #expect(repo.fetchCalls == before)
+    }
+
+    @Test func realtimeUpdateRetainsLoadedInboxRange() async throws {
+        let repo = FeedbackAuditRepository(items: (0..<137).map { item("request-\($0)") })
+        let model = FeedbackInboxViewModel(repository: repo)
+        await model.loadIfNeeded(actorID: "owner")
+        await model.loadMore(actorID: "owner")
+        #expect(model.items.count == 60)
+        let callback = try #require(repo.inboxCallbacks.first)
+        callback(repo.records)
+        callback(Array(repo.records.dropFirst()))
+        try await Task.sleep(for: .milliseconds(350))
+        #expect(model.items.count == 60)
+    }
+
     @Test func callbackQueuedBeforeAccountSwitchCannotLeakIntoNextAccount() async throws {
         let repo = FeedbackAuditRepository(items: [item("first")])
         let model = FeedbackInboxViewModel(repository: repo); await model.loadIfNeeded(actorID: "owner-A")
@@ -102,9 +126,11 @@ struct FeedbackReliabilityTests {
     init(items: [FeedbackItem]) { records = items }
     func submitFeedback(_ feedback: FeedbackItem) async throws { records.append(feedback) }
     var fetchDelay: Duration = .zero
+    var fetchCalls = 0
     var recordCallbacks: [@MainActor ([FeedbackItem]) -> Void] = []
     var inboxCallbacks: [@MainActor ([FeedbackItem]) -> Void] = []
     func fetchFeedback() async throws -> [FeedbackItem] {
+        fetchCalls += 1
         let saved = records, delay = fetchDelay
         if delay != .zero { try await Task.sleep(for: delay) }
         return saved

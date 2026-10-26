@@ -6,6 +6,7 @@ struct DsaStatementView: View {
     @State private var statement: DsaStatement?
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var loadGeneration = UUID()
 
     var body: some View {
         PushedScreenShell(
@@ -34,6 +35,10 @@ struct DsaStatementView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .task(id: statementID) { await loadStatement() }
+        .onChange(of: ProfileAccessIdentity(user: authState.user)) { _, _ in
+            statement = nil
+            Task { await loadStatement() }
+        }
     }
 
     @ViewBuilder
@@ -41,9 +46,9 @@ struct DsaStatementView: View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                 LabeledContent(AppStrings.Safety.caseNumberTitle, value: statement.caseNumber)
-                LabeledContent(AppStrings.Common.status, value: statement.status)
+                LabeledContent(AppStrings.Common.status, value: FeedbackSupportCopy.status(statement.status))
                 if !statement.sourceType.isEmpty {
-                    LabeledContent(AppStrings.Safety.contentTypeTitle, value: statement.sourceType)
+                    LabeledContent(AppStrings.Safety.contentTypeTitle, value: ContentReportTargetType(rawValue: statement.sourceType)?.title ?? statement.sourceType)
                 }
                 if !statement.sourceID.isEmpty {
                     LabeledContent(AppStrings.Safety.contentIdentifierTitle, value: statement.sourceID)
@@ -54,7 +59,7 @@ struct DsaStatementView: View {
         if let decision = statement.decision {
             AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                    statementField(AppStrings.Safety.dsaOutcomeTitle, decision.outcome)
+                    statementField(AppStrings.Safety.dsaOutcomeTitle, decision.outcome == "removed" ? AppStrings.Safety.dsaOutcomeRemoved : AppStrings.Safety.dsaOutcomeNoAction)
                     statementField(AppStrings.Safety.dsaFactsTitle, decision.factsAndCircumstances)
                     statementField(AppStrings.Safety.legalBasisTitle, decision.legalBasis)
                     statementField(AppStrings.Safety.dsaTermsBasisTitle, decision.termsBasis)
@@ -72,7 +77,7 @@ struct DsaStatementView: View {
                     Text(AppStrings.Safety.dsaAppealTitle)
                         .font(AppTheme.sectionTitleFont)
                         .foregroundStyle(AppTheme.textPrimary)
-                    statementField(AppStrings.Safety.dsaAppealOutcomeTitle, appeal.outcome)
+                    statementField(AppStrings.Safety.dsaAppealOutcomeTitle, appeal.outcome == "upheld" ? AppStrings.Safety.dsaAppealUpheld : AppStrings.Safety.dsaAppealChanged)
                     statementField(AppStrings.Safety.dsaAppealReasonTitle, appeal.reason)
                 }
             }
@@ -100,6 +105,9 @@ struct DsaStatementView: View {
 
     @MainActor
     private func loadStatement() async {
+        loadGeneration = UUID()
+        let expectedGeneration = loadGeneration
+        let identity = ProfileAccessIdentity(user: authState.user)
         guard let userID = authState.user?.id else {
             isLoading = false
             errorMessage = AppStrings.Safety.dsaStatementSignInRequired
@@ -110,8 +118,10 @@ struct DsaStatementView: View {
         do {
             _ = userID
             let response = try await CloudFunctionsClient().getMyDsaStatement(reportID: statementID)
+            guard loadGeneration == expectedGeneration, ProfileAccessIdentity(user: authState.user) == identity else { return }
             statement = DsaStatement(response: response)
         } catch {
+            guard loadGeneration == expectedGeneration, ProfileAccessIdentity(user: authState.user) == identity else { return }
             errorMessage = AppStrings.Safety.dsaStatementLoadError
         }
         isLoading = false
@@ -220,7 +230,7 @@ struct MyFeedbackView: View {
             selectedFilter.includes(item)
                 && LocalSearchMatcher.matches(
                     query: searchText,
-                    values: [item.type.title, item.message, item.lastMessageText, item.id]
+                    values: [item.type.title, item.subject, item.message, item.lastMessageText, item.id]
                 )
         }.sorted(by: feedbackSort)
     }
@@ -258,6 +268,8 @@ struct MyFeedbackView: View {
         )) {
             if let item = selectedFeedback {
                 let currentItem = currentFeedbackItem(for: item)
+                Group {
+                if viewModel.detailStates[item.id]?.isReady == true {
                 FeedbackConversationView(
                     item: currentItem,
                     messages: viewModel.messages(for: currentItem),
@@ -266,11 +278,9 @@ struct MyFeedbackView: View {
                     messageErrorMessage: viewModel.messageErrorsByFeedbackID[currentItem.id].map(feedbackErrorMessage(_:)),
                     hasMoreMessages: viewModel.hasMoreMessages(for: currentItem.id),
                     isLoadingMoreMessages: viewModel.loadingMoreMessageFeedbackIDs.contains(currentItem.id),
-                    actionErrorMessage: viewModel.actionError.map(feedbackActionErrorMessage(_:)),
+                    actionErrorMessage: viewModel.actionError(for: currentItem.id).map(feedbackActionErrorMessage(_:)),
                     allowsClose: false,
-                    onLoad: {
-                        Task { await viewModel.loadMessages(for: currentItem) }
-                    },
+                    onLoad: {},
                     onRetryMessages: {
                         Task { await viewModel.loadMessages(for: currentItem) }
                     },
@@ -298,6 +308,13 @@ struct MyFeedbackView: View {
                 )
                 .toolbar(.visible, for: .navigationBar)
                 .toolbar(.hidden, for: .tabBar)
+                } else {
+                    FeedbackRecordStateView(state: viewModel.detailStates[item.id],
+                        errorMessage: AppStrings.Feedback.loadFailed,
+                        onRetry: { Task { await loadSelectedDetail(item) } })
+                }
+                }
+                .task(id: item.id) { await loadSelectedDetail(item) }
             }
         }
     }
@@ -329,7 +346,13 @@ struct MyFeedbackView: View {
                     AppSortMenu(selection: $sortOption, options: [.newest, .oldest])
                 }
 
-                AppSearchField(placeholder: AppStrings.Feedback.myFeedbackSearchPlaceholder, text: $searchText)
+                AppSearchField(placeholder: AppStrings.Feedback.myFeedbackSearchPlaceholder, text: $searchText, fieldID: "feedback.mine.search")
+                if viewModel.hasMore && viewModel.error == nil {
+                    Text(FeedbackSupportCopy.loadedScope)
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
     }
@@ -359,7 +382,7 @@ struct MyFeedbackView: View {
     @ViewBuilder
     private var feedbackContent: some View {
         if viewModel.isLoading && viewModel.items.isEmpty {
-            LoadingStateCard(title: AppStrings.Feedback.myFeedbackTitle)
+            LoadingStateCard(title: AppStrings.Feedback.myFeedbackTitle).accessibilityIdentifier("feedback.mine.loading")
         } else if let error = viewModel.error, viewModel.items.isEmpty {
             UnifiedEmptyStateCard(
                 systemImage: "exclamationmark.triangle",
@@ -368,7 +391,7 @@ struct MyFeedbackView: View {
             ) {
                 PrimaryActionButton(title: AppStrings.Moderation.retry, systemImage: "arrow.clockwise") {
                     Task { await viewModel.refresh(userID: currentUserID) }
-                }
+                }.accessibilityIdentifier("feedback.mine.retry")
             }
         } else if viewModel.items.isEmpty {
             UnifiedEmptyStateCard(
@@ -382,7 +405,7 @@ struct MyFeedbackView: View {
                 title: AppStrings.Search.noResultsTitle,
                 message: AppStrings.Search.noResultsMessage
             ) {
-                if viewModel.hasMore {
+                if viewModel.hasMore && viewModel.error == nil {
                     PrimaryActionButton(
                         title: AppStrings.Search.loadMoreContent,
                         isEnabled: !viewModel.isLoadingMore,
@@ -397,8 +420,11 @@ struct MyFeedbackView: View {
                     InlineMessageCard(style: .error, message: feedbackActionErrorMessage(actionError))
                 }
 
-                if let error = viewModel.error {
+                if let error = viewModel.error, !viewModel.failedLoadMore {
                     InlineMessageCard(style: .error, message: feedbackErrorMessage(error))
+                    PrimaryActionButton(title: AppStrings.Moderation.retry, systemImage: "arrow.clockwise") {
+                        Task { await viewModel.retry(userID: currentUserID) }
+                    }.accessibilityIdentifier("feedback.mine.retry")
                 }
 
                 ForEach(filteredItems) { item in
@@ -412,7 +438,14 @@ struct MyFeedbackView: View {
                     .accessibilityIdentifier("feedback.mine.open.\(item.id)")
                 }
 
-                if viewModel.hasMore {
+                if let error = viewModel.error, viewModel.failedLoadMore {
+                    InlineMessageCard(style: .error, message: feedbackErrorMessage(error))
+                    PrimaryActionButton(title: AppStrings.Moderation.retry, systemImage: "arrow.clockwise") {
+                        Task { await viewModel.retry(userID: currentUserID) }
+                    }.accessibilityIdentifier("feedback.mine.retry")
+                }
+
+                if viewModel.hasMore && viewModel.error == nil {
                     PrimaryActionButton(
                         title: AppStrings.Search.loadMoreContent,
                         isEnabled: !viewModel.isLoadingMore,
@@ -450,9 +483,18 @@ struct MyFeedbackView: View {
         viewModel.items.first { $0.id == item.id } ?? item
     }
 
+    private func loadSelectedDetail(_ item: FeedbackItem) async {
+        guard let fresh = await viewModel.prepareDetail(id: item.id, userID: currentUserID),
+              !Task.isCancelled, selectedFeedback?.id == item.id else { return }
+        await viewModel.acknowledgeRead(fresh, userID: currentUserID)
+        guard !Task.isCancelled, selectedFeedback?.id == item.id else { return }
+        await viewModel.loadMessages(for: fresh)
+    }
+
     private func open(_ item: FeedbackItem) {
+        viewModel.clearActionError()
+        viewModel.invalidateDetail(id: item.id)
         selectedFeedback = item
-        Task { await viewModel.acknowledgeRead(item, userID: currentUserID) }
     }
 }
 
@@ -632,8 +674,9 @@ struct FeedbackInboxView: View {
                 open(item, actorID: actorID)
             }
         }
-        .onChange(of: authState.user?.id) { _, _ in
+        .onChange(of: ProfileAccessIdentity(user: authState.user)) { _, _ in
             viewModel.reset(); selectedFeedback = nil; dsaDecisionItem = nil; feedbackPendingDeletion = nil
+            isShowingClearConfirmation = false
         }
         .appRefreshable {
             guard let actorID = authState.user?.id else { return }
@@ -677,6 +720,8 @@ struct FeedbackInboxView: View {
         )) {
             if let item = selectedFeedback {
                 let currentItem = currentFeedbackItem(for: item)
+                Group {
+                if viewModel.detailStates[item.id]?.isReady == true {
                 FeedbackDetailView(
                     item: currentItem,
                     messages: viewModel.messages(for: currentItem),
@@ -685,10 +730,8 @@ struct FeedbackInboxView: View {
                     messageErrorMessage: viewModel.messageErrorsByFeedbackID[currentItem.id].map(feedbackErrorMessage(_:)),
                     hasMoreMessages: viewModel.hasMoreMessages(for: currentItem.id),
                     isLoadingMoreMessages: viewModel.loadingMoreMessageFeedbackIDs.contains(currentItem.id),
-                    actionErrorMessage: viewModel.actionError.map(feedbackActionErrorMessage(_:)),
-                    onLoad: {
-                        Task { await viewModel.loadMessages(for: currentItem) }
-                    },
+                    actionErrorMessage: viewModel.actionError(for: currentItem.id).map(feedbackActionErrorMessage(_:)),
+                    onLoad: {},
                     onRetryMessages: {
                         Task { await viewModel.loadMessages(for: currentItem) }
                     },
@@ -706,12 +749,20 @@ struct FeedbackInboxView: View {
                     },
                     onStop: {
                         viewModel.stopListeningMessages(for: currentItem.id)
+                        viewModel.clearActionError()
                     },
                     onClose: closeAction(for: currentItem),
                     usesNavigationStack: false
                 )
                 .toolbar(.visible, for: .navigationBar)
                 .toolbar(.hidden, for: .tabBar)
+                } else {
+                    FeedbackRecordStateView(state: viewModel.detailStates[item.id],
+                        errorMessage: AppStrings.Feedback.loadFailed,
+                        onRetry: { Task { await loadSelectedDetail(item) } })
+                }
+                }
+                .task(id: item.id) { await loadSelectedDetail(item) }
             }
         }
         .sheet(item: $dsaDecisionItem) { item in
@@ -742,7 +793,7 @@ struct FeedbackInboxView: View {
                 .accessibilityIdentifier("feedbackInbox.actionError")
         }
         if viewModel.isLoading && viewModel.items.isEmpty {
-            LoadingStateCard(title: AppStrings.Feedback.inboxTitle)
+            LoadingStateCard(title: AppStrings.Feedback.inboxTitle).accessibilityIdentifier("feedbackInbox.loading")
         } else if let error = viewModel.error, viewModel.items.isEmpty {
             UnifiedEmptyStateCard(
                 systemImage: "exclamationmark.triangle",
@@ -752,7 +803,7 @@ struct FeedbackInboxView: View {
                 PrimaryActionButton(title: AppStrings.Moderation.retry, systemImage: "arrow.clockwise") {
                     guard let actorID = authState.user?.id else { return }
                     Task { await viewModel.refresh(actorID: actorID) }
-                }
+                }.accessibilityIdentifier("feedbackInbox.retry")
             }
         } else if viewModel.items.isEmpty {
             UnifiedEmptyStateCard(
@@ -766,7 +817,7 @@ struct FeedbackInboxView: View {
                 title: selectedFilter.title,
                 message: AppStrings.Feedback.inboxFilterEmpty
             ) {
-                if viewModel.hasMore {
+                if viewModel.hasMore && viewModel.error == nil {
                     PrimaryActionButton(
                         title: AppStrings.Search.loadMoreContent,
                         isEnabled: !viewModel.isLoadingMore,
@@ -780,8 +831,12 @@ struct FeedbackInboxView: View {
             }
         } else {
             LazyVStack(spacing: AppTheme.feedRowSpacing) {
-                if let error = viewModel.error {
+                if let error = viewModel.error, !viewModel.failedLoadMore {
                     InlineMessageCard(style: .error, message: feedbackErrorMessage(error))
+                    PrimaryActionButton(title: AppStrings.Moderation.retry, systemImage: "arrow.clockwise") {
+                        guard let actorID = authState.user?.id else { return }
+                        Task { await viewModel.retry(actorID: actorID) }
+                    }.accessibilityIdentifier("feedbackInbox.retry")
                 }
 
                 ForEach(filteredItems) { item in
@@ -835,7 +890,15 @@ struct FeedbackInboxView: View {
                     }
                 }
 
-                if viewModel.hasMore {
+                if let error = viewModel.error, viewModel.failedLoadMore {
+                    InlineMessageCard(style: .error, message: feedbackErrorMessage(error))
+                    PrimaryActionButton(title: AppStrings.Moderation.retry, systemImage: "arrow.clockwise") {
+                        guard let actorID = authState.user?.id else { return }
+                        Task { await viewModel.retry(actorID: actorID) }
+                    }.accessibilityIdentifier("feedbackInbox.retry")
+                }
+
+                if viewModel.hasMore && viewModel.error == nil {
                     PrimaryActionButton(
                         title: AppStrings.Search.loadMoreContent,
                         isEnabled: !viewModel.isLoadingMore,
@@ -844,7 +907,7 @@ struct FeedbackInboxView: View {
                     ) {
                         guard let actorID = authState.user?.id else { return }
                         Task { await viewModel.loadMore(actorID: actorID) }
-                    }
+                    }.accessibilityIdentifier("feedbackInbox.more")
                 }
             }
         }
@@ -902,7 +965,7 @@ struct FeedbackInboxView: View {
     }
 
     private func filterTitle(_ filter: FeedbackInboxFilter) -> String {
-        "\(filter.title) \(viewModel.counts[filter.rawValue] ?? 0)"
+        viewModel.counts[filter.rawValue].map { "\(filter.title) \($0)" } ?? "\(filter.title) —"
     }
 
     private func feedbackSort(_ lhs: FeedbackItem, _ rhs: FeedbackItem) -> Bool {
@@ -917,7 +980,7 @@ struct FeedbackInboxView: View {
     }
 
     private var inboxSearchField: some View {
-        AppSearchField(placeholder: AppStrings.Feedback.searchPlaceholder, text: $searchText)
+        AppSearchField(placeholder: AppStrings.Feedback.searchPlaceholder, text: $searchText, fieldID: "feedbackInbox.search", isSearching: viewModel.isLoading)
     }
 
     private func currentFeedbackItem(for item: FeedbackItem) -> FeedbackItem {
@@ -940,9 +1003,19 @@ struct FeedbackInboxView: View {
         }
     }
 
+    private func loadSelectedDetail(_ item: FeedbackItem) async {
+        guard let actorID = authState.user?.id,
+              let fresh = await viewModel.prepareDetail(id: item.id, actorID: actorID),
+              !Task.isCancelled, selectedFeedback?.id == item.id else { return }
+        await viewModel.acknowledgeRead(fresh, actorID: actorID)
+        guard !Task.isCancelled, selectedFeedback?.id == item.id else { return }
+        await viewModel.loadMessages(for: fresh)
+    }
+
     private func open(_ item: FeedbackItem, actorID: String) {
+        viewModel.clearActionError()
+        viewModel.invalidateDetail(id: item.id)
         selectedFeedback = item
-        Task { await viewModel.acknowledgeRead(item, actorID: actorID) }
     }
 }
 
@@ -1114,6 +1187,7 @@ private struct FeedbackConversationView: View {
     }
 
     private var conversationContent: some View {
+        GeometryReader { geometry in
             VStack(spacing: 0) {
                 ScrollViewReader { proxy in
                     ScrollView(.vertical, showsIndicators: true) {
@@ -1160,6 +1234,7 @@ private struct FeedbackConversationView: View {
                                     title: AppStrings.Moderation.retry,
                                     systemImage: "arrow.clockwise"
                                 ) { onRetryMessages() }
+                                .accessibilityIdentifier("feedback.messages.retry")
                             }
 
                             if isLoadingMessages && messages.isEmpty {
@@ -1201,6 +1276,7 @@ private struct FeedbackConversationView: View {
 
                 Divider()
 
+                ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
                     if let actionErrorMessage {
                         InlineMessageCard(style: .error, message: actionErrorMessage)
@@ -1224,6 +1300,7 @@ private struct FeedbackConversationView: View {
                             }
 
                             TextEditor(text: $replyText)
+                                .disabled(isSending)
                                 .accessibilityIdentifier("feedback.reply.text")
                                 .scrollContentBackground(.hidden)
                                 .frame(minHeight: 86, maxHeight: 120)
@@ -1260,16 +1337,20 @@ private struct FeedbackConversationView: View {
                 .padding(AppTheme.pageHorizontal)
                 .padding(.vertical, 12)
                 .appCenteredContent()
+                }
+                .scrollDismissesKeyboard(.interactively)
+                .frame(maxHeight: geometry.size.height * (dynamicTypeSize.isAccessibilitySize ? 0.46 : 0.52))
                 .background(AppTheme.pageBackground)
             }
             .background(AppTheme.pageBackground)
-            .navigationTitle(AppStrings.Feedback.inboxTitle)
+            .navigationTitle(FeedbackSupportCopy.conversationTitle)
+            .navigationBarBackButtonHidden(isSending)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(AppStrings.Common.done) {
                         dismiss()
-                    }
+                    }.disabled(isSending)
                 }
             }
             .task {
@@ -1289,6 +1370,7 @@ private struct FeedbackConversationView: View {
             } message: {
                 Text(AppStrings.Feedback.closeConfirmationMessage)
             }
+        }
     }
 
     private var canAppeal: Bool {
@@ -1301,10 +1383,12 @@ private struct FeedbackConversationView: View {
 
     private var appealEditor: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(AppStrings.Safety.dsaAppealReasonTitle)
+            Text(FeedbackSupportCopy.appealReason)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textPrimary)
-            TextField(AppStrings.Safety.dsaAppealReasonTitle, text: $appealText, axis: .vertical)
+            TextField(FeedbackSupportCopy.appealReason, text: $appealText, axis: .vertical)
+                .disabled(isSending)
+                .accessibilityIdentifier("feedback.appeal.reason")
                 .lineLimit(3...8)
                 .padding(12)
                 .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
@@ -1314,7 +1398,7 @@ private struct FeedbackConversationView: View {
             }
             PrimaryActionButton(
                 title: AppStrings.Safety.dsaAppealSubmit,
-                isEnabled: appealText.trimmingCharacters(in: .whitespacesAndNewlines).count >= 20 && !isSending,
+                isEnabled: FeedbackSupportValidation.text(appealText, minimum: 20, maximum: 5_000) && !isSending,
                 isLoading: isSending,
                 systemImage: "arrow.uturn.backward.circle"
             ) {
@@ -1326,7 +1410,7 @@ private struct FeedbackConversationView: View {
 
     private func submitAppeal() {
         let normalized = appealText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard normalized.count >= 20, let onAppeal else {
+        guard FeedbackSupportValidation.text(normalized, minimum: 20, maximum: 5_000), let onAppeal else {
             appealValidationMessage = AppStrings.Safety.explanationRequired
             return
         }
@@ -1380,9 +1464,11 @@ private struct FeedbackConversationView: View {
 
         if allowsClose, onClose != nil {
             Button {
-                isShowingCloseConfirmation = true
+                if item.dsaCase != nil { onClose?() }
+                else { isShowingCloseConfirmation = true }
             } label: {
-                Label(item.dsaCase == nil ? AppStrings.Feedback.closeFeedback : AppStrings.Safety.dsaDecisionAction, systemImage: "checkmark.seal")
+                Text(item.dsaCase == nil ? AppStrings.Feedback.closeFeedback : AppStrings.Safety.dsaDecisionAction)
+                    .fixedSize(horizontal: false, vertical: true)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.accentDestructiveForeground)
                     .multilineTextAlignment(.center)
@@ -1394,6 +1480,7 @@ private struct FeedbackConversationView: View {
             }
             .buttonStyle(.plain)
             .disabled(isSending)
+            .accessibilityIdentifier("feedback.conversation.close")
         }
     }
 
@@ -1417,9 +1504,17 @@ private struct DsaCaseContextCard: View {
     var body: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: 10) {
-                Label("DSA · \(dsaCase.caseNumber)", systemImage: "building.columns")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(AppTheme.textPrimary)
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Image(systemName: "building.columns")
+                        .font(.system(size: 20, weight: .semibold))
+                        .accessibilityHidden(true)
+                    Text(AppStrings.Safety.caseNumberTitle).font(.subheadline.weight(.semibold))
+                }
+                Text(dsaCase.caseNumber)
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
                 if let url = URL(string: dsaCase.exactLocation), ["https", "http"].contains(url.scheme?.lowercased() ?? "") {
                     Link(destination: url) { Label(dsaCase.exactLocation, systemImage: "arrow.up.right.square") }
                         .font(.footnote).tint(AppTheme.accentPrimaryForeground)
@@ -1464,23 +1559,33 @@ private struct DsaAppealDecisionSheet: View {
     @State private var errorMessage: String?
 
     private var canSubmit: Bool {
-        !isSubmitting && reason.trimmingCharacters(in: .whitespacesAndNewlines).count >= 20 && humanReviewConfirmed
+        !isSubmitting && FeedbackSupportValidation.text(reason, minimum: 20, maximum: 5_000) && humanReviewConfirmed
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    if let dsaCase = item.dsaCase { DsaCaseContextCard(dsaCase: dsaCase) }
+                    if let dsaCase = item.dsaCase {
+                        AppEditorSectionCard {
+                            Text(dsaCase.caseNumber).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                            DisclosureGroup(FeedbackSupportCopy.caseDetails) { DsaCaseContextCard(dsaCase: dsaCase) }
+                                .font(.subheadline.weight(.medium))
+                        }
+                    }
                     AppEditorSectionCard {
                         VStack(alignment: .leading, spacing: 16) {
                             Picker(AppStrings.Safety.dsaAppealOutcomeTitle, selection: $outcome) {
                                 Text(AppStrings.Safety.dsaAppealUpheld).tag("upheld")
                                 Text(AppStrings.Safety.dsaAppealChanged).tag("changed")
                             }
-                            .pickerStyle(.segmented)
+                            .pickerStyle(.menu)
+                            .accessibilityIdentifier("feedback.dsa.appeal.outcome")
+                            .disabled(isSubmitting)
                             TextField(AppStrings.Safety.dsaAppealReasonTitle, text: $reason, axis: .vertical)
                                 .lineLimit(4...10)
+                                .disabled(isSubmitting)
+                                .accessibilityIdentifier("feedback.dsa.appeal.reason")
                                 .padding(12)
                                 .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
                                 .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).stroke(AppTheme.borderSubtle))
@@ -1492,6 +1597,8 @@ private struct DsaAppealDecisionSheet: View {
                                     .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
+                            .disabled(isSubmitting)
+                            .accessibilityIdentifier("feedback.dsa.appeal.humanReview")
                         }
                     }
                     if let errorMessage { InlineMessageCard(style: .error, message: errorMessage) }
@@ -1507,7 +1614,8 @@ private struct DsaAppealDecisionSheet: View {
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 0) {
                     Divider()
-                    PrimaryActionButton(title: AppStrings.Safety.dsaDecisionSubmit, isEnabled: canSubmit, isLoading: isSubmitting, systemImage: "checkmark.seal") { submit() }
+                    PrimaryActionButton(title: AppStrings.Action.save, isEnabled: canSubmit, isLoading: isSubmitting, systemImage: "checkmark.seal") { submit() }
+                        .accessibilityIdentifier("feedback.dsa.appeal.submit")
                         .padding(.horizontal, AppTheme.pageHorizontal)
                         .padding(.vertical, 12)
                         .appCenteredContent()
@@ -1553,22 +1661,25 @@ private struct DsaDecisionSheet: View {
     @State private var errorMessage: String?
 
     private var canSubmit: Bool {
-        !isSubmitting
-            && facts.trimmingCharacters(in: .whitespacesAndNewlines).count >= 20
-            && (!legalBasis.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                || !termsBasis.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            && !territorialScope.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !duration.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !redress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && humanReviewConfirmed
+        !isSubmitting && FeedbackSupportValidation.decision(
+            facts: facts, legalBasis: legalBasis, termsBasis: termsBasis,
+            territory: territorialScope, duration: duration, redress: redress,
+            humanReviewed: humanReviewConfirmed
+        )
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    if let dsaCase = item.dsaCase { DsaCaseContextCard(dsaCase: dsaCase) }
-                    fieldCard
+                    if let dsaCase = item.dsaCase {
+                        AppEditorSectionCard {
+                            Text(dsaCase.caseNumber).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                            DisclosureGroup(FeedbackSupportCopy.caseDetails) { DsaCaseContextCard(dsaCase: dsaCase) }
+                                .font(.subheadline.weight(.medium))
+                        }
+                    }
+                    fieldCard.disabled(isSubmitting)
                     if let errorMessage { InlineMessageCard(style: .error, message: errorMessage) }
                 }
                 .padding(AppTheme.pageHorizontal)
@@ -1585,11 +1696,12 @@ private struct DsaDecisionSheet: View {
                 VStack(spacing: 0) {
                     Divider()
                     PrimaryActionButton(
-                        title: AppStrings.Safety.dsaDecisionSubmit,
+                        title: AppStrings.Action.save,
                         isEnabled: canSubmit,
                         isLoading: isSubmitting,
                         systemImage: "checkmark.seal"
                     ) { submit() }
+                    .accessibilityIdentifier("feedback.dsa.decision.submit")
                     .padding(.horizontal, AppTheme.pageHorizontal)
                     .padding(.vertical, 12)
                     .appCenteredContent()
@@ -1608,12 +1720,12 @@ private struct DsaDecisionSheet: View {
                     Text(AppStrings.Safety.dsaOutcomeRemoved).tag("removed")
                 }
                 .pickerStyle(.menu)
-                dsaTextField(AppStrings.Safety.dsaFactsTitle, text: $facts, axis: .vertical)
-                dsaTextField(AppStrings.Safety.legalBasisTitle, text: $legalBasis, axis: .vertical)
-                dsaTextField(AppStrings.Safety.dsaTermsBasisTitle, text: $termsBasis, axis: .vertical)
-                dsaTextField(AppStrings.Safety.dsaTerritoryTitle, text: $territorialScope)
-                dsaTextField(AppStrings.Safety.dsaDurationTitle, text: $duration)
-                dsaTextField(AppStrings.Safety.dsaRedressTitle, text: $redress, axis: .vertical)
+                dsaTextField(AppStrings.Safety.dsaFactsTitle, text: $facts, maximum: 5_000, axis: .vertical)
+                dsaTextField(AppStrings.Safety.legalBasisTitle, text: $legalBasis, maximum: 2000, axis: .vertical)
+                dsaTextField(AppStrings.Safety.dsaTermsBasisTitle, text: $termsBasis, maximum: 2000, axis: .vertical)
+                dsaTextField(AppStrings.Safety.dsaTerritoryTitle, text: $territorialScope, maximum: 500)
+                dsaTextField(AppStrings.Safety.dsaDurationTitle, text: $duration, maximum: 500)
+                dsaTextField(AppStrings.Safety.dsaRedressTitle, text: $redress, maximum: 2000, axis: .vertical)
                 Button { humanReviewConfirmed.toggle() } label: {
                     Label(
                         AppStrings.Safety.dsaHumanReview,
@@ -1625,15 +1737,20 @@ private struct DsaDecisionSheet: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("feedback.dsa.decision.humanReview")
             }
         }
     }
 
-    private func dsaTextField(_ title: String, text: Binding<String>, axis: Axis = .horizontal) -> some View {
+    private func dsaTextField(_ title: String, text: Binding<String>, maximum: Int, axis: Axis = .horizontal) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(AppTheme.textPrimary)
+            Text("\(text.wrappedValue.utf16.count)/\(maximum)")
+                .font(.caption)
+                .foregroundStyle(text.wrappedValue.utf16.count > maximum ? AppTheme.accentDestructiveForeground : AppTheme.textSecondary)
             TextField(title, text: text, axis: axis)
                 .lineLimit(axis == .vertical ? 3...8 : 1...1)
+                .accessibilityIdentifier("feedback.dsa.field." + String(maximum) + "." + title)
                 .padding(12)
                 .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).stroke(AppTheme.borderSubtle))
@@ -1894,6 +2011,8 @@ struct FeedbackComposerCard: View {
                     }
 
                     TextEditor(text: $feedbackMessage)
+                        .accessibilityIdentifier("feedback.compose.text")
+                        .disabled(isSubmitting)
                         .scrollContentBackground(.hidden)
                         .frame(height: dynamicTypeSize.isAccessibilitySize ? 140 : 104)
                         .padding(8)
@@ -1934,6 +2053,7 @@ struct FeedbackComposerCard: View {
                 onSubmit()
             }
             .accessibilityLabel(AppStrings.Feedback.submit)
+            .accessibilityIdentifier("feedback.compose.submit")
         }
         .padding(.vertical, 2)
     }
@@ -1945,5 +2065,6 @@ struct FeedbackComposerCard: View {
             }
         }
         .pickerStyle(.menu)
+        .disabled(isSubmitting)
     }
 }
