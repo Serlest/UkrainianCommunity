@@ -2,7 +2,7 @@
   "block": 11,
   "totalBlocks": 19,
   "name": "Керування користувачами",
-  "status": "verification_complete_pending_hosted_validation",
+  "status": "verification_pending_final_device_readback",
   "sourceBaseline": "d4601a77",
   "method": "Docs/AppAuditMethod.md",
   "boundaries": [
@@ -1448,7 +1448,7 @@
   "implementationStatus": "implemented",
   "verifiedScenarioChecks": 44,
   "finalGates": {
-    "requiredHostedValidation": "pending for final source",
+    "requiredHostedValidation": "passed: run 40239264159, a921224d, completed 2026-10-25T22:44:52Z",
     "physicalRead": "passed; final wording-only reinstall bookkeeping pending",
     "manualAcceptance": "pending",
     "testFlightDelivery": "not requested"

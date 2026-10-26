@@ -2,7 +2,7 @@
   "block": 11,
   "totalBlocks": 19,
   "name": "Керування користувачами",
-  "status": "verification_complete_pending_hosted_validation",
+  "status": "verification_pending_final_device_readback",
   "method": "Docs/AppAuditMethod.md",
   "inventory": "Docs/Verification/UserManagementInventory20261025.json",
   "sourceBaseline": "d4601a77",
@@ -279,6 +279,13 @@
       "sourceCommit": "a921224d",
       "result": "BUILD SUCCEEDED",
       "scope": "Signed generic iOS Release build; installation pending unavailable physical iPhone."
+    },
+    "finalHostedValidation": {
+      "runId": 40239264159,
+      "sourceCommit": "a921224d072e7d019c37fee43d033dc89af7476c",
+      "conclusion": "success",
+      "completedAt": "2026-10-25T22:44:52Z",
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40239264159"
     }
   },
   "findings": [
@@ -444,8 +451,7 @@
   "nextBlock": 12,
   "advanceWithoutUserAcceptance": false,
   "verificationPending": [
-    "Final source GitHub run 40239264159 is running; static and Firebase checks passed, iOS validation running.",
-    "Physical iPhone unavailable; final wording-only a921224d Release installation/readback pending. Earlier functional physical read passed."
+    "Physical iPhone unavailable on 2026-10-26; final wording-only a921224d Release installation/readback pending. Earlier functional physical read passed."
   ],
   "sourceCommit": "a921224d",
   "verificationBoundaries": [

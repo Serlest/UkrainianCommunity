@@ -179,9 +179,8 @@
     {
       "number": 11,
       "name": "Управление пользователями",
-      "status": "verification_complete_pending_hosted_validation",
+      "status": "verification_pending_final_device_readback",
       "openChecks": [
-        "U11-FINAL-SOURCE-CI",
         "U11-FINAL-INSTALLED-COPY"
       ],
       "inventory": "Docs/Verification/UserManagementInventory20261025.json",
@@ -190,7 +189,10 @@
       "sourceCommit": "a921224d",
       "serverCommit": "55d0c614",
       "closedScenarioChecks": 44,
-      "testFlightChanged": false
+      "testFlightChanged": false,
+      "closedChecks": [
+        "U11-FINAL-SOURCE-CI"
+      ]
     },
     {
       "number": 12,
@@ -342,7 +344,7 @@
   "nextNewBlock": 12,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "Finish the two explicit final gates of block 11; do not start block 12 before acceptance.",
+  "nextAction": "Finish final installed-copy readback of block 11 when the physical iPhone is available; hosted source validation passed. Do not start block 12 before acceptance.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,
