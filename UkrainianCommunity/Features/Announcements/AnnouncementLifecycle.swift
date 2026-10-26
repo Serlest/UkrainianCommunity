@@ -3,12 +3,14 @@ import UIKit
 import Combine
 import UserNotifications
 import FirebaseCore
+import FirebaseAuth
 private import FirebaseInstallations
 
 @MainActor
 final class AnnouncementPushBridge: ObservableObject {
     static let shared = AnnouncementPushBridge()
-    @Published var pendingID: String?
+    @Published private(set) var deliveryRevision = 0
+    private var intent = AnnouncementPushIntent()
     private var repository: (any AnnouncementRepository)?
     private var identity: String?
     private var generation = 0
@@ -28,6 +30,7 @@ final class AnnouncementPushBridge: ObservableObject {
         if self.identity != identity {
             generation += 1
             self.identity = identity
+            intent.configure(userID: identity == "unavailable" ? nil : identity)
             _ = try? await repository.call("registerAnnouncementDevice", AnnouncementRequest(operation: "disable", secret: installationSecret))
         }
         guard identity != "unavailable" else { return }
@@ -43,7 +46,7 @@ final class AnnouncementPushBridge: ObservableObject {
         generation += 1
         isSigningOut = false
         identity = "unavailable"
-        pendingID = nil
+        intent.clear()
         repository = nil
     }
     func resumeAfterFailedSignOut() async {
@@ -69,18 +72,24 @@ final class AnnouncementPushBridge: ObservableObject {
             _ = try await repository.call("registerAnnouncementDevice", AnnouncementRequest(language: AppLanguage.stored.rawValue, secret: installationSecret, fid: fid))
         } catch { /* Registration is retried on the next foreground activation. No message is lost from the in-app feed. */ }
     }
-    func receive(_ data: [AnyHashable: Any]) async -> Bool {
-        await receive(id: data["announcementId"] as? String, challenge: data["announcementChallenge"] as? String)
+    func receive(_ data: [AnyHashable: Any], userInitiated: Bool = false) async -> Bool {
+        await receive(id: data["announcementId"] as? String, challenge: data["announcementChallenge"] as? String, userInitiated: userInitiated)
     }
-    func receive(id: String?, challenge: String?) async -> Bool {
-        if identity == "unavailable" || isSigningOut { return id != nil || challenge != nil }
+    func receive(id: String?, challenge: String?, userInitiated: Bool = false) async -> Bool {
+        if isSigningOut { return id != nil || challenge != nil }
         if let challenge {
             if let repository { _ = try? await repository.call("registerAnnouncementDevice", AnnouncementRequest(operation: "confirm", secret: installationSecret, challenge: challenge)) }
             return true
         }
-        if let id { pendingID = id; return true }
+        if let id {
+            let authenticatedID = FirebaseApp.app() == nil ? nil : Auth.auth().currentUser?.uid
+            intent.receive(id: id, userID: authenticatedID, userInitiated: userInitiated)
+            deliveryRevision += 1
+            return true
+        }
         return false
     }
+    func consumeIntent(userID: String) -> String? { intent.consume(userID: userID) }
 }
 
 struct AnnouncementLifecycle: ViewModifier {
@@ -124,8 +133,10 @@ struct AnnouncementLifecycle: ViewModifier {
                     coordinator.background()
                 }
             }
-            .onChange(of: ready) { _, value in if value { present() } else { coordinator.active = nil } }
-            .onChange(of: push.pendingID) { _, _ in Task { await reload() } }
+            .onChange(of: ready) { _, value in
+                if value { Task { await reload() } } else { coordinator.active = nil }
+            }
+            .onChange(of: push.deliveryRevision) { _, _ in Task { await reload() } }
             .sheet(item: $coordinator.active) { item in
                 AnnouncementPopup(item: item, coordinator: coordinator) { item in
                     // Allow the modal dismissal to finish before routing to feedback/auth.
@@ -136,10 +147,6 @@ struct AnnouncementLifecycle: ViewModifier {
     private func reload() async {
         await coordinator.refresh()
         guard !Task.isCancelled else { return }
-        if let id = push.pendingID, ready, canPresentModal {
-            push.pendingID = nil
-            if let item = coordinator.items.first(where: { $0.id == id && $0.active(at: coordinator.now) }) { coordinator.active = item; return }
-        }
         present()
     }
     private func reloadIfStale() async {
@@ -147,7 +154,14 @@ struct AnnouncementLifecycle: ViewModifier {
         guard !Task.isCancelled else { return }
         present()
     }
-    private func present() { coordinator.presentIfPossible(ready && scenePhase == .active && canPresentModal) }
+    private func present() {
+        guard ready, scenePhase == .active, canPresentModal else { return }
+        if let userID, let id = push.consumeIntent(userID: userID),
+           let item = coordinator.items.first(where: { $0.id == id && $0.active(at: coordinator.now) }) {
+            coordinator.active = item; return
+        }
+        coordinator.presentIfPossible(true)
+    }
     private var canPresentModal: Bool {
         !UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap(\.windows)
             .filter(\.isKeyWindow).contains { $0.rootViewController?.presentedViewController != nil }

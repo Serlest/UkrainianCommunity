@@ -483,7 +483,8 @@ struct ContentView: View {
                             handleNotificationTap(notification)
                         }
                     }
-                }
+                },
+                isBusy: notificationPopupCoordinator.isWritingReceipt
             )
         }
         .appErrorDialog(Binding(
@@ -1211,6 +1212,7 @@ struct ContentView: View {
     }
 
     private func handleRemoteNotificationRoute(_ route: RemoteNotificationRoute) {
+        guard route.canOpen(for: authState.user?.id) else { return }
         isShowingNotificationInbox = false
 
         // Tapping a delivered inbox push is equivalent to opening that inbox

@@ -11,7 +11,8 @@ final class NotificationPopupCoordinatorService: ObservableObject {
     private var queuedNotifications: [AppNotification] = []
     private var hasReceivedInitialSnapshot = false
     private var seenNotificationIDs: Set<String> = []
-    private var isWritingReceipt = false
+    @Published private(set) var isWritingReceipt = false
+    private var generation = 0
 
     init(repository: NotificationInboxRepository) {
         self.repository = repository
@@ -19,7 +20,7 @@ final class NotificationPopupCoordinatorService: ObservableObject {
 
     func configure(userID: String?) {
         guard currentUserID != userID else { return }
-
+        generation += 1
         currentUserID = userID
         queuedNotifications = []
         activeNotification = nil
@@ -63,19 +64,21 @@ final class NotificationPopupCoordinatorService: ObservableObject {
               let userID = currentUserID,
               let notification = activeNotification else { return false }
         isWritingReceipt = true
-        defer { isWritingReceipt = false }
+        let version = generation
+        defer { if generation == version { isWritingReceipt = false } }
 
         do {
             if markRead {
                 try await repository.markNotificationRead(userID: userID, notificationID: notification.id)
             }
+            guard generation == version, currentUserID == userID, activeNotification?.id == notification.id else { return false }
             try await repository.markNotificationPopupPresented(userID: userID, notificationID: notification.id)
-            guard currentUserID == userID, activeNotification?.id == notification.id else { return false }
+            guard generation == version, currentUserID == userID, activeNotification?.id == notification.id else { return false }
             activeNotification = nil
             queuedNotifications.removeAll { $0.id == notification.id }
             errorMessage = nil
         } catch {
-            guard currentUserID == userID, activeNotification?.id == notification.id else { return false }
+            guard generation == version, currentUserID == userID, activeNotification?.id == notification.id else { return false }
             errorMessage = AppStrings.NotificationPopup.updateFailed
             return false
         }
@@ -116,7 +119,8 @@ final class NotificationPopupCoordinatorService: ObservableObject {
     }
 
     private func isEligibleForPopup(_ notification: AppNotification) -> Bool {
-        notification.requiresPopup
+        notification.recipientUserId == currentUserID
+            && notification.requiresPopup
             && notification.popupPresentedAt == nil
             && notification.deletedAt == nil
             && notification.archivedAt == nil

@@ -10,11 +10,13 @@ enum MockContentBuilder {
         func fixtureText(_ key: String, _ fallback: String) -> String {
             bundle.localizedString(forKey: key, value: fallback, table: nil)
         }
-        let userID = currentUser().id
+        let userID = profileRoleFixture()?.id ?? (ProcessInfo.processInfo.environment["UITestForceOwnerSession"] == "1" ? ownerUser().id : currentUser().id)
+        let critical = ProcessInfo.processInfo.environment["UITestCriticalNotification"] == "1"
         let message = fixtureText("mock.event.1.details", "An evening for networking, announcements, and practical orientation for families living in Tirol. Tea, children’s corner, and language support will be available.")
         return [userID: [
             AppNotification(id: "detail-info", recipientUserId: userID, type: .systemAnnouncement,
-                sourceType: .system, sourceId: "", title: fixtureText("mock.event.1.title", "Ukrainian Community Evening"),
+                sourceType: .system, sourceId: "", severity: critical ? .critical : .info, requiresPopup: critical,
+                title: fixtureText("mock.event.1.title", "Ukrainian Community Evening"),
                 message: Array(repeating: message, count: 4).joined(separator: "\n\n"),
                 actorDisplayName: "Community Team", payload: [:], isRead: false, readAt: nil, createdAt: .now),
             AppNotification(id: "detail-event", recipientUserId: userID, type: .eventUpdated,

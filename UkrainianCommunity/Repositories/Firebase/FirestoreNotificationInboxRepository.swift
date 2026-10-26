@@ -5,6 +5,17 @@ import FirebaseAuth
 struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
     private let database = Firestore.firestore()
 
+    func fetchNotification(userID: String, notificationID: String) async throws -> AppNotification {
+        do {
+            let snapshot = try await inboxCollection(userID: userID).document(notificationID).getDocument(source: .server)
+            guard snapshot.exists else { throw AppError.notFound }
+            let item = makeNotification(from: snapshot)
+            guard item.isVisibleInInbox else { throw AppError.notFound }
+            return item
+        } catch let error as AppError { throw error }
+        catch { throw FirebaseReadErrorMapper.map(error) }
+    }
+
     private func pageQuery(userID: String, unreadOnly: Bool, limit: Int, after: NotificationInboxCursor?) -> Query {
         var query: Query = inboxCollection(userID: userID)
         if unreadOnly { query = query.whereField("isRead", isEqualTo: false) }
@@ -244,8 +255,8 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
         }
     }
 
-    private func makeNotification(from document: QueryDocumentSnapshot) -> AppNotification {
-        let data = document.data()
+    private func makeNotification(from document: DocumentSnapshot) -> AppNotification {
+        let data = document.data() ?? [:]
         let type = (data["type"] as? String).flatMap(AppNotificationType.init(rawValue:)) ?? .unknown
         let sourceType = (data["sourceType"] as? String).flatMap(AppNotificationSourceType.init(rawValue:)) ?? .system
         let severity = (data["severity"] as? String).flatMap(AppNotificationSeverity.init(rawValue:)) ?? defaultSeverity(for: type)
@@ -254,7 +265,7 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
         let readAt = (data["readAt"] as? Timestamp)?.dateValue()
 
         return AppNotification(
-            id: data["id"] as? String ?? document.documentID,
+            id: document.documentID,
             // The authenticated inbox path is authoritative, including legacy records without this field.
             recipientUserId: document.reference.parent.parent?.documentID ?? data["recipientUserId"] as? String ?? "",
             type: type,

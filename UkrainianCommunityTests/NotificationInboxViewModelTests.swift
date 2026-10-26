@@ -4,6 +4,105 @@ import Testing
 
 @MainActor
 struct NotificationInboxViewModelTests {
+    @Test func criticalPopupOldReceiptCannotCloseTheSameAccountsNewSession() async {
+        let repo = InboxTestRepository()
+        let subject = NotificationPopupCoordinatorService(repository: repo)
+        let item = AppNotification(id: "critical", recipientUserId: "first", type: .systemAnnouncement,
+            sourceType: .system, sourceId: "", severity: .critical, requiresPopup: true,
+            message: "Important", payload: [:], isRead: false, readAt: nil, createdAt: .now)
+        subject.configure(userID: "first"); subject.receiveInboxSnapshot([item], userID: "first")
+        var continuation: CheckedContinuation<Void, Never>?
+        repo.beforeMarkReadReturns = { await withCheckedContinuation { continuation = $0 } }
+        let old = Task { await subject.dismissActiveNotification(markRead: true) }
+        while continuation == nil { await Task.yield() }
+        #expect(subject.isWritingReceipt)
+        #expect(await subject.dismissActiveNotification(markRead: true) == false)
+        subject.configure(userID: "second"); subject.configure(userID: "first")
+        subject.receiveInboxSnapshot([item], userID: "first")
+        continuation?.resume()
+        #expect(await old.value == false)
+        #expect(subject.activeNotification?.id == item.id)
+        #expect(repo.popupReceiptIDs.isEmpty)
+    }
+    @Test func criticalPopupRejectsForeignArchivedExpiredAndExcludedTypes() {
+        let subject = NotificationPopupCoordinatorService(repository: InboxTestRepository())
+        subject.configure(userID: "first")
+        func item(_ id: String, user: String = "first", type: AppNotificationType = .systemAnnouncement,
+                  expires: Date? = nil, archived: Date? = nil) -> AppNotification {
+            .init(id: id, recipientUserId: user, type: type, sourceType: .system, sourceId: "",
+                  severity: .critical, requiresPopup: true, expiresAt: expires, archivedAt: archived,
+                  payload: [:], isRead: false, readAt: nil, createdAt: .now)
+        }
+        subject.receiveInboxSnapshot([item("foreign", user: "second"), item("expired", expires: .distantPast),
+            item("archived", archived: .now), item("legal", type: .legalDocumentsUpdated),
+            item("restriction", type: .accountStatusChanged)], userID: "first")
+        #expect(subject.activeNotification == nil)
+        subject.receiveInboxSnapshot([item("eligible")], userID: "first")
+        #expect(subject.activeNotification?.id == "eligible")
+    }
+    @Test func deletedDetailCannotOfferActionsFromItsCachedRow() async {
+        let repo = InboxTestRepository()
+        let inbox = NotificationInboxViewModel(repository: repo)
+        await inbox.configure(userID: "user-1")
+        let item = notification("gone")
+        await repo.emit([item]); repo.detailFetch = { _ in throw AppError.notFound }
+        #expect(await inbox.prepareDetail(notificationID: item.id) == nil)
+        #expect(inbox.detailStates[item.id]?.isUnavailable == true)
+    }
+
+    @Test func failedDetailRetainsReadableCacheAndCanVerifyOnRetry() async {
+        let repo = InboxTestRepository()
+        let inbox = NotificationInboxViewModel(repository: repo)
+        await inbox.configure(userID: "user-1")
+        let item = notification("retry")
+        await repo.emit([item]); repo.detailFetch = { _ in throw AppError.network }
+        #expect(await inbox.prepareDetail(notificationID: item.id) == nil)
+        #expect(inbox.notifications.contains { $0.id == item.id })
+        #expect(inbox.detailStates[item.id]?.isReady == false)
+        repo.detailFetch = { _ in item }
+        #expect(await inbox.prepareDetail(notificationID: item.id)?.id == item.id)
+        #expect(inbox.detailStates[item.id]?.isReady == true)
+    }
+
+    @Test func lateDetailCannotCrossAnAccountSwitch() async {
+        let repo = InboxTestRepository()
+        let model = NotificationInboxViewModel(repository: repo)
+        await model.configure(userID: "user-1")
+        var resume: CheckedContinuation<AppNotification, Never>?
+        repo.detailFetch = { _ in await withCheckedContinuation { resume = $0 } }
+        let task = Task { await model.prepareDetail(notificationID: "old") }
+        while resume == nil { await Task.yield() }
+        await model.configure(userID: "user-2")
+        resume?.resume(returning: notification("old"))
+        #expect(await task.value == nil); #expect(model.detailStates.isEmpty); #expect(model.notifications.isEmpty)
+    }
+
+    @Test func tombstoneDuringDetailReadCannotBeResurrectedByTheOlderResponse() async {
+        let repo = InboxTestRepository()
+        let model = NotificationInboxViewModel(repository: repo)
+        await model.configure(userID: "user-1")
+        let item = notification("deleted-during-read")
+        await repo.emit([item])
+        var resume: CheckedContinuation<AppNotification, Never>?
+        repo.detailFetch = { _ in await withCheckedContinuation { resume = $0 } }
+        let task = Task { await model.prepareDetail(notificationID: item.id) }
+        while resume == nil { await Task.yield() }
+        await repo.emit([item.updatingDeleteState(deletedAt: .now)])
+        resume?.resume(returning: item)
+        #expect(await task.value == nil); #expect(model.detailStates[item.id]?.isUnavailable == true)
+        #expect(!model.notifications.contains { $0.id == item.id })
+    }
+
+    @Test func failedReceiptBelongsToItsNotificationNotAnotherDetail() async {
+        let repo = InboxTestRepository()
+        let model = NotificationInboxViewModel(repository: repo)
+        await model.configure(userID: "user-1")
+        let item = notification("receipt-failed")
+        await repo.emit([item]); repo.markReadFails = true
+        await model.markRead(item)
+        #expect(model.detailActionError(for: item.id) == .network)
+        #expect(model.detailActionError(for: "other") == nil)
+    }
     private func notification(_ id: String, user: String = "user-1") -> AppNotification {
         AppNotification(id: id, recipientUserId: user, type: .systemAnnouncement,
             sourceType: .system, sourceId: "", message: "Details", payload: [:],
@@ -454,6 +553,45 @@ struct NotificationInboxViewModelTests {
         await model.loadMore()
     }
 
+    @Test func refreshPreservesTheConfirmedLoadedHistoryRange() async {
+        let repository = InboxTestRepository()
+        let model = NotificationInboxViewModel(repository: repository)
+        await model.configure(userID: "user-1")
+        let head = (0..<50).map { notification("head-\($0)") }
+        let older = (0..<50).map { notification("old-\($0)") }
+        await repository.emit(head)
+        repository.pageFetch = { _, cursor in
+            let values = cursor == nil ? head : older
+            return NotificationInboxPage(items: values, nextCursor: cursor == nil ? .init(createdAt: head.last!.createdAt, documentID: head.last!.id) : nil, hasMore: cursor == nil)
+        }
+        await model.loadMore()
+        #expect(model.notifications.count == 100)
+        await model.refresh()
+        #expect(model.notifications.count == 100)
+        #expect(Set(model.notifications.map(\.id)).count == 100)
+    }
+
+    @Test func identicalConcurrentRefreshesDoNotDuplicateThePageRead() async {
+        let repository = InboxTestRepository()
+        let model = NotificationInboxViewModel(repository: repository)
+        await model.configure(userID: "user-1")
+        await repository.emit([notification("first")])
+        var reads = 0
+        var waits: [CheckedContinuation<NotificationInboxPage, Never>] = []
+        repository.pageFetch = { _, _ in
+            reads += 1
+            return await withCheckedContinuation { waits.append($0) }
+        }
+        let first = Task { await model.refresh() }
+        while waits.isEmpty { await Task.yield() }
+        let second = Task { await model.refresh() }
+        for _ in 0..<60 { await Task.yield() }
+        let observed = reads
+        for wait in waits { wait.resume(returning: .init(items: [], nextCursor: nil, hasMore: false)) }
+        await first.value; await second.value
+        #expect(observed == 1)
+    }
+
     @Test func failedPageCanRetrySameCursorAndDoesNotRestartListener() async {
         let repository = InboxTestRepository()
         let model = NotificationInboxViewModel(repository: repository)
@@ -467,12 +605,14 @@ struct NotificationInboxViewModelTests {
         await model.loadMore()
         #expect(model.error == .network)
         #expect(model.hasMoreNotifications)
+        #expect(model.failedLoadMore)
         repository.pageFetch = { _, cursor in
             #expect(cursor == originalCursor)
             return NotificationInboxPage(items: [], nextCursor: nil, hasMore: false)
         }
-        await model.loadMore()
+        await model.retry()
         #expect(model.error == nil)
+        #expect(!model.failedLoadMore)
         #expect(repository.callbacks.count == 1)
     }
 
@@ -480,6 +620,13 @@ struct NotificationInboxViewModelTests {
 
 @MainActor
 private final class InboxTestRepository: NotificationInboxRepository {
+    var detailFetch: ((String) async throws -> AppNotification)?
+    var markReadFails = false
+    func fetchNotification(userID: String, notificationID: String) async throws -> AppNotification {
+        if let detailFetch { return try await detailFetch(notificationID) }
+        guard let item = items.first(where: { $0.id == notificationID }), item.isVisibleInInbox else { throw AppError.notFound }
+        return item
+    }
     var callbacks: [@MainActor ([AppNotification]) -> Void] = []
     var errors: [@MainActor (AppError) -> Void] = []
     var items: [AppNotification] = []
@@ -493,6 +640,8 @@ private final class InboxTestRepository: NotificationInboxRepository {
     var beforeDeleteReturns: (@MainActor () async -> Void)?
     var badgeFetchCount = 0
     var markReadIDs: [String] = []
+    var popupReceiptIDs: [String] = []
+    var beforeMarkReadReturns: (@MainActor () async -> Void)?
     var pageFetch: ((Bool, NotificationInboxCursor?) async throws -> NotificationInboxPage)?
     var beforeClearReturns: (@MainActor () async -> Void)?
 
@@ -538,7 +687,9 @@ private final class InboxTestRepository: NotificationInboxRepository {
         return items.filter(\.countsAsUnread).count + additionalUnread
     }
     func markNotificationRead(userID: String, notificationID: String) async throws {
+        if markReadFails { throw AppError.network }
         markReadIDs.append(notificationID)
+        await beforeMarkReadReturns?()
         items = items.map { $0.id == notificationID ? $0.updatingReadState(isRead: true, readAt: .now) : $0 }
     }
     func markNotificationUnread(userID: String, notificationID: String) async throws {
@@ -548,7 +699,7 @@ private final class InboxTestRepository: NotificationInboxRepository {
         items = items.map { $0.updatingReadState(isRead: true, readAt: .now) }
         additionalUnread = 0
     }
-    func markNotificationPopupPresented(userID: String, notificationID: String) async throws {}
+    func markNotificationPopupPresented(userID: String, notificationID: String) async throws { popupReceiptIDs.append(notificationID) }
     func archiveNotification(userID: String, notificationID: String) async throws {
         items = items.map { $0.id == notificationID ? $0.updatingArchiveState(archivedAt: .now) : $0 }
     }

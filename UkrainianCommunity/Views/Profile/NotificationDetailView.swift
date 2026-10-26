@@ -12,6 +12,7 @@ struct NotificationDetailView: View {
     private var currentNotification: AppNotification {
         viewModel.notifications.first { $0.id == notification.id } ?? notification
     }
+    private var canAct: Bool { viewModel.detailStates[notification.id]?.isReady == true }
 
     var body: some View {
         PushedScreenShell(
@@ -24,9 +25,22 @@ struct NotificationDetailView: View {
             }
             .accessibilityIdentifier("notificationDetail.close")
         } content: {
+            if viewModel.detailStates[notification.id]?.isUnavailable == true {
+                UnifiedEmptyStateCard(systemImage: "bell.slash", title: NotificationAuditCopy.unavailableTitle,
+                    message: NotificationAuditCopy.unavailableMessage)
+                    .accessibilityIdentifier("notificationDetail.unavailable")
+            } else {
             messageCard
 
-            if let error = viewModel.error {
+            if case .failed(let error)? = viewModel.detailStates[notification.id] {
+                InlineMessageCard(style: .error, message: error.localizedDescription)
+                PrimaryActionButton(title: AppStrings.Action.retry, systemImage: "arrow.clockwise") {
+                    Task { await loadDetail() }
+                }.accessibilityIdentifier("notificationDetail.retry")
+            } else if !canAct {
+                ProgressView().accessibilityIdentifier("notificationDetail.verifying")
+            }
+            if let error = viewModel.detailActionError(for: notification.id) {
                 InlineMessageCard(style: .error, message: error.localizedDescription)
                     .accessibilityIdentifier("notificationDetail.error")
             }
@@ -42,17 +56,19 @@ struct NotificationDetailView: View {
             }
             .buttonStyle(.bordered)
             .tint(AppTheme.accentDestructive)
-            .disabled(isDeleting || viewModel.isBusy)
+            .disabled(!canAct || isDeleting || viewModel.isBusy)
             .accessibilityIdentifier("notificationDetail.delete")
 
             if isDeleting {
                 ProgressView().frame(maxWidth: .infinity)
             }
+            }
         }
         .task(id: notification.id) {
             // Viewing is immediate even if the read receipt is waiting for a network.
-            await viewModel.markRead(currentNotification)
+            await loadDetail()
         }
+        .onChange(of: canAct) { _, ready in if !ready { isShowingDeleteConfirmation = false } }
         .alert(
             AppStrings.NotificationInbox.deleteConfirmationTitle,
             isPresented: $isShowingDeleteConfirmation
@@ -69,6 +85,12 @@ struct NotificationDetailView: View {
             Button(AppStrings.Common.cancel, role: .cancel) {}
         } message: {
             Text(AppStrings.NotificationInbox.deleteConfirmationMessage)
+        }
+    }
+
+    private func loadDetail() async {
+        if let fresh = await viewModel.prepareDetail(notificationID: notification.id) {
+            await viewModel.markRead(fresh)
         }
     }
 
@@ -132,7 +154,7 @@ struct NotificationDetailView: View {
                 openDestination(currentNotification)
                 dismiss()
             }
-            .disabled(isDeleting)
+            .disabled(!canAct || isDeleting)
             .accessibilityIdentifier("notificationDetail.openDestination")
         } else {
             Text(currentNotification.actionType == .none

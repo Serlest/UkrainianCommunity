@@ -33,7 +33,7 @@ struct NotificationInboxView: View {
                 ProgressView()
                     .controlSize(.small)
                     .disabled(viewModel.isBusy)
-                    .accessibilityIdentifier("notificationInbox.markAllRead")
+                    .accessibilityIdentifier("notificationInbox.clearing")
                     .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
                     .accessibilityLabel(AppStrings.NotificationInbox.clearAll)
             } else if viewModel.canClear {
@@ -48,16 +48,9 @@ struct NotificationInboxView: View {
             }
         } content: {
             headerControls
-            if let error = viewModel.error {
-                InlineMessageCard(style: .error, message: error.localizedDescription)
-                    .accessibilityIdentifier("notificationInbox.error")
-                Button(AppStrings.Action.retry) { Task { await viewModel.refresh() } }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppTheme.accentPrimary)
-                    .disabled(viewModel.isBusy)
-                    .accessibilityIdentifier("notificationInbox.retry")
-            }
+            if !viewModel.failedLoadMore { retryState }
             inboxContent
+            if viewModel.failedLoadMore { retryState }
             if viewModel.isLoadingMore || viewModel.isFilterLoading {
                 ProgressView().frame(maxWidth: .infinity)
                     .accessibilityLabel(AppStrings.Common.loading)
@@ -111,9 +104,23 @@ struct NotificationInboxView: View {
             Button(AppStrings.NotificationInbox.clearAll, role: .destructive) {
                 Task { await viewModel.clearAll() }
             }
-            Button(AppStrings.Common.cancel, role: .cancel) {}
+            .accessibilityIdentifier("notificationInbox.confirmClear")
+            Button(AppStrings.Common.cancel, role: .cancel) {}.accessibilityIdentifier("notificationInbox.cancelClear")
         } message: {
             Text(AppStrings.NotificationInbox.clearConfirmationMessage)
+        }
+    }
+
+    @ViewBuilder
+    private var retryState: some View {
+        if let error = viewModel.error {
+            InlineMessageCard(style: .error, message: error.localizedDescription)
+                .accessibilityIdentifier("notificationInbox.error")
+            PrimaryActionButton(title: AppStrings.Action.retry, systemImage: "arrow.clockwise") {
+                Task { await viewModel.retry() }
+            }
+            .disabled(viewModel.isBusy || viewModel.isLoading || viewModel.isLoadingMore || viewModel.isFilterLoading)
+            .accessibilityIdentifier("notificationInbox.retry")
         }
     }
 

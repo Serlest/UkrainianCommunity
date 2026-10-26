@@ -7,6 +7,7 @@ final class AnnouncementRecipientSearch: ObservableObject {
     @Published private(set) var cursor: String?
     @Published private(set) var error: String?
     @Published private(set) var loading = false
+    @Published private(set) var failedMore = false
     private var generation = 0
     private var query = ""
     let repository: any AnnouncementRepository
@@ -14,6 +15,7 @@ final class AnnouncementRecipientSearch: ObservableObject {
     func search(_ text: String) async {
         generation += 1; let version = generation
         query = text; items = []; cursor = nil; error = nil; loading = true
+        failedMore = false
         defer { if generation == version { loading = false } }
         do {
             try await Task.sleep(for: .milliseconds(300))
@@ -39,8 +41,10 @@ final class AnnouncementRecipientSearch: ObservableObject {
             guard generation == version, !Task.isCancelled else { return }
             var seen = Set(items.map(\.id))
             items += page.items.filter { seen.insert($0.id).inserted }; self.cursor = page.cursor; error = nil
-        } catch { if generation == version, !Task.isCancelled { self.error = AnnouncementErrorPresentation.message(error) } }
+            failedMore = false
+        } catch { if generation == version, !Task.isCancelled { failedMore = true; self.error = AnnouncementErrorPresentation.message(error) } }
     }
+    func retry() async { if failedMore { await more() } else { await search(query) } }
 }
 
 struct AnnouncementUserPicker: View {
@@ -61,24 +65,22 @@ struct AnnouncementUserPicker: View {
             Button(AnnouncementManagementText.value("done")) { destination = selected; dismiss() }
                 .accessibilityIdentifier("announcements.peopleDone")
         }, bottomAction: { EmptyView() }) {
-            EditorTextField(AnnouncementManagementText.value("search"), text: $query, systemImage: "magnifyingglass")
-                .accessibilityIdentifier("announcements.recipientSearch")
+            AppSearchField(placeholder: AnnouncementManagementText.value("search"), text: $query,
+                fieldID: "announcements.recipientSearch", isSearching: search.loading)
             Text("\(AnnouncementManagementText.value("selected")): \(selected.count)/100").font(.headline).accessibilityIdentifier("announcements.selectionCount")
             Text(AnnouncementManagementText.value("limit")).font(.caption).foregroundStyle(AppTheme.textSecondary)
             if !selected.isEmpty {
                 AnnouncementSection(AnnouncementManagementText.value("selected")) {
                     ForEach(selected, id: \.self) { id in
                         Toggle(isOn: binding(id)) {
-                            if let user = known[id] { AnnouncementUserLabel(user: user) } else { Text(id).font(.caption) }
+                            if let user = known[id] { AnnouncementUserLabel(user: user) }
+                            else { Text(NotificationAuditCopy.loadingRecipient).font(.caption) }
                         }
                     }
                     if let resolutionError { InlineMessageCard(style: .error, message: resolutionError) }
                 }
             }
-            if let error = search.error {
-                InlineMessageCard(style: .error, message: error)
-                Button(AnnouncementStrings.retry) { Task { await search.search(query) } }
-            }
+            if !search.failedMore { retryState }
             if search.loading { ProgressView() }
             if search.items.isEmpty && !search.loading && search.error == nil { Text(AnnouncementManagementText.value("noResults")) }
             ForEach(search.items.filter { !selected.contains($0.id) }) { user in
@@ -86,6 +88,7 @@ struct AnnouncementUserPicker: View {
                     .disabled(selected.count >= 100 || user.available == false)
                     .accessibilityIdentifier("announcements.recipient.\(user.id)")
             }
+            if search.failedMore { retryState }
             if search.cursor != nil { Button(AnnouncementStrings.loadMore) { Task { await search.more() } }.disabled(search.loading) }
         }
         .task(id: query) { await search.search(query) }
@@ -97,6 +100,13 @@ struct AnnouncementUserPicker: View {
                 guard !Task.isCancelled else { return }
                 for user in response.users ?? [] { known[user.id] = user }
             } catch { if !Task.isCancelled { resolutionError = AnnouncementErrorPresentation.message(error) } }
+        }
+    }
+    @ViewBuilder private var retryState: some View {
+        if let error = search.error {
+            InlineMessageCard(style: .error, message: error)
+            Button(AnnouncementStrings.retry) { Task { await search.retry() } }
+                .disabled(search.loading).accessibilityIdentifier("announcements.recipientRetry")
         }
     }
     private func binding(_ id: String) -> Binding<Bool> {

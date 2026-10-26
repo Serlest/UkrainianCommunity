@@ -7,6 +7,41 @@ import FirebaseFirestore
 /// Opt-in real Codable/Callable/Firestore journey on the fixed localhost demo.
 @MainActor
 final class AnnouncementSDKEmulatorTests: XCTestCase {
+    func testReviewedCommandReplayAndCurrentRevisionThroughRealSDK() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Fixed local demo only") }
+        guard FirebaseApp.app()?.options.projectID == "demo-uac-release-audit",
+              Firestore.firestore().settings.host == "127.0.0.1:28080" else { XCTFail("Refusing non-local SDK"); return }
+        let uid = "notifications-audit-owner-20261026", auth = Auth.auth()
+        try? auth.signOut(); defer { try? auth.signOut() }
+        _ = try await auth.signIn(withEmail: uid + "@uac.test", password: "Emulator-Only-2026!")
+        let repository = CloudAnnouncementRepository()
+        var draft = UserAnnouncement(); draft.id = "n13-command-" + UUID().uuidString
+        draft.title = .init(uk: "Перевірка повтору", de: "Wiederholung prüfen")
+        draft.body = .init(uk: "Контрольний текст", de: "Kontrolltext")
+        draft.startsAt -= 1000; draft.push = false
+        let command = AnnouncementRequest(operationId: UUID().uuidString, operation: "save", revision: 0, draft: draft)
+        let saved = try await repository.call("manageAnnouncements", command)
+        let replay = try await repository.call("manageAnnouncements", command)
+        XCTAssertEqual(saved.item?.revision, 1); XCTAssertEqual(replay.item?.revision, 1)
+        let stored = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "get", id: draft.id))
+        XCTAssertEqual(stored.item?.reviewedContent, saved.item?.reviewedContent)
+        _ = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "publish", id: draft.id, revision: 1))
+        let publishedReplay = try await repository.call("manageAnnouncements", command)
+        XCTAssertEqual(publishedReplay.item?.status, "published"); XCTAssertEqual(publishedReplay.item?.revision, 1)
+        do {
+            _ = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "cancel", id: draft.id, revision: 7))
+            XCTFail("Stale revision must be rejected")
+        } catch { XCTAssertEqual((error as NSError).code, 10) }
+        _ = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "cancel", id: draft.id, revision: 1))
+        let cancelled = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "get", id: draft.id))
+        XCTAssertEqual(cancelled.item?.status, "cancelled")
+        try auth.signOut()
+        _ = try await auth.signIn(withEmail: uid + "-other@uac.test", password: "Emulator-Only-2026!")
+        do {
+            _ = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "get", id: draft.id))
+            XCTFail("Member cannot read owner campaigns")
+        } catch { XCTAssertEqual((error as NSError).code, 7) }
+    }
     func testOwnerPublishGuestReceiptAndCancellationThroughRealSDK() async throws {
         guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else {
             throw XCTSkip("Run against the fixed local demo fixture.")

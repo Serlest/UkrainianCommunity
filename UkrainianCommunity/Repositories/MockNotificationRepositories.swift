@@ -19,6 +19,16 @@ private struct MockRealtimeListener: AppRealtimeListener {
 struct MockNotificationInboxRepository: NotificationInboxRepository {
     private let store = MockRepositoryStore.shared
 
+    func fetchNotification(userID: String, notificationID: String) async throws -> AppNotification {
+        #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing") {
+            try await NotificationAuditFailureFixture.shared.check(receipt: false)
+        }
+        #endif
+        guard let item = await store.notifications(userID: userID, limit: Int.max).first(where: { $0.id == notificationID && $0.isVisibleInInbox }) else { throw AppError.notFound }
+        return item
+    }
+
     func fetchNotifications(userID: String, limit: Int) async throws -> [AppNotification] {
         await store.notifications(userID: userID, limit: limit)
     }
@@ -43,6 +53,11 @@ struct MockNotificationInboxRepository: NotificationInboxRepository {
     }
 
     func markNotificationRead(userID: String, notificationID: String) async throws {
+        #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing") {
+            try await NotificationAuditFailureFixture.shared.check(receipt: true)
+        }
+        #endif
         await store.markNotificationRead(userID: userID, notificationID: notificationID)
     }
 
@@ -78,6 +93,27 @@ struct MockNotificationInboxRepository: NotificationInboxRepository {
         await store.createNotification(notification, userID: userID)
     }
 }
+
+#if DEBUG && targetEnvironment(simulator)
+private actor NotificationAuditFailureFixture {
+    static let shared = NotificationAuditFailureFixture()
+    private var detailAttempts = 0
+    private var receiptAttempts = 0
+    func check(receipt: Bool) async throws {
+        let mode = ProcessInfo.processInfo.environment["UITestNotificationFailure"]
+        guard mode != nil else { return }
+        if receipt {
+            receiptAttempts += 1
+            if mode == "receiptOnce" && receiptAttempts == 1 { throw AppError.network }
+        } else {
+            detailAttempts += 1
+            try await Task.sleep(for: .milliseconds(500))
+            if mode == "missing" { throw AppError.notFound }
+            if mode == "networkOnce" && detailAttempts == 1 { throw AppError.network }
+        }
+    }
+}
+#endif
 
 struct MockNotificationPushTokenRepository: NotificationPushTokenRepository {
     func saveCurrentDeviceRegistration(

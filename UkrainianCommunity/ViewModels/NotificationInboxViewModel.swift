@@ -9,6 +9,13 @@ enum NotificationInboxFilter: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum NotificationDetailLoadState {
+    case loading, ready, unavailable
+    case failed(AppError)
+    var isReady: Bool { if case .ready = self { true } else { false } }
+    var isUnavailable: Bool { if case .unavailable = self { true } else { false } }
+}
+
 @MainActor
 final class NotificationInboxViewModel: ObservableObject {
     private enum ErrorSource: Hashable {
@@ -29,6 +36,8 @@ final class NotificationInboxViewModel: ObservableObject {
     @Published private(set) var isMutating = false
     @Published private(set) var isMarkingAllRead = false
     @Published private(set) var isFilterLoading = false
+    @Published private(set) var failedLoadMore = false
+    @Published private(set) var detailStates: [String: NotificationDetailLoadState] = [:]
     @Published var selectedFilter: NotificationInboxFilter = .all {
         didSet {
             guard selectedFilter != oldValue else { return }
@@ -36,6 +45,8 @@ final class NotificationInboxViewModel: ObservableObject {
             pageGeneration += 1
             isLoadingMore = false
             isFilterLoading = false
+            failedLoadMore = false
+            clearError(from: [.refresh])
         }
     }
 
@@ -48,6 +59,8 @@ final class NotificationInboxViewModel: ObservableObject {
     private var listenerRecoveryAttempt = 0
     private var badgeRefreshTask: Task<Void, Never>?
     private var errorSource: ErrorSource?
+    private var mutationErrorNotificationID: String?
+    private var detailReadTokens: [String: UUID] = [:]
     private var currentUserID: String?
     private let notificationPageSize = 50
     private var cursors: [NotificationInboxFilter: NotificationInboxCursor] = [:]
@@ -60,6 +73,7 @@ final class NotificationInboxViewModel: ObservableObject {
     private var dataRevision = 0
     private var pageGeneration = 0
     private var refreshGeneration = 0
+    private var pendingRefresh: (id: UUID, session: Int, revision: Int, filterVersion: Int)?
 
     var hasMoreNotifications: Bool { morePages[selectedFilter] ?? false }
     var isBusy: Bool { isMutating || isClearing }
@@ -103,6 +117,8 @@ final class NotificationInboxViewModel: ObservableObject {
         snapshotVersion = 0
         error = nil
         errorSource = nil
+        mutationErrorNotificationID = nil
+        detailStates = [:]; detailReadTokens = [:]
         selectedFilter = .all
         cursors = [:]
         morePages = [:]
@@ -110,6 +126,8 @@ final class NotificationInboxViewModel: ObservableObject {
         headIDs = []
         deletedIDs = []
         clearedThrough = nil
+        pendingRefresh = nil
+        failedLoadMore = false
         filterVersion += 1
         dataRevision += 1
         refreshGeneration += 1
@@ -132,6 +150,30 @@ final class NotificationInboxViewModel: ObservableObject {
             notifications.filter { $0.isVisibleInInbox && $0.isArchived }
         case .unread:
             notifications.filter(\.countsAsUnread)
+        }
+    }
+
+    func detailActionError(for id: String) -> AppError? {
+        errorSource == .mutation && mutationErrorNotificationID == id ? error : nil
+    }
+
+    func prepareDetail(notificationID: String) async -> AppNotification? {
+        guard let userID = currentUserID else { return nil }
+        let session = sessionVersion, token = UUID()
+        detailReadTokens[notificationID] = token
+        detailStates[notificationID] = .loading
+        do {
+            let item = try await repository.fetchNotification(userID: userID, notificationID: notificationID)
+            guard sessionVersion == session, detailReadTokens[notificationID] == token, !Task.isCancelled else { return nil }
+            guard item.id == notificationID, item.recipientUserId == userID, item.isVisibleInInbox,
+                  !deletedIDs.contains(notificationID), clearedThrough.map({ item.createdAt > $0 }) ?? true else { detailStates[notificationID] = .unavailable; return nil }
+            merge([item]); detailStates[notificationID] = .ready
+            return item
+        } catch {
+            guard sessionVersion == session, detailReadTokens[notificationID] == token, !Task.isCancelled else { return nil }
+            let appError = (error as? AppError) ?? .unknown
+            detailStates[notificationID] = [.notFound, .permissionDenied].contains(appError) ? .unavailable : .failed(appError)
+            return nil
         }
     }
 
@@ -159,6 +201,11 @@ final class NotificationInboxViewModel: ObservableObject {
         await loadPage(first: false)
     }
 
+    func retry() async {
+        if failedLoadMore && hasMoreNotifications { await loadMore() }
+        else { await refresh() }
+    }
+
     private func loadPage(first: Bool) async {
         guard let userID = currentUserID, !isBusy, !isLoadingMore, !isFilterLoading else { return }
         let session = sessionVersion, filter = selectedFilter, version = filterVersion, revision = dataRevision
@@ -182,9 +229,11 @@ final class NotificationInboxViewModel: ObservableObject {
             morePages[filter] = hasHistory(after: page)
             loadedFilters.insert(filter)
             snapshotVersion += 1
+            failedLoadMore = false
             clearError(from: [.refresh])
         } catch {
             guard sessionVersion == session, filterVersion == version, pageGeneration == generation, !Task.isCancelled else { return }
+            failedLoadMore = !first
             setError((error as? AppError) ?? .unknown, source: .refresh)
         }
     }
@@ -223,29 +272,48 @@ final class NotificationInboxViewModel: ObservableObject {
     private func refresh(clearErrorOnSuccess: Bool) async {
         guard let userID = currentUserID, !isBusy else { return }
         let session = sessionVersion, revision = dataRevision, version = filterVersion
+        if let pendingRefresh, pendingRefresh.session == session, pendingRefresh.revision == revision,
+           pendingRefresh.filterVersion == version { return }
+        let requestID = UUID()
+        pendingRefresh = (requestID, session, revision, version)
+        defer { if pendingRefresh?.id == requestID { pendingRefresh = nil } }
         let snapshot = snapshotVersion
         let filter = selectedFilter
+        let targetCount = max(notificationPageSize, notifications.filter { filter == .unread ? $0.countsAsUnread : $0.isVisibleInInbox }.count)
         refreshGeneration += 1
         pageGeneration += 1
         isLoadingMore = false
         isFilterLoading = false
         let generation = refreshGeneration
         isLoading = true
+        failedLoadMore = false
         defer { if sessionVersion == session && refreshGeneration == generation { isLoading = false } }
         do {
-            let page = try await repository.fetchNotificationPage(userID: userID, unreadOnly: filter == .unread,
+            var page = try await repository.fetchNotificationPage(userID: userID, unreadOnly: filter == .unread,
                                                                   limit: notificationPageSize, after: nil)
+            var records = page.items
+            var ids = Set(records.map(\.id))
+            var cursorsSeen = Set<String>()
+            while records.count < targetCount, page.hasMore, let cursor = page.nextCursor {
+                guard sessionVersion == session, dataRevision == revision, refreshGeneration == generation,
+                      filterVersion == version, snapshotVersion == snapshot, !Task.isCancelled else { return }
+                guard cursorsSeen.insert(cursor.documentID).inserted else { throw AppError.unknown }
+                page = try await repository.fetchNotificationPage(userID: userID, unreadOnly: filter == .unread,
+                    limit: notificationPageSize, after: cursor)
+                records += page.items.filter { ids.insert($0.id).inserted }
+            }
             guard sessionVersion == session, dataRevision == revision, refreshGeneration == generation,
                   filterVersion == version, snapshotVersion == snapshot else { return }
             // Refresh the selected page, retaining the bounded global head for popup routing.
             notifications.removeAll { !headIDs.contains($0.id) }
-            merge(page.items)
+            merge(records)
             cursors = [:]
             morePages = [:]
             loadedFilters = []
             cursors[filter] = page.nextCursor
             morePages[filter] = hasHistory(after: page)
             loadedFilters.insert(filter)
+            failedLoadMore = false
             snapshotVersion += 1
             if clearErrorOnSuccess { clearError(from: [.refresh]) }
         } catch {
@@ -279,10 +347,10 @@ final class NotificationInboxViewModel: ObservableObject {
             await refreshBadge()
         } catch let appError as AppError {
             guard sessionVersion == session else { return }
-            setError(appError, source: .mutation)
+            setError(appError, source: .mutation, notificationID: notificationID)
         } catch {
             guard sessionVersion == session else { return }
-            setError(.unknown, source: .mutation)
+            setError(.unknown, source: .mutation, notificationID: notificationID)
         }
     }
 
@@ -304,10 +372,10 @@ final class NotificationInboxViewModel: ObservableObject {
             await refreshBadge()
         } catch let appError as AppError {
             guard sessionVersion == session else { return }
-            setError(appError, source: .mutation)
+            setError(appError, source: .mutation, notificationID: notification.id)
         } catch {
             guard sessionVersion == session else { return }
-            setError(.unknown, source: .mutation)
+            setError(.unknown, source: .mutation, notificationID: notification.id)
         }
     }
 
@@ -352,10 +420,10 @@ final class NotificationInboxViewModel: ObservableObject {
             await refreshBadge()
         } catch let appError as AppError {
             guard sessionVersion == session else { return }
-            setError(appError, source: .mutation)
+            setError(appError, source: .mutation, notificationID: notification.id)
         } catch {
             guard sessionVersion == session else { return }
-            setError(.unknown, source: .mutation)
+            setError(.unknown, source: .mutation, notificationID: notification.id)
         }
     }
 
@@ -368,14 +436,14 @@ final class NotificationInboxViewModel: ObservableObject {
         do {
             try await repository.deleteNotification(userID: userID, notificationID: notification.id)
             guard sessionVersion == session else { return false }
-            deletedIDs.insert(notification.id)
+            markUnavailable(notification.id)
             notifications.removeAll { $0.id == notification.id }
             clearError(from: [.mutation])
             await refreshBadge()
             return sessionVersion == session
         } catch {
             guard sessionVersion == session else { return false }
-            setError((error as? AppError) ?? .unknown, source: .mutation)
+            setError((error as? AppError) ?? .unknown, source: .mutation, notificationID: notification.id)
             return false
         }
     }
@@ -424,7 +492,7 @@ final class NotificationInboxViewModel: ObservableObject {
             clearError(from: [.mutation])
         } catch {
             guard sessionVersion == session else { return }
-            setError((error as? AppError) ?? .unknown, source: .mutation)
+            setError((error as? AppError) ?? .unknown, source: .mutation, notificationID: notification.id)
         }
     }
 
@@ -452,9 +520,14 @@ final class NotificationInboxViewModel: ObservableObject {
         return page.nextCursor.map { $0.createdAt > clearedThrough } ?? false
     }
 
+    private func markUnavailable(_ id: String) {
+        deletedIDs.insert(id); detailReadTokens[id] = UUID(); detailStates[id] = .unavailable
+    }
+
     private func merge(_ items: [AppNotification]) {
         var records = Dictionary(notifications.map { ($0.id, $0) }, uniquingKeysWith: { _, new in new })
         for item in items {
+            if !item.isVisibleInInbox { markUnavailable(item.id) }
             guard item.isVisibleInInbox, !deletedIDs.contains(item.id),
                   clearedThrough.map({ item.createdAt > $0 }) ?? true else {
                 records.removeValue(forKey: item.id)
@@ -567,15 +640,17 @@ final class NotificationInboxViewModel: ObservableObject {
         notifications[index] = notification.updatingReadState(isRead: isRead, readAt: readAt)
     }
 
-    private func setError(_ error: AppError, source: ErrorSource) {
+    private func setError(_ error: AppError, source: ErrorSource, notificationID: String? = nil) {
         self.error = error
         errorSource = source
+        mutationErrorNotificationID = source == .mutation ? notificationID : nil
     }
 
     private func clearError(from sources: Set<ErrorSource>) {
         guard let errorSource, sources.contains(errorSource) else { return }
         error = nil
         self.errorSource = nil
+        mutationErrorNotificationID = nil
     }
 
     private func applyArchiveState(notificationID: String) {

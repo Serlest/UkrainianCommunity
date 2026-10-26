@@ -1,5 +1,24 @@
 import Foundation
 
+/// Delivery refreshes the feed; only an explicit tap may reopen a message.
+/// Keep that intent bound to the authenticated account while its profile loads.
+struct AnnouncementPushIntent: Equatable {
+    private(set) var id: String?
+    private(set) var userID: String?
+    mutating func receive(id: String, userID: String?, userInitiated: Bool) {
+        guard userInitiated, let userID, !id.isEmpty else { return }
+        self.id = id; self.userID = userID
+    }
+    mutating func configure(userID: String?) {
+        if let userID, self.userID != userID { clear() }
+    }
+    mutating func consume(userID: String) -> String? {
+        guard self.userID == userID else { return nil }
+        defer { clear() }; return id
+    }
+    mutating func clear() { id = nil; userID = nil }
+}
+
 nonisolated struct AnnouncementText: Codable, Equatable, Hashable, Sendable {
     var uk = ""
     var de = ""
@@ -55,6 +74,8 @@ nonisolated struct UserAnnouncement: Codable, Identifiable, Equatable, Hashable,
 }
 struct AnnouncementUser: Codable, Identifiable { let id: String; let name: String; let region: String?; var email: String? = nil; var available: Bool? = nil }
 nonisolated struct AnnouncementRequest: Encodable {
+    var principalId: String?
+    var operationId: String?
     var phase: String?
     var query: String?
     var searchVersion: Int?
@@ -76,6 +97,36 @@ nonisolated struct AnnouncementRequest: Encodable {
     var fid: String?
     var challenge: String?
 }
+
+extension UserAnnouncement {
+    /// The reviewed content excludes server revisions and delivery receipts.
+    var reviewedContent: UserAnnouncement {
+        var value = self
+        value.revision = 0; value.status = "draft"
+        value.presentedAt = nil; value.acknowledgedAt = nil
+        value.title.uk = title.uk.trimmingCharacters(in: .whitespacesAndNewlines)
+        value.title.de = title.de.trimmingCharacters(in: .whitespacesAndNewlines)
+        value.body.uk = body.uk.trimmingCharacters(in: .whitespacesAndNewlines)
+        value.body.de = body.de.trimmingCharacters(in: .whitespacesAndNewlines)
+        value.groups = Array(Set(groups)).sorted(); value.userIds = Array(Set(userIds)).sorted()
+        value.regions = Array(Set(regions)).sorted(); value.targetPlatforms = Array(Set(targetPlatforms)).sorted()
+        return value
+    }
+}
+
+struct AnnouncementSaveAttempts {
+    private var pending: (id: String, snapshot: UserAnnouncement)?
+    mutating func operationID(for snapshot: UserAnnouncement) -> String {
+        if let pending, pending.snapshot.revision == snapshot.revision,
+           pending.snapshot.reviewedContent == snapshot.reviewedContent { return pending.id }
+        let id = UUID().uuidString
+        pending = (id, snapshot)
+        return id
+    }
+    mutating func complete(_ id: String) { if pending?.id == id { pending = nil } }
+}
+
+enum AnnouncementCommandError: Error, Equatable { case reviewedContentChanged, missingResponse }
 struct AnnouncementResponse: Decodable {
     var users: [AnnouncementUser]?
     var items: [UserAnnouncement]?

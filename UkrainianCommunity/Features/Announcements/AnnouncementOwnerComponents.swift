@@ -28,7 +28,7 @@ struct AnnouncementAudienceSummary: View {
                 if !compact {
                     ForEach(item.userIds, id: \.self) { id in
                         if let user = users?.first(where: { $0.id == id }) { AnnouncementUserLabel(user: user) }
-                        else { Text(id).font(.caption).foregroundStyle(AppTheme.textSecondary).textSelection(.enabled) }
+                        else { Text(NotificationAuditCopy.loadingRecipient).font(.caption).foregroundStyle(AppTheme.textSecondary) }
                     }
                 }
             }
@@ -40,7 +40,9 @@ struct AnnouncementUserLabel: View {
     let user: AnnouncementUser
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(user.name).font(.body.weight(.medium))
+            Text(user.name.isEmpty || user.name == user.id
+                 ? (user.available == false ? AnnouncementManagementText.value("unavailable") : NotificationAuditCopy.unnamedRecipient)
+                 : user.name).font(.body.weight(.medium))
             if let email = user.email, !email.isEmpty { Text(email).font(.caption).foregroundStyle(AppTheme.textSecondary) }
             if let region = user.region.flatMap(AustrianFederalState.init(rawValue:)) { Text(region.displayName).font(.caption).foregroundStyle(AppTheme.textSecondary) }
             if user.available == false { Text(AnnouncementManagementText.value("unavailable")).font(.caption).foregroundStyle(.orange) }
@@ -75,6 +77,7 @@ struct AnnouncementStatisticsView: View {
             if let shown = statistics.guestPresented, shown > 0 { LabeledContent(AnnouncementStrings.guestShown, value: String(shown)) }
             if let acknowledged = statistics.guestAcknowledged, acknowledged > 0 { LabeledContent(AnnouncementStrings.guestAck, value: String(acknowledged)) }
         }
+        .accessibilityIdentifier("announcements.statistics")
     }
 }
 
@@ -111,6 +114,25 @@ struct AnnouncementSection<Content: View>: View {
                 content
             }.frame(maxWidth: .infinity, alignment: .leading)
         }.tint(AppTheme.accentPrimaryForeground)
+            .labeledContentStyle(AnnouncementReadabilityStyle())
+    }
+}
+
+private struct AnnouncementReadabilityStyle: LabeledContentStyle {
+    @Environment(\.dynamicTypeSize) private var size
+    func makeBody(configuration: Configuration) -> some View {
+        if size.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 8) {
+                configuration.label.foregroundStyle(AppTheme.textPrimary)
+                configuration.content.foregroundStyle(AppTheme.textSecondary)
+            }.fixedSize(horizontal: false, vertical: true)
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: 16) {
+                configuration.label.foregroundStyle(AppTheme.textPrimary)
+                Spacer(minLength: 8)
+                configuration.content.foregroundStyle(AppTheme.textSecondary).multilineTextAlignment(.trailing)
+            }.fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 

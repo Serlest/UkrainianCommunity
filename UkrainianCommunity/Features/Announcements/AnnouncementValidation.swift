@@ -30,6 +30,9 @@ extension UserAnnouncement {
 
 enum AnnouncementErrorPresentation {
     static func message(_ error: Error) -> String {
+        if let error = error as? AnnouncementCommandError, error == .reviewedContentChanged {
+            return NotificationAuditCopy.reviewedContentChanged
+        }
         let ns = error as NSError
         if ns.domain == NSURLErrorDomain { return AnnouncementManagementText.value("network") }
         guard ns.domain == FunctionsErrorDomain, let code = FunctionsErrorCode(rawValue: ns.code) else { return AnnouncementStrings.error }

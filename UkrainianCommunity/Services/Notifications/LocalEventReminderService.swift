@@ -16,14 +16,22 @@ struct LocalEventReminderService: LocalEventReminderServiceProtocol {
     }
 
     private func scheduleReminder(event: Event, userID: String, leadMinutes: Int) async throws {
-        guard let occurrence = event.nextOccurrence() else { return }
+        let identifier = notificationIdentifier(eventID: event.id, userID: userID)
+        guard let occurrence = event.nextOccurrence() else {
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
+            return
+        }
         let reminderDate = occurrence.startDate.addingTimeInterval(TimeInterval(-max(0, leadMinutes) * 60))
-        guard reminderDate > Date() else { return }
+        guard reminderDate > Date() else {
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
+            return
+        }
 
         let content = UNMutableNotificationContent()
         content.title = event.localizedTitle
         content.body = reminderBody(for: event)
         content.sound = .default
+        content.userInfo = Self.routePayload(eventID: event.id, userID: userID)
 
         let dateComponents = Calendar.current.dateComponents(
             [.year, .month, .day, .hour, .minute],
@@ -31,7 +39,7 @@ struct LocalEventReminderService: LocalEventReminderServiceProtocol {
         )
         let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
         let request = UNNotificationRequest(
-            identifier: notificationIdentifier(eventID: event.id, userID: userID),
+            identifier: identifier,
             content: content,
             trigger: trigger
         )
@@ -128,6 +136,12 @@ struct LocalEventReminderService: LocalEventReminderServiceProtocol {
 
     private func notificationIdentifier(eventID: String, userID: String) -> String {
         "eventReminder:\(eventID):\(userID)"
+    }
+
+    static func routePayload(eventID: String, userID: String) -> [String: String] {
+        ["type": AppNotificationType.eventUpdated.rawValue, "sourceType": "event",
+         "sourceId": eventID, "actionType": "openEvent", "actionTargetId": eventID,
+         "route": "openEvent", "routeTargetId": eventID, "recipientUserId": userID]
     }
 
     private func testNotificationIdentifier(userID: String) -> String {

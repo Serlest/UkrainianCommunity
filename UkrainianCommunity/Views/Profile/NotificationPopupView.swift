@@ -5,6 +5,7 @@ struct NotificationPopupView: View {
     let errorMessage: String?
     let dismiss: () -> Void
     let performAction: () -> Void
+    var isBusy = false
 
     var body: some View {
         NavigationStack {
@@ -32,6 +33,7 @@ struct NotificationPopupView: View {
                             Button(AppStrings.Common.ok, action: dismiss)
                                 .buttonStyle(.bordered)
                                 .frame(maxWidth: .infinity)
+                                .accessibilityIdentifier("notificationPopup.close")
                         }
                     }
                 }
@@ -43,6 +45,10 @@ struct NotificationPopupView: View {
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
         }
+        .disabled(isBusy)
+        .overlay { if isBusy { ProgressView() } }
+        .interactiveDismissDisabled()
+        .accessibilityIdentifier("screen.notificationPopup")
     }
 
     private var header: some View {
@@ -66,6 +72,7 @@ struct NotificationPopupView: View {
 
     private var messageText: some View {
         Text(message)
+            .accessibilityIdentifier("notificationPopup.body")
             .font(.subheadline)
             .foregroundStyle(AppTheme.textSecondary)
             .lineSpacing(3)

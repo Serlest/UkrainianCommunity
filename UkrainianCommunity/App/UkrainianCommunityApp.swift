@@ -103,7 +103,7 @@ private final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotifica
         didReceive response: UNNotificationResponse
     ) async {
         guard !AppTestHost.isUnitTesting else { return }
-        if await AnnouncementPushBridge.shared.receive(response.notification.request.content.userInfo) { return }
+        if await AnnouncementPushBridge.shared.receive(response.notification.request.content.userInfo, userInitiated: true) { return }
         guard let route = RemoteNotificationRoute(
             userInfo: response.notification.request.content.userInfo
         ) else {

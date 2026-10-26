@@ -8,23 +8,31 @@ struct AnnouncementPopup: View {
     var body: some View {
         NavigationStack {
             EditorScreenShell(title: AnnouncementStrings.history, closeStyle: .cancel,
-                              closeAction: { Task { await coordinator.close(item, acknowledge: false) } }) {
+                              closeAction: { close(acknowledge: false) }) {
                 AnnouncementSection {
                     Text(item.title.localized()).font(.title2.bold())
                     Text(item.body.localized()).textSelection(.enabled)
                     if let error = coordinator.error { Text(error).font(.caption).foregroundStyle(AppTheme.textSecondary) }
                     if item.feedback {
                         Button(AnnouncementStrings.writeFeedback) {
+                            let session = coordinator.sessionVersion
                             busy = true
-                            Task { await coordinator.mark(item, event: "action"); await coordinator.close(item, acknowledge: false); feedback(item) }
+                            Task {
+                                guard session == coordinator.sessionVersion,
+                                      await coordinator.mark(item, event: "action"),
+                                      session == coordinator.sessionVersion else { return }
+                                await coordinator.close(item, acknowledge: false)
+                                guard session == coordinator.sessionVersion else { return }
+                                feedback(item)
+                            }
                         }.appActionButtonStyle(.primary)
                     }
                     if item.mode == "acknowledge" {
-                        Button(AnnouncementStrings.ack) { busy = true; Task { await coordinator.close(item, acknowledge: true) } }
+                        Button(AnnouncementStrings.ack) { close(acknowledge: true) }
                             .appActionButtonStyle(.primary).accessibilityIdentifier("announcements.acknowledge")
                     }
                     Button(item.mode == "acknowledge" ? AnnouncementStrings.later : AnnouncementStrings.close) {
-                        Task { await coordinator.close(item, acknowledge: false) }
+                        close(acknowledge: false)
                     }.appActionButtonStyle(.secondary).accessibilityIdentifier("announcements.close")
                 }
             }.navigationTitle(AnnouncementStrings.history).navigationBarTitleDisplayMode(.inline)
@@ -34,6 +42,14 @@ struct AnnouncementPopup: View {
         .task { await coordinator.didPresent(item) }
         .accessibilityIdentifier("screen.announcements.popup")
     }
+    private func close(acknowledge: Bool) {
+        let session = coordinator.sessionVersion
+        busy = true
+        Task {
+            guard session == coordinator.sessionVersion else { return }
+            await coordinator.close(item, acknowledge: acknowledge)
+        }
+    }
 }
 
 struct AnnouncementHistoryView: View {
@@ -42,7 +58,7 @@ struct AnnouncementHistoryView: View {
         ProfileDestinationLayout(title: AnnouncementStrings.history, introSubtitle: AnnouncementStrings.subtitle) {
             if let error = coordinator.error {
                 InlineMessageCard(style: .error, message: error)
-                Button(AnnouncementStrings.retry) { Task { await coordinator.loadHistory(reset: true) } }
+                Button(AnnouncementStrings.retry) { Task { await coordinator.retryHistory() } }.disabled(coordinator.isHistoryLoading)
             }
             if coordinator.isLoading || coordinator.isHistoryLoading { ProgressView() }
             if coordinator.items.isEmpty && !coordinator.isLoading && !coordinator.isHistoryLoading { Text(AnnouncementStrings.empty) }
@@ -52,13 +68,28 @@ struct AnnouncementHistoryView: View {
                         Text(item.title.localized()).font(.title2.bold())
                         Text(item.body.localized()).textSelection(.enabled)
                         if item.feedback && item.active(at: coordinator.now) {
-                            Button(AnnouncementStrings.writeFeedback) { Task {
-                                await coordinator.mark(item, event: "action")
-                                coordinator.requestedFeedback = item
-                            } }
+                            Button(AnnouncementStrings.writeFeedback) {
+                                let session = coordinator.sessionVersion
+                                Task {
+                                    guard session == coordinator.sessionVersion,
+                                          await coordinator.mark(item, event: "action"),
+                                          session == coordinator.sessionVersion else { return }
+                                    coordinator.requestedFeedback = item
+                                }
+                            }
+                            .disabled(coordinator.isProcessing(item))
                         }
                         if item.mode == "acknowledge" && !coordinator.isAcknowledged(item) && item.active(at: coordinator.now) {
-                            Button(AnnouncementStrings.ack) { Task { await coordinator.mark(item, event: "acknowledged"); await coordinator.refresh() } }
+                            Button(AnnouncementStrings.ack) {
+                                let session = coordinator.sessionVersion
+                                Task {
+                                    guard session == coordinator.sessionVersion,
+                                          await coordinator.mark(item, event: "acknowledged"),
+                                          session == coordinator.sessionVersion else { return }
+                                    await coordinator.refresh()
+                                }
+                            }
+                            .disabled(coordinator.isProcessing(item))
                         }
                     } }.navigationTitle(AnnouncementStrings.history)
                 } label: {

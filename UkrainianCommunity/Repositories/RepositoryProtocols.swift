@@ -100,6 +100,7 @@ struct NotificationInboxPage: Equatable {
 }
 
 protocol NotificationInboxRepository {
+    func fetchNotification(userID: String, notificationID: String) async throws -> AppNotification
     func fetchNotificationPage(userID: String, unreadOnly: Bool, limit: Int, after: NotificationInboxCursor?) async throws -> NotificationInboxPage
     func listenNotificationHead(userID: String, limit: Int,
         onChange: @escaping @MainActor (NotificationInboxPage) -> Void,
@@ -125,6 +126,10 @@ protocol NotificationInboxRepository {
 
 // In-memory repositories retain their existing contracts; Firestore uses exact cursor pages.
 extension NotificationInboxRepository {
+    func fetchNotification(userID: String, notificationID: String) async throws -> AppNotification {
+        guard let item = try await fetchNotifications(userID: userID, limit: Int.max).first(where: { $0.id == notificationID }), item.isVisibleInInbox else { throw AppError.notFound }
+        return item
+    }
     func fetchNotificationPage(userID: String, unreadOnly: Bool, limit: Int, after: NotificationInboxCursor?) async throws -> NotificationInboxPage {
         let records = try await fetchNotifications(userID: userID, limit: Int.max)
             .filter { !unreadOnly || $0.countsAsUnread }

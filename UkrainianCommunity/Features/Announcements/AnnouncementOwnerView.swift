@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AnnouncementOwnerView: View {
     let repository: any AnnouncementRepository
+    @EnvironmentObject private var authState: AuthState
     @State private var items: [UserAnnouncement] = []
     @State private var cursor: String?
     @State private var editor: UserAnnouncement?
@@ -10,6 +11,8 @@ struct AnnouncementOwnerView: View {
     @State private var filter = "all"
     @State private var generation = 0
     @State private var loadedFilter = "all"
+    @State private var pendingFilter: String?
+    @State private var failedMore = false
     private let phases = ["draft", "scheduled", "active", "completed", "cancelled"]
     var body: some View {
         ProfileDestinationLayout(title: AnnouncementStrings.title, introSubtitle: AnnouncementStrings.subtitle) {
@@ -20,7 +23,8 @@ struct AnnouncementOwnerView: View {
             }.pickerStyle(.menu).accessibilityIdentifier("announcements.filter")
             if let error {
                 InlineMessageCard(style: .error, message: error)
-                Button(AnnouncementStrings.retry) { Task { await load() } }.disabled(loading)
+                Button(AnnouncementStrings.retry) { Task { await load(more: failedMore) } }.disabled(loading)
+                    .accessibilityIdentifier("announcements.listRetry")
             }
             if loading { ProgressView() }
             if items.isEmpty && !loading && error == nil { Text(AnnouncementStrings.empty).foregroundStyle(AppTheme.textSecondary) }
@@ -44,34 +48,49 @@ struct AnnouncementOwnerView: View {
             if !items.isEmpty && filter != "all" && !items.contains(where: { $0.phase() == filter }) && !loading {
                 Text(AnnouncementManagementText.value("empty")).foregroundStyle(AppTheme.textSecondary)
             }
-            if cursor != nil { Button(AnnouncementStrings.loadMore) { Task { await load(more: true) } }.disabled(loading) }
+            if cursor != nil { Button(AnnouncementStrings.loadMore) { Task { await load(more: true) } }.disabled(loading).accessibilityIdentifier("announcements.loadMore") }
         }
         .navigationTitle(AnnouncementStrings.title)
         .accessibilityIdentifier("screen.announcements.owner")
         .task { await load() }.refreshable { await load() }
         .onChange(of: filter) { _, _ in Task { await load() } }
-        .sheet(item: $editor, onDismiss: { Task { await load() } }) { item in
+        .onChange(of: ProfileAccessIdentity(user: authState.user)) { _, _ in
+            generation += 1; editor = nil; items = []; cursor = nil; error = nil; loading = false
+            pendingFilter = nil; failedMore = false
+        }
+        .sheet(item: $editor, onDismiss: {
+            generation += 1; loading = false; pendingFilter = nil
+            Task { await load() }
+        }) { item in
             NavigationStack { AnnouncementEditorView(repository: repository, draft: item) }
         }
     }
     private func load(more: Bool = false) async {
-        if more && loading { return }
+        if loading && pendingFilter == filter { return }
         generation += 1; let version = generation
         let selectedFilter = filter
         if !more && selectedFilter != loadedFilter { items = []; cursor = nil }
-        loading = true; defer { if version == generation { loading = false } }
+        pendingFilter = selectedFilter; loading = true; failedMore = false
+        defer { if version == generation { loading = false; pendingFilter = nil } }
         do {
-            var response = try await repository.call("manageAnnouncements", AnnouncementRequest(phase: selectedFilter == "all" ? nil : selectedFilter, operation: "list", cursor: more ? cursor : nil))
-            while response.items?.isEmpty == true, let next = response.cursor {
+            let targetCount = more ? 1 : max(1, items.count)
+            var pageCursor = more ? cursor : nil
+            var collected: [UserAnnouncement] = []
+            var seenCursors = Set<String>()
+            var response: AnnouncementResponse
+            repeat {
                 guard version == generation, selectedFilter == filter, !Task.isCancelled else { return }
-                response = try await repository.call("manageAnnouncements", AnnouncementRequest(phase: selectedFilter == "all" ? nil : selectedFilter, operation: "list", cursor: next))
-            }
+                response = try await repository.call("manageAnnouncements", AnnouncementRequest(phase: selectedFilter == "all" ? nil : selectedFilter, operation: "list", cursor: pageCursor))
+                collected += response.items ?? []
+                pageCursor = response.cursor
+                if let pageCursor, !seenCursors.insert(pageCursor).inserted { throw AnnouncementCommandError.missingResponse }
+            } while collected.count < targetCount && pageCursor != nil
             guard version == generation, selectedFilter == filter, !Task.isCancelled else { return }
-            let combined = (more ? items : []) + (response.items ?? [])
+            let combined = (more ? items : []) + collected
             var seen = Set<String>()
             items = combined.filter { seen.insert($0.id).inserted }
             loadedFilter = selectedFilter; cursor = response.cursor; error = nil
-        } catch { if version == generation, !Task.isCancelled { self.error = AnnouncementErrorPresentation.message(error) } }
+        } catch { if version == generation, !Task.isCancelled { failedMore = more; self.error = AnnouncementErrorPresentation.message(error) } }
     }
 }
 
@@ -79,6 +98,7 @@ struct AnnouncementEditorView: View {
     let repository: any AnnouncementRepository
     @State var draft: UserAnnouncement
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var authState: AuthState
     @State private var baseline: UserAnnouncement?
     @State private var language = "uk"
     @State private var reviewed = false
@@ -94,13 +114,26 @@ struct AnnouncementEditorView: View {
     @State private var selectedUsers: [AnnouncementUser] = []
     @State private var selectedError: String?
     @State private var statistics: AnnouncementResponse?
+    @State private var saveAttempts = AnnouncementSaveAttempts()
+    @State private var operationTask: Task<Void, Never>?
+    @State private var operationGeneration = 0
+    @State private var reviewedDraft: UserAnnouncement?
+    @State private var reviewedCount: Int?
+    @State private var cancellationTarget: UserAnnouncement?
+    @State private var reloadConfirmation = false
     private var editable: Bool { draft.status == "draft" }
     private var dirty: Bool { editable && baseline.map { $0 != draft } == true }
     var body: some View {
         ScrollViewReader { proxy in
             EditorScreenShell(title: AnnouncementStrings.title, subtitle: AnnouncementStrings.subtitle,
                               closeStyle: .cancel, closeAction: close) {
-                if let message { InlineMessageCard(style: failed ? .error : .info, message: message).accessibilityIdentifier("announcements.message").id("announcements.message") }
+                if let message {
+                    InlineMessageCard(style: failed ? .error : .info, message: message).accessibilityIdentifier("announcements.message").id("announcements.message")
+                    if failed {
+                        Button(NotificationAuditCopy.reload) { reloadConfirmation = true }
+                            .disabled(busy).accessibilityIdentifier("announcements.reloadSaved")
+                    }
+                }
                 if busy { ProgressView() }
                 textSection.disabled(busy)
                 if editable {
@@ -114,7 +147,8 @@ struct AnnouncementEditorView: View {
                         AnnouncementPeriodSummary(item: draft)
                         Button(AnnouncementStrings.preview) { preview = true }.accessibilityIdentifier("announcements.preview")
                         if ["active", "scheduled"].contains(draft.phase()) {
-                            Button(AnnouncementStrings.cancel, role: .destructive) { stop = true }
+                            Button(AnnouncementStrings.cancel, role: .destructive) { cancellationTarget = draft; stop = true }
+                                .accessibilityIdentifier("announcements.cancel")
                         }
                         Button(AnnouncementStrings.stats) { run { try await loadStatistics() } }.accessibilityIdentifier("announcements.stats")
                     }.disabled(busy)
@@ -127,9 +161,11 @@ struct AnnouncementEditorView: View {
             .scrollDismissesKeyboard(.interactively)
             .navigationTitle(AnnouncementStrings.title)
             .interactiveDismissDisabled(busy || dirty)
-            .onChange(of: draft) { _, _ in reviewed = false; count = nil }
             .onAppear { if baseline == nil { baseline = draft; if editable { draft.groups.removeAll { $0 == "guests" } } } }
             .task(id: draft.userIds) { await resolveSelected() }
+            .onChange(of: draft.reviewedContent) { _, _ in reviewed = false; count = nil }
+            .onChange(of: ProfileAccessIdentity(user: authState.user)) { _, _ in cancelOperation(); dismiss() }
+            .onDisappear { cancelOperation() }
             .sheet(isPresented: $preview) { AnnouncementPreviewView(item: draft, selectedUsers: selectedUsers) }
             .sheet(isPresented: $users) { NavigationStack { AnnouncementUserPicker(repository: repository, selected: $draft.userIds) } }
             .sheet(isPresented: $reviewSend) { reviewSheet }
@@ -139,11 +175,14 @@ struct AnnouncementEditorView: View {
                 Button(AnnouncementManagementText.value("continue"), role: .cancel) { }
             }
             .confirmationDialog(AnnouncementManagementText.value("stopTitle"), isPresented: $stop, titleVisibility: .visible) {
-                Button(AnnouncementStrings.cancel, role: .destructive) { run {
-                    _ = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "cancel", id: draft.id))
-                    draft.status = "cancelled"; statistics = nil
-                } }
+                Button(AnnouncementStrings.cancel, role: .destructive) { run { try await cancelAnnouncement() } }
+                    .accessibilityIdentifier("announcements.confirmCancel")
             } message: { Text(AnnouncementManagementText.value("stopHelp")) }
+            .alert(NotificationAuditCopy.reloadTitle, isPresented: $reloadConfirmation) {
+                Button(NotificationAuditCopy.reload, role: .destructive) { run { try await reloadSaved() } }
+                    .accessibilityIdentifier("announcements.confirmReload")
+                Button(AppStrings.Common.cancel, role: .cancel) {}
+            } message: { Text(NotificationAuditCopy.reloadMessage) }
         }
     }
     private var publicationSection: some View {
@@ -159,29 +198,50 @@ struct AnnouncementEditorView: View {
                 _ = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "test", draft: draft))
                 message = AnnouncementStrings.tested
             } }.disabled(!draft.canPublish || !reviewed)
-            Button(AnnouncementStrings.send) { run { try await countAudience(); reviewSend = true } }
+            Button(AnnouncementStrings.send) { run {
+                let snapshot = draft
+                try await countAudience(snapshot)
+                guard snapshot.reviewedContent == draft.reviewedContent else { throw AnnouncementCommandError.reviewedContentChanged }
+                reviewedDraft = snapshot; reviewedCount = count; reviewSend = true
+            } }
                 .appActionButtonStyle(.primary).disabled(!draft.canPublish || !reviewed).accessibilityIdentifier("announcements.send")
         }
     }
     private var reviewSheet: some View {
-        NavigationStack {
+        let snapshot = reviewedDraft ?? draft
+        return NavigationStack {
             EditorScreenShell(title: AnnouncementManagementText.value("reviewTitle"), closeStyle: .cancel) {
+                AnnouncementSection(AnnouncementStrings.preview) {
+                    Text(snapshot.title.localized()).font(.headline).fixedSize(horizontal: false, vertical: true)
+                    Text(snapshot.body.localized()).fixedSize(horizontal: false, vertical: true)
+                }
                 AnnouncementSection(AnnouncementStrings.audience) {
-                    AnnouncementAudienceSummary(item: draft, users: selectedUsers)
-                    LabeledContent(AnnouncementManagementText.value("recipientCount"), value: String(count ?? 0))
+                    AnnouncementAudienceSummary(item: snapshot, users: selectedUsers)
+                    LabeledContent(AnnouncementManagementText.value("recipientCount"), value: reviewedCount.map(String.init) ?? "—")
                     Text(AnnouncementManagementText.value("countHelp")).font(.caption).foregroundStyle(AppTheme.textSecondary).lineLimit(nil).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
-                    if count == 0 { InlineMessageCard(style: .info, message: AnnouncementManagementText.value("noRecipients")) }
+                    if reviewedCount == 0 { InlineMessageCard(style: .info, message: AnnouncementManagementText.value("noRecipients")) }
                 }
                 AnnouncementSection {
-                    AnnouncementPeriodSummary(item: draft)
-                    LabeledContent(AnnouncementStrings.mode, value: draft.mode == "once" ? AnnouncementStrings.once : AnnouncementStrings.acknowledge)
-                    LabeledContent(AnnouncementStrings.push, value: AnnouncementManagementText.value(draft.push ? "yes" : "no"))
-                    LabeledContent(AnnouncementStrings.feedback, value: AnnouncementManagementText.value(draft.feedback ? "yes" : "no"))
+                    AnnouncementPeriodSummary(item: snapshot)
+                    LabeledContent(AnnouncementStrings.mode, value: snapshot.mode == "once" ? AnnouncementStrings.once : AnnouncementStrings.acknowledge)
+                    LabeledContent(AnnouncementStrings.push, value: AnnouncementManagementText.value(snapshot.push ? "yes" : "no"))
+                    LabeledContent(AnnouncementStrings.feedback, value: AnnouncementManagementText.value(snapshot.feedback ? "yes" : "no"))
                     Button(AnnouncementStrings.send) { reviewSend = false; run {
-                        try await save()
-                        _ = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "publish", id: draft.id, revision: draft.revision))
+                        guard snapshot.reviewedContent == draft.reviewedContent else { throw AnnouncementCommandError.reviewedContentChanged }
+                        try await save(snapshot)
+                        if draft.status == "published" { message = AnnouncementStrings.sent; return }
+                        guard draft.status == "draft" else { throw AnnouncementCommandError.reviewedContentChanged }
+                        do {
+                            _ = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "publish", id: draft.id, revision: draft.revision))
+                        } catch {
+                            try Task.checkCancellation()
+                            let stored = try? await repository.call("manageAnnouncements", AnnouncementRequest(operation: "get", id: snapshot.id)).item
+                            guard let stored, stored.status == "published", stored.reviewedContent == snapshot.reviewedContent else { throw error }
+                            draft = stored
+                        }
+                        try Task.checkCancellation()
                         draft.status = "published"; baseline = draft; message = AnnouncementStrings.sent
-                    } }.appActionButtonStyle(.primary).disabled(busy || count == nil || count == 0).accessibilityIdentifier("announcements.confirmSend")
+                    } }.appActionButtonStyle(.primary).disabled(busy || reviewedCount == nil || reviewedCount == 0 || snapshot.reviewedContent != draft.reviewedContent).accessibilityIdentifier("announcements.confirmSend")
                 }
             }
         }
@@ -249,18 +309,69 @@ struct AnnouncementEditorView: View {
     }
     private func run(_ operation: @escaping @MainActor () async throws -> Void) {
         guard !busy else { return }; busy = true; message = nil; failed = false
-        Task { defer { busy = false }; do { try await operation() } catch { failed = true; message = AnnouncementErrorPresentation.message(error) } }
+        operationGeneration += 1
+        let generation = operationGeneration, identity = ProfileAccessIdentity(user: authState.user)
+        operationTask = Task {
+            defer { if operationGeneration == generation { busy = false; operationTask = nil } }
+            do { try Task.checkCancellation(); try await operation() }
+            catch {
+                guard !Task.isCancelled, operationGeneration == generation,
+                      ProfileAccessIdentity(user: authState.user) == identity else { return }
+                failed = true; message = AnnouncementErrorPresentation.message(error)
+            }
+        }
     }
-    private func save() async throws {
-        let response = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "save", revision: draft.revision, draft: draft))
-        if let item = response.item { draft = item; baseline = item }
+    private func cancelOperation() {
+        operationGeneration += 1; operationTask?.cancel(); operationTask = nil; busy = false
     }
-    private func countAudience() async throws {
+    private func save(_ snapshot: UserAnnouncement? = nil) async throws {
+        let value = snapshot ?? draft
+        let operationID = saveAttempts.operationID(for: value)
+        do {
+            let response = try await repository.call("manageAnnouncements", AnnouncementRequest(operationId: operationID, operation: "save", revision: value.revision, draft: value))
+            try Task.checkCancellation()
+            guard let item = response.item else { throw AnnouncementCommandError.missingResponse }
+            draft = item; baseline = item; saveAttempts.complete(operationID)
+        } catch {
+            try Task.checkCancellation()
+            // A committed save/publication can outlive its lost response. Only
+            // identical reviewed content is accepted; different edits stay intact.
+            if let saved = try? await repository.call("manageAnnouncements", AnnouncementRequest(operation: "get", id: value.id)).item,
+               saved.reviewedContent == value.reviewedContent, saved.revision >= value.revision {
+                try Task.checkCancellation()
+                draft = saved; baseline = saved; saveAttempts.complete(operationID)
+                return
+            }
+            throw error
+        }
+    }
+    private func reloadSaved() async throws {
+        let response = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "get", id: draft.id))
+        try Task.checkCancellation()
+        guard let item = response.item else { throw AnnouncementCommandError.missingResponse }
+        draft = item; baseline = item; reviewed = false; count = nil; statistics = nil; saveAttempts = AnnouncementSaveAttempts()
+    }
+    private func cancelAnnouncement() async throws {
+        let target = cancellationTarget ?? draft
+        do {
+            _ = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "cancel", id: target.id, revision: target.revision))
+        } catch {
+            try Task.checkCancellation()
+            let stored = try? await repository.call("manageAnnouncements", AnnouncementRequest(operation: "get", id: target.id)).item
+            guard stored?.status == "cancelled" else { throw error }
+        }
+        try Task.checkCancellation()
+        draft.status = "cancelled"; baseline = draft; statistics = nil
+    }
+    private func countAudience(_ snapshot: UserAnnouncement? = nil) async throws {
+        let value = snapshot ?? draft
         var cursor: String?, total = 0
+        var seenCursors = Set<String>()
         repeat {
-            let result = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "preview", draft: draft, cursor: cursor))
+            let result = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "preview", draft: value, cursor: cursor))
             total += result.accounts ?? 0; cursor = result.cursor
             try Task.checkCancellation()
+            if let cursor, !seenCursors.insert(cursor).inserted { throw AnnouncementCommandError.missingResponse }
         } while cursor != nil
         count = total
     }

@@ -1,0 +1,190 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "notification_audit.review_changed": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оповіщення змінилося. Перевірте його ще раз перед надсиланням."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Mitteilung wurde geändert. Prüfen Sie sie vor dem Senden erneut."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The announcement changed. Review it again before sending."
+          }
+        }
+      }
+    },
+    "notification_audit.reload": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантажити збережену версію"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gespeicherte Version laden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Load saved version"
+          }
+        }
+      }
+    },
+    "notification_audit.reload_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантажити збережене оповіщення?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gespeicherte Mitteilung laden?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Load the saved announcement?"
+          }
+        }
+      }
+    },
+    "notification_audit.reload_message": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Збережена версія замінить зміни, які зараз показані в цій формі."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die gespeicherte Version ersetzt die Änderungen, die dieses Formular gerade zeigt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The saved version will replace the edits currently shown in this form."
+          }
+        }
+      }
+    },
+    "notification_audit.loading_recipient": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантаження отримувача…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empfänger wird geladen…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading recipient…"
+          }
+        }
+      }
+    },
+    "notification_audit.unnamed_recipient": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Користувач без імені"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nutzer ohne Namen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "User without a name"
+          }
+        }
+      }
+    },
+    "notification_audit.unavailable_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сповіщення недоступне"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Benachrichtigung nicht verfügbar"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notification unavailable"
+          }
+        }
+      }
+    },
+    "notification_audit.unavailable_message": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Можливо, його видалено або ви більше не маєте доступу до цього сповіщення."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Benachrichtigung wurde möglicherweise gelöscht oder Sie haben keinen Zugriff mehr darauf."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It may have been deleted, or you may no longer have access to this notification."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

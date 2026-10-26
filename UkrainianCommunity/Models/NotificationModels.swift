@@ -129,6 +129,11 @@ struct RemoteNotificationRoute: Equatable, Sendable {
     let actionTargetId: String?
     let destination: RemoteNotificationRouteDestination
     let resolvedTargetID: String?
+    let recipientUserID: String?
+
+    func canOpen(for userID: String?) -> Bool {
+        recipientUserID.map { $0 == userID } ?? true
+    }
 
     init?(
         notificationId: String?,
@@ -138,7 +143,8 @@ struct RemoteNotificationRoute: Equatable, Sendable {
         actionType: AppNotificationActionType,
         actionTargetId: String?,
         route: String?,
-        routeTargetId: String?
+        routeTargetId: String?,
+        recipientUserID: String? = nil
     ) {
         guard type != .unknown else {
             return nil
@@ -170,6 +176,7 @@ struct RemoteNotificationRoute: Equatable, Sendable {
         self.actionTargetId = actionTargetId
         self.destination = destination
         self.resolvedTargetID = resolvedTargetId
+        self.recipientUserID = recipientUserID
     }
 
     init?(userInfo: [AnyHashable: Any]) {
@@ -207,7 +214,8 @@ struct RemoteNotificationRoute: Equatable, Sendable {
             actionType: actionType,
             actionTargetId: actionTargetId,
             route: route,
-            routeTargetId: routeTargetId
+            routeTargetId: routeTargetId,
+            recipientUserID: Self.stringValue(userInfo, keys: ["recipientUserId"])
         )
     }
 
