@@ -82,6 +82,38 @@ export function extractSourceLinks(html, baseURL) {
   return links;
 }
 
+// The Kärntner Linien disruption page renders current notices as accordion
+// records, not links. Expose each record as an anchored read of that official
+// list so navigation/consent links cannot masquerade as service coverage.
+export function extractKaerntnerLinienDisruptionLinks(html, baseURL) {
+  const sectionStart = /<section\b(?=[^>]*\bid=["']StoerMeldungen["'])[^>]*>/i.exec(html);
+  if (!sectionStart) throw new Error("source-disruption-list-content-missing");
+  const sectionOffset = sectionStart.index + sectionStart[0].length;
+  let depth = 1;
+  let sectionEnd = -1;
+  for (const match of html.slice(sectionOffset).matchAll(/<\/?section\b[^>]*>/gi)) {
+    depth += /^<\//.test(match[0]) ? -1 : 1;
+    if (depth === 0) { sectionEnd = sectionOffset + match.index; break; }
+  }
+  if (sectionEnd < 0) throw new Error("source-disruption-list-content-incomplete");
+
+  const sections = html.slice(sectionOffset, sectionEnd).split(/<!--\s*Bootstrap 5 Accordion Item\s*-->/i).slice(1);
+  const notices = [];
+  const seen = new Set();
+  for (const block of sections) {
+    const target = block.match(/<button\b[^>]*data-bs-target=["']#([^"']+)["'][^>]*>/i)?.[1];
+    const heading = block.match(/<div\b[^>]*class=["'][^"']*\baccordion-header-title\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i)?.[1];
+    if (!target || !heading) continue;
+    const timeframe = block.match(/<p\b[^>]*class=["'][^"']*\btimeframe\b[^"']*["'][^>]*>([\s\S]*?)<\/p>/i)?.[1] ?? "";
+    const title = plainText(`${timeframe} ${heading}`).slice(0, 240);
+    const url = new URL(`#${target}`, baseURL).href;
+    if (seen.has(url)) continue;
+    seen.add(url);
+    notices.push({url, title});
+  }
+  return notices;
+}
+
 // AMS embeds its news index as HTML-escaped structured data rather than links.
 // Keep only recent article paths; every article still needs direct review.
 export function extractAMSNewsLinks(html, baseURL, now = new Date()) {
@@ -225,6 +257,8 @@ export async function inspectNewsSource(source, fetchImpl = fetch, now = new Dat
             extractMediaListingLinks(body, requestedURL, extractSourceLinks(body, response.url || requestedURL))) :
         requestedURL === "https://salzburg-verkehr.at/wp-json/mccom/v1/traffic/de"
           ? extractSalzburgTrafficLinks(body)
+          : host === "www.kaerntner-linien.at" && new URL(requestedURL).pathname.replace(/\/$/, "") === "/info-service/stoermeldungen"
+          ? extractKaerntnerLinienDisruptionLinks(body, response.url || requestedURL)
           : host === "presse-oebb.com" && new URL(requestedURL).pathname === "/News.aspx"
           ? extractOEBBTrafficLinks(body, response.url || requestedURL)
           : host === "www.unsereoebb.at" && new URL(requestedURL).pathname === "/de/verkehrsmeldungen"
