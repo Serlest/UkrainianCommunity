@@ -689,7 +689,25 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
             data["subject"] = subject
         }
 
-        try await collection.document(feedback.id).setData(data)
+        // A retry after an uncertain acknowledgement must neither create a second
+        // request nor overwrite a reply/status added since the first submission.
+        let reference = collection.document(feedback.id)
+        let submission = data
+        _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
+            do {
+                let existing = try transaction.getDocument(reference)
+                if existing.exists {
+                    let matches = existing.get("userId") as? String == feedback.userId
+                        && existing.get("type") as? String == feedback.type.rawValue
+                        && existing.get("message") as? String == feedback.message
+                        && (existing.get("subject") as? String ?? "") == (feedback.subject ?? "")
+                    if !matches { errorPointer?.pointee = AppError.validationFailed.asNSError }
+                    return nil
+                }
+                transaction.setData(submission, forDocument: reference)
+            } catch { errorPointer?.pointee = error as NSError }
+            return nil
+        }
     }
 
     func fetchOwnerInbox(query: FeedbackInboxQuery, after: FeedbackInboxCursor?) async throws -> FeedbackInboxPage {

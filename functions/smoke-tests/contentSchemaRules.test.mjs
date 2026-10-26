@@ -455,6 +455,13 @@ describe("platform moderation and server-owned deletion", () => {
     }));
   });
 
+  test("verified submitters can read a missing feedback id for atomic creation but cannot read another user's case", async () => {
+    const missing = await assertSucceeds(getDoc(doc(db("regular-user"), "feedback", "not-yet-created")));
+    if (missing.exists()) throw new Error("Missing feedback must remain missing");
+    await assertFails(getDoc(doc(db("org-owner"), "feedback", "feedback-1")));
+    await assertFails(getDoc(doc(testEnv.unauthenticatedContext().firestore(), "feedback", "not-yet-created")));
+  });
+
   test("feedback documents cannot be deleted directly by owner or submitter", async () => {
     await assertFails(deleteDoc(doc(db("owner"), "feedback", "feedback-1")));
     await assertFails(deleteDoc(doc(db("regular-user"), "feedback", "feedback-1")));
@@ -473,10 +480,11 @@ describe("platform moderation and server-owned deletion", () => {
   });
 
   test("DSA cases are server-only and cannot be closed without the decision function", async () => {
-    await assertFails(updateDoc(doc(db("owner"), "feedback", "dsa-feedback-1"), {
-      status: "closed",
-      updatedAt: new Date("2026-08-25T12:05:00Z"),
-    }));
+    for (const status of ["closed", "archived"]) {
+      await assertFails(updateDoc(doc(db("owner"), "feedback", "dsa-feedback-1"), {
+        status, updatedAt: new Date("2026-08-25T12:05:00Z"),
+      }));
+    }
     await assertFails(setDoc(doc(db("owner"), "dsaCases", "owner-forged"), {caseNumber: "forged"}));
     await assertFails(updateDoc(doc(db("owner"), "dsaCases", "dsa-feedback-1"), {status: "decided"}));
   });

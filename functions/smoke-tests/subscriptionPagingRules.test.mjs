@@ -8,13 +8,14 @@ import {collection,doc,setDoc,query,where,orderBy,documentId,limit,startAfter,ge
 test('subscription prefix pages exclude ordinary likes and protect other users',async()=>{
  const env=await initializeTestEnvironment({projectId:'demo-uac-subscription-pages',firestore:{rules:readFileSync(new URL('../../Firebase/firestore.rules',import.meta.url),'utf8')}});
  try {
-  await seedCurrentLegalVersions(env);
+  await env.clearFirestore();
   await env.withSecurityRulesDisabled(async ctx=>{
    for(const uid of ['member','other']) await setDoc(doc(ctx.firestore(),'users/'+uid),{id:uid,globalRole:'user',accountStatus:'active',blockState:'active',acceptedTermsVersion:'2026.13',acceptedPrivacyVersion:'2026.13'});
    for(const id of ['organization_follow_a_member','organization_follow_b_member','organization_follow_c_member','news_like_a_member'])
     await setDoc(doc(ctx.firestore(),'likes/'+id),{userId:'member',subscribedOrganizationId:'org'});
    await setDoc(doc(ctx.firestore(),'likes/organization_follow_z_other'),{userId:'other',subscribedOrganizationId:'org'});
   });
+  await seedCurrentLegalVersions(env);
   const db=env.authenticatedContext('member',{email_verified:true}).firestore();
   const base=query(collection(db,'likes'),where('userId','==','member'),where(documentId(),'>=','organization_follow_'),where(documentId(),'<','organization_follow_\uf8ff'),orderBy(documentId()),limit(2));
   const first=await assertSucceeds(getDocs(base));

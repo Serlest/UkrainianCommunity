@@ -2179,7 +2179,7 @@ service cloud.firestore {
 
       function safeFeedbackOwnerUpdate() {
         return canManageFeedback()
-          && (!('dsaCase' in resource.data) || request.resource.data.status != 'closed')
+          && (!('dsaCase' in resource.data) || !(request.resource.data.status in ['closed', 'archived']))
           && feedbackChangedKeys().hasOnly(feedbackOwnerUpdateFields())
           && request.resource.data.status in ['open', 'reviewed', 'inProgress', 'done', 'answered', 'closed', 'archived']
           && request.resource.data.updatedAt is timestamp
@@ -2284,6 +2284,11 @@ service cloud.firestore {
 
       allow read: if canManageFeedback()
         || (isSignedIn() && resource.data.userId == request.auth.uid);
+
+      // A verified submitter may check a missing ID inside the create transaction.
+      // This grants no access to any existing foreign request or list query.
+      allow get: if isVerifiedActiveUser()
+        && !exists(/databases/$(database)/documents/feedback/$(feedbackId));
 
       allow create: if safeFeedbackCreate(feedbackId);
 
