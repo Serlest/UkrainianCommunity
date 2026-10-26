@@ -37,8 +37,35 @@ interface FeaturedBannerDraft {
   startsAt?: Timestamp;
   endsAt?: Timestamp;
   configuredEndsAt?: Timestamp;
-  presentationVersion?: 1;
+  presentationVersion?: 1 | 2;
   countdown?: BannerCountdown;
+  textAppearance?: BannerTextAppearance;
+}
+
+interface BannerTextAppearance {
+  titleColorHex?: string;
+  subtitleColorHex?: string;
+}
+
+export function parseBannerTextAppearance(value: unknown): BannerTextAppearance {
+  if (value === undefined || value === null) return {};
+  if (!isRecord(value) || Object.keys(value).some(key => !["titleColorHex", "subtitleColorHex"].includes(key))) {
+    throw new HttpsError("invalid-argument", "Invalid banner text appearance.");
+  }
+  const result: BannerTextAppearance = {};
+  for (const key of ["titleColorHex", "subtitleColorHex"] as const) {
+    const hex = value[key];
+    if (hex === undefined || hex === null) continue;
+    if (typeof hex !== "string" || !/^#[0-9a-fA-F]{6}$/.test(hex)) {
+      throw new HttpsError("invalid-argument", "Expected an opaque RGB text color.");
+    }
+    result[key] = hex.toUpperCase();
+  }
+  return result;
+}
+
+function storedTextAppearance(value: unknown): BannerTextAppearance {
+  try { return parseBannerTextAppearance(value); } catch { return {}; }
 }
 
 interface BannerCountdown {
@@ -289,8 +316,9 @@ export function parseFeaturedBannerDraft(value: unknown): FeaturedBannerDraft {
   const startsAt = optionalTimestamp(value.startsAt, "startsAt");
   let endsAt = optionalTimestamp(value.endsAt, "endsAt");
   const configuredEndsAt = endsAt;
-  if (value.presentationVersion !== undefined && value.presentationVersion !== 1) throw new HttpsError("invalid-argument", "Unsupported presentation version.");
-  const countdown = value.presentationVersion === 1 ? parseBannerCountdown(value.countdown) : undefined;
+  if (value.presentationVersion !== undefined && value.presentationVersion !== 1 && value.presentationVersion !== 2) throw new HttpsError("invalid-argument", "Unsupported presentation version.");
+  const hasPresentation = value.presentationVersion === 1 || value.presentationVersion === 2;
+  const countdown = hasPresentation ? parseBannerCountdown(value.countdown) : undefined;
   if (countdown && startsAt && countdown.targetDate.toMillis() <= startsAt.toMillis()) throw new HttpsError("invalid-argument", "Countdown must follow display start.");
   if (countdown?.completion === "hideBanner") {
     endsAt = Timestamp.fromMillis(Math.min(endsAt?.toMillis() ?? Infinity, countdown.targetDate.toMillis()));
@@ -333,7 +361,8 @@ export function parseFeaturedBannerDraft(value: unknown): FeaturedBannerDraft {
     isActive: value.isActive,
     startsAt,
     endsAt,
-    ...(value.presentationVersion === 1 ? {presentationVersion: 1 as const, countdown, configuredEndsAt} : {}),
+    ...(hasPresentation ? {presentationVersion: value.presentationVersion as 1 | 2, countdown, configuredEndsAt} : {}),
+    ...(value.presentationVersion === 2 ? {textAppearance: parseBannerTextAppearance(value.textAppearance)} : {}),
   };
 }
 
@@ -498,7 +527,8 @@ export const saveFeaturedBanner = onCall(
       await archiveBannerMeasurementConfiguration(transaction, snapshot, committedAt);
       const canonical = canonicalFeaturedBannerData(input.banner, actorID, committedAt, snapshot.data());
       // Old binaries enforce an exact set of banner keys. New presentation data stays private and separate.
-      const countdown = input.banner.presentationVersion === 1 ? input.banner.countdown : presentation.get("countdown");
+      const hasPresentation = input.banner.presentationVersion === 1 || input.banner.presentationVersion === 2;
+      const countdown = hasPresentation ? input.banner.countdown : presentation.get("countdown");
       if (countdown?.completion === "hideBanner" && countdown.targetDate instanceof Timestamp) {
         canonical.endsAt = Timestamp.fromMillis(Math.min(canonical.endsAt?.toMillis() ?? Infinity, countdown.targetDate.toMillis()));
       }
@@ -507,12 +537,15 @@ export const saveFeaturedBanner = onCall(
       }
       transaction.set(reference, canonical);
       const legacyEndUnchanged = (input.banner.endsAt?.toMillis() ?? null) === (snapshot.get("endsAt")?.toMillis() ?? null);
-      const configuredEndsAt = input.banner.presentationVersion === 1 ? input.banner.configuredEndsAt
+      const configuredEndsAt = hasPresentation ? input.banner.configuredEndsAt
         : legacyEndUnchanged && presentation.exists && "configuredEndsAt" in (presentation.data() ?? {})
           ? presentation.get("configuredEndsAt") : input.banner.endsAt;
       transaction.set(presentationRef, {
         configuredEndsAt: configuredEndsAt ?? null,
         ...(countdown ? {countdown} : {}),
+        ...(input.banner.presentationVersion === 2
+          ? {textAppearance: input.banner.textAppearance ?? {}}
+          : presentation.get("textAppearance") !== undefined ? {textAppearance: presentation.get("textAppearance")} : {}),
         ...(input.operationID ? {operationID: input.operationID, fingerprint} : {}), actorID, updatedAt: committedAt,
       });
     });
@@ -590,7 +623,7 @@ export const deleteFeaturedBanner = onCall(
 );
 
 
-/** Bounded additive endpoint. Public callers only see countdowns of currently public banner IDs.
+/** Bounded additive endpoint. Public callers only see safe presentation of public banner IDs.
  * No owner identity, operation markers, drafts or statistics leave this endpoint. */
 export const getFeaturedBannerPresentations = onCall(callableOptions, async request => {
   const input = request.data;
@@ -609,6 +642,7 @@ export const getFeaturedBannerPresentations = onCall(callableOptions, async requ
     if (!doc.exists) return [];
     return [{id: doc.id,
       ...(value?.targetDate instanceof Timestamp ? {countdown: {...value, targetDate: value.targetDate.toDate().toISOString()}} : {}),
+      ...(doc.get("textAppearance") !== undefined ? {textAppearance: storedTextAppearance(doc.get("textAppearance"))} : {}),
       ...( "configuredEndsAt" in (doc.data() ?? {}) ? {configuredEndsAt: doc.get("configuredEndsAt") instanceof Timestamp ? doc.get("configuredEndsAt").toDate().toISOString() : null} : {}),
     }];
   })};
