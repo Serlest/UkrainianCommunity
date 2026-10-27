@@ -1,0 +1,175 @@
+{
+  "block": 16,
+  "totalBlocks": 19,
+  "date": "2026-10-27",
+  "name": "Контроль публікацій та автоматичних проходів",
+  "status": "initial_audit_requires_implementation",
+  "sourceHead": "149623c38d92e5c7e8175b25f0d1473775ee494c",
+  "inventory": "Docs/Verification/PublicationControlInventory20261027.json",
+  "artifactBase": "build/audit-publication16-20261027",
+  "productSourceChanged": false,
+  "productionChanged": false,
+  "testFlightChanged": false,
+  "findings": [
+    {
+      "id": "P16-F01",
+      "priority": "P1",
+      "evidenceType": "confirmed_live_sync_data_loss",
+      "finding": "Importer has42 repeated errors:34 immutable-digest collisions and8 nonproduction QA identities discovered as production reports. Four current source digests differ, two semantically. Styria says0published remotely vs1 locally; the actual approved event and first-publication index both exist. Upper Austria candidates4 vs26, rejected1 vs23. Latest19 runIDs match local, so this is not19 missing source folders.",
+      "recommendedChange": "Use immutable report revisions and an explicit latest pointer; classify/skip QA artifacts, preserve old evidence and reconcile semantic revisions rather than blindly overwriting history."
+    },
+    {
+      "id": "P16-F02",
+      "priority": "P1",
+      "evidenceType": "confirmed_false_freshness_semantics",
+      "finding": "Importer writes syncedAt on every attempt, including errors42/imported0. UI calls this reportsUpdated and uses it for the2h stale threshold. A fresh heartbeat does not establish fresh synchronized report data.",
+      "recommendedChange": "Separate lastAttemptAt, successful-import/check timestamps and per-source completion times; expose concrete affected reports."
+    },
+    {
+      "id": "P16-F03",
+      "priority": "P1",
+      "evidenceType": "reproduced_item_and_history_retry_loss",
+      "finding": "Both page3 failures preserve rows1/2 initially, but the actual Retry action requests cursor=nil and replaces them with page1. Calls observed:first,second,third,first. Two desired-behavior probe tests failed.",
+      "recommendedChange": "Store the failed operation/cursor and retry exactly it, preserving loaded pages and region/day context."
+    },
+    {
+      "id": "P16-F04",
+      "priority": "P2",
+      "evidenceType": "confirmed_unbounded_server_reads_and_permanent_retry_work",
+      "finding": "Every overview/items request reads all daily index documents, sorts/filters in memory, then slices30. Permanent report collisions are retried roughly each minute; last pass contains34collisions and8unsupported identities. Writer reads both run and source before detecting a digest mismatch.",
+      "recommendedChange": "Real indexed server pagination and compact counts; bounded session reads; quarantine/version permanent conflicts and retry transient failures with explicit status."
+    },
+    {
+      "id": "P16-F05",
+      "priority": "P2",
+      "evidenceType": "confirmed_history_filter_and_blank_state",
+      "finding": "History request ignores selected region and reads global pages80; UI filters them afterward. Selecting unknown region leaves a blank area because empty state checks global runs.isEmpty.",
+      "recommendedChange": "Send region to the backend, paginate within that filter, and show a meaningful filtered-empty state."
+    },
+    {
+      "id": "P16-F06",
+      "priority": "P1",
+      "evidenceType": "visually_confirmed_maxAX_overflow",
+      "finding": "Maximum Dynamic Type in Ukrainian pushes the compact date/summary beyond the viewport. In German, fixed two-column labels break into near-letter columns and consume multiple screens. MediumAX passing did not cover maximum-size readability.",
+      "recommendedChange": "Responsive date presentation and single-column/reflowing metric layout at accessibility sizes, preserving full text."
+    },
+    {
+      "id": "P16-F07",
+      "priority": "P2",
+      "evidenceType": "diagnostic_and_scope_usability",
+      "finding": "Report details remain mostly raw English strings. Publication-date counts and latest source checks share the same top date/region area. Errors need a source, consequence and next action. The Retry under import errors only rereads the callable; it cannot repair the local observer.",
+      "recommendedChange": "Retain four useful tabs with a compact context-aware summary; clear latest-vs-selected-day labels, accessible details and accurate action names."
+    },
+    {
+      "id": "P16-F08",
+      "priority": "P2",
+      "evidenceType": "source_confirmed_clock_and_schedule_mismatch",
+      "finding": "Rows format absolute dates in device timezone while publication-day key/picker use Vienna. Staleness is fixed3h for news although active regional news schedules are09/14/19, five-hour gaps and overnight pauses.",
+      "recommendedChange": "One explicit Vienna clock contract and schedule-aware overdue diagnostics; controlled DST/date-boundary cases."
+    },
+    {
+      "id": "P16-F09",
+      "priority": "P2",
+      "evidenceType": "legacy_source_risk_not_runtime_exploit_claim",
+      "finding": "Old contentDraftReady notifications still open the separate planning/editor workflow. Its viewmodel uses UID equality without a session generation; fetchDraftForDeepLink and mutation continuations lack complete post-await scope checks.12 current tests pass but do not prove role-revocation/A->B->A safety.",
+      "recommendedChange": "Keep compatibility explicitly scoped and add generation/permission/cancellation fences and controlled late-response scenarios before changing old drafts."
+    },
+    {
+      "id": "P16-F10",
+      "priority": "P3",
+      "evidenceType": "obsolete_test_route_source_review",
+      "finding": "Dormant testOwnerContentPlanningExposesFourStableSections still expects the old planning screen from the profile entry, which now opens PublicationControl. This is a stale test expectation, separate from product defects.",
+      "recommendedChange": "Test the control entry and legacy draft-notification entry as distinct routes; do not disable business assertions."
+    }
+  ],
+  "validation": [
+    {
+      "check": "Existing publication Swift unit +normal/mediumAX UI tests",
+      "result": "passed",
+      "passed": 6,
+      "evidence": "Baseline.xcresult"
+    },
+    {
+      "check": "Explicit maxAX/warning, six nonowner profiles, filtered history observations",
+      "result": "observations_recorded",
+      "testCasesPassed": 3,
+      "evidence": "ExpandedVisualsAndRoles.xcresult",
+      "note": "Capture/navigation success is not visual acceptance; clipping and empty-state defects were observed."
+    },
+    {
+      "check": "Page3 retry desired contract",
+      "result": "failed_product_reproductions",
+      "failed": 2,
+      "evidence": "PaginationReproductions.xcresult",
+      "note": "Temporary probes archived under build; failing acceptance tests are not added to normal CI."
+    },
+    {
+      "check": "Legacy planning existing units",
+      "result": "passed",
+      "passed": 12,
+      "evidence": "LegacyCompatibilityUnits.xcresult"
+    },
+    {
+      "check": "Actual server handlers/index behavior in isolated demo emulator",
+      "result": "passed",
+      "passed": 3,
+      "evidence": "server-integration.log"
+    },
+    {
+      "check": "Report normalization/discovery existing tests",
+      "result": "passed",
+      "passed": 4,
+      "evidence": "normalizer-tests.log"
+    },
+    {
+      "check": "Backend access matrix",
+      "result": "passed",
+      "roles": 12,
+      "evidence": "role-matrix.log"
+    },
+    {
+      "check": "Deployed code/readiness",
+      "result": "exact_source_match_all_three_ready100",
+      "evidence": "deployed-publication-proof.json",
+      "note": "TS+compiledJS, auth and permissions checked; no new deployment or induced Eventarc delivery."
+    }
+  ],
+  "productionReadback": {
+    "capturedAt": "2026-10-27T06:37:08+01:00",
+    "importErrors": 42,
+    "latestSources": 19,
+    "latestStatuses": {
+      "partial": 19
+    },
+    "yesterday": "2026-10-26",
+    "yesterdayPublications": {
+      "news": 25,
+      "event": 32,
+      "total": 57
+    },
+    "actualStyriaEvent": "8593b0f2c19172b0ce504b27cb8968229eeadf62",
+    "sourceState": "approved",
+    "boundary": "Partial source checks are real independent coverage gaps. Correcting importer/UI does not establish full source coverage."
+  },
+  "visualEvidenceViewed": [
+    "BaselineCaptures/4A031FFB-AC68-4282-AC37-C23DFC6689E3.png",
+    "BaselineCaptures/76682502-EAC9-4003-BECC-AFC7B8012F7B.png",
+    "ExpandedCaptures/9B38A35F-F735-45FB-96A9-5051FB07E00E.png",
+    "ExpandedCaptures/4FCD56E7-D87F-4D07-9EE3-26AA487059EB.png",
+    "ExpandedCaptures/D0506830-039D-49DE-A3DA-4AD3C5AC1A9E.png"
+  ],
+  "performanceBoundary": "Source evidence proves repeated full-day scans and permanent error retries; no physical iPhone callable latency or Time Profiler trace was measured. Mac REST reads0.28–0.52s are not device launch timings. Cloud Run request query returned no samples.",
+  "implementationPackages": [
+    "Report revision/discovery/freshness bridge with immutable history and readback",
+    "Cursor/filter/context-safe screen data layer plus legacy session fences",
+    "Responsive summary, four coherent tabs and actionable localized diagnostics",
+    "Repeat failing and linked flows, exact deployed-source verification after any approved deployment, then separate signed-device and TestFlight gates"
+  ],
+  "remainingAcceptance": [
+    "Fix and repeat the exact failing page3->retry scenarios",
+    "Signed physical owner-account read and date/filter/detail/return paths",
+    "Long-running late response and A->B->A in legacy draft compatibility modals",
+    "Explicit event child fixture/runtime, picker date/DST/travel timezone cases",
+    "Full corrected narrow/maxAX layout after implementation"
+  ]
+}

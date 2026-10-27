@@ -1,0 +1,109 @@
+{
+  "block": 16,
+  "totalBlocks": 19,
+  "name": "Контроль публікацій та автоматичних проходів",
+  "status": "initial_audit_requires_implementation",
+  "sourceHead": "149623c38d92e5c7e8175b25f0d1473775ee494c",
+  "groups": [
+    {
+      "id": "P16-01",
+      "scope": "Owner profile entry, direct destinations, backend UID/role/MFA/legal gates",
+      "coverage": "source +6 nonowner fixture profiles +12 emulator handler cases"
+    },
+    {
+      "id": "P16-02",
+      "scope": "Selected publication day, unique counts, region partition, first-publication history",
+      "coverage": "production 57 index rows (25 news/32 events), source and simulator"
+    },
+    {
+      "id": "P16-03",
+      "scope": "30-day UI calendar, Vienna day key, displayed timestamps, stale-clock policy",
+      "coverage": "source-reviewed; controlled picker/DST runtime follow-up remains"
+    },
+    {
+      "id": "P16-04",
+      "scope": "Initial30, further pages, retry, known rows, region changes",
+      "coverage": "baseline4 unit tests + failing third-page retry reproduction"
+    },
+    {
+      "id": "P16-05",
+      "scope": "Actual news ID through profile destination to detail",
+      "coverage": "fixture UI positive detail transition"
+    },
+    {
+      "id": "P16-06",
+      "scope": "Actual event ID through profile destination to detail",
+      "coverage": "source route review; no event-row fixture exists in the baseline UI repository"
+    },
+    {
+      "id": "P16-07",
+      "scope": "Counts, national bucket counted once, source statuses, quick link to region publications",
+      "coverage": "server integration +normal region-filter fixture UI"
+    },
+    {
+      "id": "P16-08",
+      "scope": "Latest results, missing19-scope report slots, grouped reason disclosures, raw details",
+      "coverage": "source + normal/medium/maxAX fixture frames + production latest19 sources"
+    },
+    {
+      "id": "P16-09",
+      "scope": "80-row pages, region filter, details, counts, partial/publication-only reports",
+      "coverage": "server integration, fixture UI, failing third-page retry reproduction"
+    },
+    {
+      "id": "P16-10",
+      "scope": "History region with no matching runs despite other regions present",
+      "coverage": "observed fixture empty area and AX tree"
+    },
+    {
+      "id": "P16-11",
+      "scope": "Local observer, immutable run history, latest-source pointer, heartbeat, retries",
+      "coverage": "read-only launchd/logs +719 recent local files + production comparison"
+    },
+    {
+      "id": "P16-12",
+      "scope": "Old notification draftID route to drafts/scheduled/attention/history; editor, source inspection, missing-event-date sheet, receipt, archive/delete confirmations",
+      "coverage": "source compatibility review +12 existing unit cases; full modal/session runtime recheck remains"
+    },
+    {
+      "id": "P16-13",
+      "scope": "uk/de, light/dark, normal and maxAX, keyboard-free filters/long headings/warnings",
+      "coverage": "normal/medium and maxAX runtime captures viewed; maxAX clipping confirmed"
+    },
+    {
+      "id": "P16-14",
+      "scope": "Daily collection scans, server/viewport pagination, repeated permanent import failures",
+      "coverage": "source-confirmed complexity; Mac REST read latency0.28–0.52s, no iPhone callable timing or Time Profiler trace"
+    },
+    {
+      "id": "P16-15",
+      "scope": "Three Functions TS+JS/auth/permissions source and Cloud Run traffic",
+      "coverage": "exact deployed bytes match, Ready100%, onDeployUpdatePolicy preserved; no deployment"
+    },
+    {
+      "id": "P16-16",
+      "scope": "Existing binary and production safety boundaries",
+      "coverage": "No new TestFlight binary or production writes in this audit"
+    }
+  ],
+  "roles": [
+    "owner",
+    "admin",
+    "member",
+    "organization owner/admin/editor",
+    "warned",
+    "blocked owner",
+    "deactivated owner",
+    "owner without MFA",
+    "owner without current legal acceptance",
+    "guest"
+  ],
+  "implementationAuthorized": false,
+  "remainingAcceptance": [
+    "Fix and repeat the exact failing page3->retry scenarios",
+    "Signed physical owner-account read and date/filter/detail/return paths",
+    "Long-running late response and A->B->A in legacy draft compatibility modals",
+    "Explicit event child fixture/runtime, picker date/DST/travel timezone cases",
+    "Full corrected narrow/maxAX layout after implementation"
+  ]
+}

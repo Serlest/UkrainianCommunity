@@ -3,7 +3,7 @@
   "totalBlocks": 19,
   "completedBlocks": 10,
   "remainingBlocks": 9,
-  "nextBlock": 15,
+  "nextBlock": 16,
   "blocks": [
     {
       "number": 1,
@@ -289,11 +289,11 @@
     {
       "number": 15,
       "name": "Аналитика",
-      "status": "implemented_locally_verified_pending_device_acceptance_and_hosted_ci",
+      "status": "implemented_locally_verified_pending_device_acceptance",
       "openChecks": [
         "Physical signed iPhone with real protected owner reads, both languages/themes and large text.",
         "Narrow/landscape/reduced-transparency device matrix; long ranking expansion with real20item data. The shared disclosure controls and both region lists are tested locally.",
-        "Hosted quality result for this implementation; no new TestFlight upload was requested."
+        "No new TestFlight delivery was requested."
       ],
       "inventory": "Docs/Verification/AnalyticsInventory20261026.json",
       "report": "Docs/Verification/AnalyticsAudit20261026.json",
@@ -307,13 +307,33 @@
         "sdkOptInSkipped": 40,
         "releaseBuild": "passed",
         "scope": "Local simulator fixtures, isolated Rules emulator and unsigned generic iOS build; not physical-device proof."
+      },
+      "sourceCI": {
+        "runId": 40422769651,
+        "head": "149623c38d92e5c7e8175b25f0d1473775ee494c",
+        "conclusion": "success"
       }
     },
     {
       "number": 16,
       "name": "Контроль публикаций и автоматических проходов",
-      "status": "pending",
-      "openChecks": []
+      "status": "initial_audit_requires_implementation",
+      "openChecks": [
+        "P16-F01",
+        "P16-F02",
+        "P16-F03",
+        "P16-F04",
+        "P16-F05",
+        "P16-F06",
+        "P16-F07",
+        "P16-F08",
+        "P16-F09",
+        "P16-F10"
+      ],
+      "inventory": "Docs/Verification/PublicationControlInventory20261027.json",
+      "report": "Docs/Verification/PublicationControlAudit20261027.json",
+      "productionChanged": false,
+      "testFlightChanged": false
     },
     {
       "number": 17,
@@ -503,5 +523,5 @@
       "boundary": "Hosted validation of exact product source, build127 settings. Build128 changes only build number. Running is not passed."
     }
   },
-  "currentBlock": 15
+  "currentBlock": 16
 }

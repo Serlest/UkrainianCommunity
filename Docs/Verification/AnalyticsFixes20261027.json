@@ -3,7 +3,7 @@
   "totalBlocks": 19,
   "date": "2026-10-27",
   "name": "Аналітика",
-  "status": "implemented_locally_verified_pending_device_acceptance_and_hosted_ci",
+  "status": "implemented_locally_verified_pending_device_acceptance",
   "auditBaseline": "bae2f018",
   "sourceReport": "Docs/Verification/AnalyticsAudit20261026.json",
   "productionChanges": false,
@@ -120,21 +120,12 @@
   ],
   "lastVerifiedDeliveredBuild": 128,
   "hostedCI": {
-    "status": "pending_for_containing_implementation_commit",
-    "baselineRun": 40414735877,
-    "baselineHead": "bae2f018",
-    "baselineConclusion": "success",
-    "note": "Baseline CI does not certify the new implementation. Read back the run for the new pushed commit.",
-    "intermediateRun": {
-      "runId": 40421674713,
-      "head": "35069f2992c8c1f951f91002f6d935af3a80bd11",
-      "status": "in_progress_at_readback",
-      "completedChecks": [
-        "Change classification and static checks",
-        "Firebase and rules"
-      ],
-      "note": "Follow-up only adds displayed-title search coverage; its own containing-commit run must also be inspected."
-    }
+    "status": "completed",
+    "conclusion": "success",
+    "runId": 40422769651,
+    "head": "149623c38d92e5c7e8175b25f0d1473775ee494c",
+    "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40422769651",
+    "note": "All required iOS/static jobs completed successfully. Firebase affected checks skipped because there were no server changes; the successful aggregator is not a new server test."
   },
   "localSummary": {
     "unitPassed": 918,
@@ -147,7 +138,7 @@
   "remainingAcceptance": [
     "Physical signed iPhone with real protected owner reads, both languages/themes and large text.",
     "Narrow/landscape/reduced-transparency device matrix; long ranking expansion with real20item data. The shared disclosure controls and both region lists are tested locally.",
-    "Hosted quality result for this implementation; no new TestFlight upload was requested."
+    "No new TestFlight delivery was requested."
   ],
   "preservedBuildWarnings": [
     "Existing SystemLogDeliveryQueue captured-self concurrency warning",
