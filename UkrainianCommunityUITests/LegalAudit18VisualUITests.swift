@@ -7,11 +7,16 @@ final class LegalAudit18VisualUITests: XCTestCase {
         app.launch(); let profile=app.tabBars.buttons.element(boundBy:4);XCTAssertTrue(profile.waitForExistence(timeout:20));profile.tap();return app
     }
     @MainActor private func reach(_ item:XCUIElement,_ app:XCUIApplication) {
-        for _ in 0..<35 { let upper: CGFloat = app.buttons["legal.edit.save"].exists ? 0.64 : 0.82
-            if item.exists && item.isHittable && item.frame.midY > app.frame.height*0.23 && item.frame.midY < app.frame.height*upper { return }
-            let down=item.exists && item.frame.midY < app.frame.height*0.23
-            let bottom:CGFloat=app.buttons["legal.edit.save"].exists ? 0.55:0.8
-            app.coordinate(withNormalizedOffset:CGVector(dx:0.04,dy:down ? 0.25:bottom)).press(forDuration:0.05,thenDragTo:app.coordinate(withNormalizedOffset:CGVector(dx:0.04,dy:down ? bottom:0.25)),withVelocity:.slow,thenHoldForDuration:0.15)
+        for _ in 0..<45 {
+            let editorBar = app.buttons["legal.edit.save"]
+            let editorVisible = editorBar.exists && editorBar.isHittable
+            var lowerEdge = app.frame.height - 28
+            if editorVisible { lowerEdge = editorBar.frame.minY - 8 }
+            else if app.tabBars.firstMatch.exists && app.tabBars.firstMatch.isHittable { lowerEdge = app.tabBars.firstMatch.frame.minY - 8 }
+            if item.exists && item.isHittable && item.frame.midY > 90 && item.frame.midY < lowerEdge { return }
+            let down = item.exists && item.frame.midY < 90
+            let bottom: CGFloat = editorVisible ? 0.55 : 0.8
+            app.coordinate(withNormalizedOffset: CGVector(dx:0.04,dy:down ? 0.25:bottom)).press(forDuration:0.05,thenDragTo:app.coordinate(withNormalizedOffset:CGVector(dx:0.04,dy:down ? bottom:0.25)),withVelocity:.slow,thenHoldForDuration:0.15)
         };capture(app,"unreachable-control");let tree=XCTAttachment(string:app.debugDescription);tree.name="audit18-unreachable-tree";tree.lifetime = .keepAlways;add(tree);XCTFail("Unreachable: \(item)")
     }
     @MainActor private func capture(_ app:XCUIApplication,_ name:String){let a=XCTAttachment(screenshot:app.screenshot());a.name="audit18-"+name;a.lifetime = .keepAlways;add(a)}
@@ -87,6 +92,9 @@ extension LegalAudit18VisualUITests {
         let translate = app.buttons["translation.legal"]; reach(translate, app); translate.tap()
         let apply = app.buttons["translation.apply"]; XCTAssertTrue(apply.waitForExistence(timeout: 8))
         XCTAssertFalse(apply.isEnabled); capture(app, "translation-review-before-confirmation")
+        let original = app.descendants(matching: .any).matching(identifier: "translation.source.toggle.markdown").firstMatch; reach(original, app); original.tap()
+        XCTAssertTrue(app.staticTexts["translation.source.body.markdown"].exists)
+        original.tap(); XCTAssertFalse(app.staticTexts["translation.source.body.markdown"].exists)
         let cancel = app.buttons["Скасувати"].firstMatch; XCTAssertTrue(cancel.isHittable); cancel.tap()
         reach(translate, app); translate.tap(); XCTAssertTrue(apply.waitForExistence(timeout: 8))
         let confirm = app.switches["translation.confirm"]; reach(confirm, app); confirm.tap()
@@ -94,6 +102,10 @@ extension LegalAudit18VisualUITests {
         let picker = app.segmentedControls.firstMatch; reach(picker, app); picker.buttons.element(boundBy: 1).tap()
         let title = app.textFields["legal.edit.title"]; reach(title, app)
         XCTAssertTrue((title.value as? String ?? "").hasPrefix("UK: "))
+        title.tap(); title.typeText(" Audit18")
+        XCTAssertTrue((title.value as? String ?? "").contains("Audit18"))
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.35)).tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
         let save = app.buttons["legal.edit.save"]; save.tap()
         expectation(for: NSPredicate(format: "enabled == false"), evaluatedWith: save); waitForExpectations(timeout: 10)
         app.buttons["legal.edit.actions"].tap(); app.buttons["legal.edit.publish"].tap()
@@ -104,7 +116,10 @@ extension LegalAudit18VisualUITests {
         let read = app.buttons["legal.history.read." + oldVersion]; reach(read, app); read.tap()
         XCTAssertTrue(app.segmentedControls.firstMatch.waitForExistence(timeout: 5)); capture(app, "history-original-version"); back(app)
         let compare = app.buttons["legal.history.compare." + oldVersion]; reach(compare, app); compare.tap()
-        XCTAssertTrue(app.staticTexts["Додано"].firstMatch.waitForExistence(timeout: 5)); capture(app, "history-published-difference")
+        XCTAssertTrue(app.staticTexts["Видалено"].firstMatch.waitForExistence(timeout: 5)); capture(app, "history-published-difference")
+        let comparisonLanguage = app.segmentedControls.firstMatch
+        comparisonLanguage.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.staticTexts["Текст не змінився."].waitForExistence(timeout: 5))
         back(app); back(app); back(app)
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 5))
     }

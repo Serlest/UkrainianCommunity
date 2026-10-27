@@ -160,6 +160,22 @@
           }
         }
       }
+    },
+    "legal_flow.sourceText": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оригінал"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Originaltext"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

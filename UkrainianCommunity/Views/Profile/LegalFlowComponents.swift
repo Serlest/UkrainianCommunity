@@ -2,6 +2,7 @@ import SwiftUI
 
 enum LegalFlowText {
     static func text(_ key: String) -> String { LocalizationStore.localizedString("legal_flow." + key, defaultValue: key, table: "LegalFlow") }
+    static var sourceText: String { text("sourceText") }
     static var readVersion: String { text("readVersion") }
     static var bundleSource: String { text("bundleSource") }
     static var editorTitle: String { text("editorTitle") }

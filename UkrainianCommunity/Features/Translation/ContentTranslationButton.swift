@@ -107,7 +107,7 @@ struct ContentTranslationButton: View {
         }
         .accessibilityElement(children: .contain)
         .sheet(item: $preview) { draft in
-            NavigationStack { ContentTranslationReview(draft: draft, fields: fields, targetLanguage: targetLanguage) { result in
+            NavigationStack { ContentTranslationReview(draft: draft, fields: fields, targetLanguage: targetLanguage, collapsesLongSource: kind == "legal") { result in
                 guard result.isCurrent(userID: authState.user?.id, organizationID: organizationId,
                                        sources: fields.map(\.source), targets: fields.map { $0.target.wrappedValue },
                                        authorizationRevision: authState.authorizationRevision, authority: ProfileAccessIdentity(user: authState.user)),
@@ -154,6 +154,7 @@ private struct ContentTranslationReview: View {
     @State var draft: ContentTranslationPreview
     let fields: [ContentTranslationField]
     let targetLanguage: AppLanguage
+    var collapsesLongSource = false
     let apply: (ContentTranslationPreview) -> Bool
     @State private var error: String?
     @State private var confirmsReplacement = false
@@ -172,9 +173,19 @@ private struct ContentTranslationReview: View {
                 AppEditorSectionCard {
                     VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                         AppEditorSectionTitle(title: fields[index].title)
-                        Text(draft.sources[index]).font(.subheadline).foregroundStyle(AppTheme.textSecondary)
+                        if collapsesLongSource && draft.sources[index].utf16.count > 1000 {
+                            DisclosureGroup {
+                                Text(draft.sources[index]).font(.subheadline).foregroundStyle(AppTheme.textSecondary)
+                                    .textSelection(.enabled).accessibilityIdentifier("translation.source.body." + fields[index].id)
+                            } label: {
+                                Text(LegalFlowText.sourceText).accessibilityIdentifier("translation.source.toggle." + fields[index].id)
+                            }
+                        } else {
+                            Text(draft.sources[index]).font(.subheadline).foregroundStyle(AppTheme.textSecondary)
+                        }
                         EditorTextArea(targetLanguage.title, text: $draft.translations[offset],
                                        counterText: "\(draft.translations[offset].utf16.count)/\(fields[index].limit)", minHeight: 100)
+                            .frame(height: collapsesLongSource && fields[index].limit > 10000 ? 360 : nil)
                             .accessibilityIdentifier("translation.result.\(fields[index].id)")
                     }
                 }
