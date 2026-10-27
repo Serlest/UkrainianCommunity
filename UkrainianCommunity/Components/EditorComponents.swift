@@ -162,6 +162,7 @@ struct EditorTextField: View {
 }
 
 struct EditorTextArea: View {
+    @ScaledMetric(relativeTo: .subheadline) private var readableMinHeight: CGFloat = 92
     let title: String
     @Binding var text: String
     let counterText: String
@@ -197,7 +198,7 @@ struct EditorTextArea: View {
                     .scrollContentBackground(.hidden)
                     .textInputAutocapitalization(.sentences)
                     .padding(4)
-                    .frame(minHeight: minHeight, alignment: .topLeading)
+                    .frame(minHeight: max(minHeight, readableMinHeight), alignment: .topLeading)
             }
             .background(
                 AppTheme.surfaceSecondary,

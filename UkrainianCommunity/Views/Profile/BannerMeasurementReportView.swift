@@ -24,9 +24,13 @@ struct BannerMeasurementReportView: View {
             introSubtitle: AppStrings.BannerReport.subtitle,
             scrollsIntroSubtitle: dynamicTypeSize.isAccessibilitySize) {
             if PermissionService.isAppOwner(user: authState.user) {
-            Picker(AppStrings.OwnerAnalytics.periodPicker, selection: $viewModel.selectedPeriod) {
-                ForEach(AnalyticsPeriod.allCases) { Text(AnalyticsPresentationText.bannerPeriod($0)).tag($0) }
-            }.pickerStyle(.menu).accessibilityIdentifier("bannerReport.period")
+            BannerReportFilterMenu(title: AppStrings.OwnerAnalytics.periodPicker,
+                selectedTitle: AnalyticsPresentationText.bannerPeriod(viewModel.selectedPeriod),
+                identifier: "bannerReport.period") {
+                Picker(AppStrings.OwnerAnalytics.periodPicker, selection: $viewModel.selectedPeriod) {
+                    ForEach(AnalyticsPeriod.allCases) { Text(AnalyticsPresentationText.bannerPeriod($0)).tag($0) }
+                }
+            }
             Text(AnalyticsPresentationText.utcExplanation).font(.footnote).foregroundStyle(AppTheme.textSecondary).lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
             content
@@ -122,25 +126,37 @@ struct BannerMeasurementReportView: View {
     private var filters: some View {
         OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.filters) {
             if viewModel.fixedBannerID == nil {
-                Picker(AppStrings.BannerReport.byBanner, selection: $viewModel.selectedBannerID) {
-                    Text(AppStrings.BannerReport.allBanners).tag(String?.none)
-                    ForEach(viewModel.availableBanners) { Text(viewModel.title(for: $0.id)).tag(Optional($0.id)) }
-                }.accessibilityIdentifier("bannerReport.bannerFilter")
+                BannerReportFilterMenu(title: AppStrings.BannerReport.byBanner,
+                    selectedTitle: viewModel.selectedBannerID.map { viewModel.title(for: $0) } ?? AppStrings.BannerReport.allBanners,
+                    identifier: "bannerReport.bannerFilter") {
+                    Picker(AppStrings.BannerReport.byBanner, selection: $viewModel.selectedBannerID) {
+                        Text(AppStrings.BannerReport.allBanners).tag(String?.none)
+                        ForEach(viewModel.availableBanners) { Text(viewModel.title(for: $0.id)).tag(Optional($0.id)) }
+                    }
+                }
             }
-            Picker(AppStrings.BannerReport.byRegion, selection: $viewModel.selectedRegion) {
-                Text(AppStrings.BannerReport.allRegions).tag(String?.none)
-                ForEach((viewModel.report?.regions.keys.sorted() ?? []), id: \.self) { Text(AppStrings.BannerReport.regionTitle($0)).tag(Optional($0)) }
-            }.accessibilityIdentifier("bannerReport.regionFilter")
-            Picker(AppStrings.BannerReport.bySection, selection: $viewModel.selectedSection) {
-                Text(AppStrings.BannerReport.allSections).tag(FeaturedBannerVisibleSection?.none)
-                ForEach(FeaturedBannerVisibleSection.supportedCases) { Text(sectionTitle($0)).tag(Optional($0)) }
-            }.accessibilityIdentifier("bannerReport.sectionFilter")
+            BannerReportFilterMenu(title: AppStrings.BannerReport.byRegion,
+                selectedTitle: viewModel.selectedRegion.map { AppStrings.BannerReport.regionTitle($0) } ?? AppStrings.BannerReport.allRegions,
+                identifier: "bannerReport.regionFilter") {
+                Picker(AppStrings.BannerReport.byRegion, selection: $viewModel.selectedRegion) {
+                    Text(AppStrings.BannerReport.allRegions).tag(String?.none)
+                    ForEach((viewModel.report?.regions.keys.sorted() ?? []), id: \.self) { Text(AppStrings.BannerReport.regionTitle($0)).tag(Optional($0)) }
+                }
+            }
+            BannerReportFilterMenu(title: AppStrings.BannerReport.bySection,
+                selectedTitle: viewModel.selectedSection.map { sectionTitle($0) } ?? AppStrings.BannerReport.allSections,
+                identifier: "bannerReport.sectionFilter") {
+                Picker(AppStrings.BannerReport.bySection, selection: $viewModel.selectedSection) {
+                    Text(AppStrings.BannerReport.allSections).tag(FeaturedBannerVisibleSection?.none)
+                    ForEach(FeaturedBannerVisibleSection.supportedCases) { Text(sectionTitle($0)).tag(Optional($0)) }
+                }
+            }
             if viewModel.selectedBannerID != nil || viewModel.selectedRegion != nil || viewModel.selectedSection != nil {
                 Button(AppStrings.BannerReport.resetFilters) {
                     viewModel.selectedBannerID = nil; viewModel.selectedRegion = nil; viewModel.selectedSection = nil
                 }
             }
-        }.pickerStyle(.menu).tint(AppTheme.accentPrimaryForeground)
+        }.tint(AppTheme.accentPrimaryForeground)
     }
 
     private func sectionTitle(_ section: FeaturedBannerVisibleSection) -> String {
@@ -157,8 +173,11 @@ struct BannerMeasurementReportView: View {
 struct BannerAnalyticsMetricsView: View {
     let totals: BannerMeasurementTotals
     @Environment(\.locale) private var locale
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 125), alignment: .top)], alignment: .leading, spacing: 12) {
+        LazyVGrid(columns: dynamicTypeSize >= .xxLarge
+                  ? [GridItem(.flexible(), alignment: .top)]
+                  : [GridItem(.adaptive(minimum: 160), alignment: .top)], alignment: .leading, spacing: 12) {
             OwnerAnalyticsMetricTile(title: AppStrings.BannerReport.impressions, value: totals.impressions, systemImage: "eye")
             OwnerAnalyticsMetricTile(title: AppStrings.BannerReport.clicks, value: totals.clicks, systemImage: "hand.tap")
             OwnerAnalyticsMetricTile(title: AppStrings.BannerReport.ctr, value: 0, systemImage: "percent",
@@ -199,32 +218,58 @@ struct BannerAnalyticsTrendView: View {
         OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.byDay) {
             Chart(report.timeline) { day in
                 if let date = day.utcDate {
-                BarMark(x: .value("UTC", date, unit: .day), y: .value(AppStrings.BannerReport.impressions, day.totals.impressions))
-                    .foregroundStyle(by: .value("metric", AppStrings.BannerReport.impressions))
-                    .position(by: .value("metric", AppStrings.BannerReport.impressions))
-                BarMark(x: .value("UTC", date, unit: .day), y: .value(AppStrings.BannerReport.clicks, day.totals.clicks))
-                    .foregroundStyle(by: .value("metric", AppStrings.BannerReport.clicks))
-                    .position(by: .value("metric", AppStrings.BannerReport.clicks))
+                    BarMark(x: .value("UTC", date, unit: .day), y: .value(AppStrings.BannerReport.impressions, day.totals.impressions))
+                        .foregroundStyle(by: .value("metric", AppStrings.BannerReport.impressions))
+                        .position(by: .value("metric", AppStrings.BannerReport.impressions))
+                    BarMark(x: .value("UTC", date, unit: .day), y: .value(AppStrings.BannerReport.clicks, day.totals.clicks))
+                        .foregroundStyle(by: .value("metric", AppStrings.BannerReport.clicks))
+                        .position(by: .value("metric", AppStrings.BannerReport.clicks))
                 }
             }
             .chartForegroundStyleScale([AppStrings.BannerReport.impressions: AppTheme.accentPrimaryForeground,
                                         AppStrings.BannerReport.clicks: AppTheme.accentSupportForeground])
+            .chartLegend(.hidden)
             // A date scale lets Charts choose sparse ticks. Categorical string
             // days produced all30 labels on the physical phone despite sampled values.
             .chartXAxis {
                 AxisMarks(values: .automatic(desiredCount: dynamicTypeSize.isAccessibilitySize ? 2 : 4)) { value in
                     AxisValueLabel {
-                        if let date = value.as(Date.self) { Text(date, format: dayLabelStyle) }
+                        if let date = value.as(Date.self) { Text(date, format: dayLabelStyle).font(.caption2) }
                     }
+                }
+            }
+            .chartYAxis {
+                AxisMarks(values: .automatic(desiredCount: dynamicTypeSize.isAccessibilitySize ? 2 : 5)) { _ in
+                    AxisGridLine()
+                    AxisValueLabel().font(.caption2)
                 }
             }
             .environment(\.timeZone, utc)
             .environment(\.calendar, dayLabelStyle.calendar)
             .frame(height: dynamicTypeSize.isAccessibilitySize ? 240 : 160)
             .accessibilityLabel(AppStrings.BannerReport.byDay)
+            legend
             DisclosureGroup(AppStrings.BannerReport.dailyDetails) {
                 ForEach(report.days) { BannerAnalyticsValueRow(title: $0.id, totals: $0.totals) }
             }.tint(AppTheme.accentPrimaryForeground)
+        }
+    }
+
+    private var legend: some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 12))
+        return layout {
+            legendItem(AppStrings.BannerReport.impressions, color: AppTheme.accentPrimaryForeground)
+            legendItem(AppStrings.BannerReport.clicks, color: AppTheme.accentSupportForeground)
+        }
+    }
+
+    private func legendItem(_ title: String, color: Color) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Circle().fill(color).frame(width: 8, height: 8).accessibilityHidden(true)
+            Text(title).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
