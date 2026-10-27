@@ -1,5 +1,7 @@
 import Combine
 import FirebaseAuth
+import FirebaseFunctions
+import FirebaseFirestore
 import Foundation
 
 @MainActor
@@ -34,7 +36,16 @@ final class SystemLogsViewModel: ObservableObject {
     let nowProvider: () -> Date
     private let reviewerUserIdProvider: () -> String?
     private let fetchLimit = 100
-    private var hasLoadedInitialPage = false
+    @Published private(set) var hasLoadedInitialPage = false
+    @Published private(set) var unavailableLogIDs: Set<String> = []
+    @Published private(set) var accessDenied = false
+    @Published private(set) var cursorRequiresRefresh = false
+    @Published private(set) var details: [String: SystemLogEntry] = [:]
+    private let sessionKeyProvider: () -> String
+    private var currentSessionKey: String
+    private var sessionGeneration = UUID()
+    private var detailRequests: [String: UUID] = [:]
+    private var pageRequest = UUID()
     private var dataRequestRevision: UInt = 0
     private var nextCursor: String?
     private var loadedQueryKey: String?
@@ -62,15 +73,16 @@ final class SystemLogsViewModel: ObservableObject {
         var dates: [Date] = []
         let now = calendar.startOfDay(for: nowProvider())
         if selectedFilters.contains(.today) || datePreset == .today { dates.append(calendar.startOfDay(for: now)) }
-        if selectedFilters.contains(.sevenDays) || datePreset == .sevenDays { dates.append(calendar.date(byAdding: .day, value: -7, to: now) ?? now) }
-        if datePreset == .thirtyDays { dates.append(calendar.date(byAdding: .day, value: -30, to: now) ?? now) }
+        if selectedFilters.contains(.sevenDays) || datePreset == .sevenDays { dates.append(calendar.date(byAdding: .day, value: -6, to: now) ?? now) }
+        if datePreset == .thirtyDays { dates.append(calendar.date(byAdding: .day, value: -29, to: now) ?? now) }
         filter.startDate = dates.max()
-        if selectedFilters.contains(.today) { filter.endDate = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))?.addingTimeInterval(-0.001) }
+        if !dates.isEmpty { filter.endDate = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))?.addingTimeInterval(-0.001) }
         if selectedFilters.contains(.unreviewed) && reviewFilter == .reviewed { filter.targetId = "__no_matching_journal_entry__" }
         return filter
     }
 
     func refreshIfStale() async {
+        synchronizeSession()
         guard !isLoading else { return }
         if loadedQueryKey != queryKey || lastLoadedAt.map({ nowProvider().timeIntervalSince($0) >= 60 || !calendar.isDate($0, inSameDayAs: nowProvider()) }) != false {
             await refresh()
@@ -78,14 +90,67 @@ final class SystemLogsViewModel: ObservableObject {
     }
 
     func queryChanged() async {
+        synchronizeSession()
         guard loadedQueryKey != queryKey else { await loadIfNeeded(); return }
         if repository.usesServerFiltering {
             dataRequestRevision &+= 1
             logs = []; nextCursor = nil; canLoadMore = false
+            loadedQueryKey = nil; lastLoadedAt = nil
         }
-        do { try await Task.sleep(for: .milliseconds(300)) } catch { return }
-        guard !Task.isCancelled, loadedQueryKey != queryKey else { return }
+        let revision = dataRequestRevision
+        isLoading = true; errorMessage = nil
+        // The first request has no search keystrokes to debounce.
+        if hasLoadedInitialPage {
+            do { try await Task.sleep(for: .milliseconds(300)) }
+            catch { if revision == dataRequestRevision { isLoading = false }; return }
+        }
+        guard !Task.isCancelled else { if revision == dataRequestRevision { isLoading = false }; return }
         await refresh()
+    }
+
+    static var liveSessionKey: String {
+        let auth = AuthService.shared.authState
+        return [auth.user?.id ?? "guest", String(describing: auth.sessionState),
+            String(auth.authorizationRevision), String(describing: auth.user?.globalRole),
+            String(describing: auth.user?.accountStatus)].joined(separator: "|")
+    }
+
+    var isSessionCurrent: Bool { currentSessionKey == sessionKeyProvider() }
+
+    func synchronizeSession() {
+        let key = sessionKeyProvider()
+        guard key != currentSessionKey else { return }
+        currentSessionKey = key; sessionGeneration = UUID()
+        withdrawPrivateData(); hasLoadedInitialPage = false; accessDenied = false
+        reviewingLogIDs = []; deletingLogIDs = []; refreshingDetailLogIDs = []
+        isMarkingVisibleReviewed = false; isClearingLogs = false
+        reviewErrorMessages = [:]; detailRefreshErrorMessages = [:]
+        clearLogsErrorMessage = nil; bulkReviewErrorMessage = nil; errorMessage = nil
+        unavailableLogIDs = []; detailRequests = [:]
+        clearSearchAndFilters()
+    }
+
+    private func requestScope() -> UUID { synchronizeSession(); return sessionGeneration }
+    private func isCurrent(_ scope: UUID) -> Bool {
+        synchronizeSession()
+        return scope == sessionGeneration && !Task.isCancelled
+    }
+    private func withdrawPrivateData() {
+        sessionGeneration = UUID()
+        detailRequests = [:]; refreshingDetailLogIDs = []
+        reviewingLogIDs = []; deletingLogIDs = []
+        isMarkingVisibleReviewed = false; isClearingLogs = false
+        dataRequestRevision &+= 1; pageRequest = UUID()
+        logs = []; details = [:]; reviewedOverrides = [:]; nextCursor = nil
+        canLoadMore = false; cursorRequiresRefresh = false
+        loadedQueryKey = nil; lastLoadedAt = nil; isLoading = false; isLoadingNextPage = false
+    }
+    private func withdrawIfDenied(_ error: Error) {
+        if SystemLogFailureKind(error).isAccessFailure { withdrawPrivateData(); accessDenied = true }
+    }
+    private func forgetLog(_ id: String) {
+        unavailableLogIDs.insert(id); logs.removeAll { $0.id == id }; details[id] = nil
+        reviewedOverrides[id] = nil; detailRequests[id] = nil
     }
 
 
@@ -94,8 +159,11 @@ final class SystemLogsViewModel: ObservableObject {
         accessMode: SystemLogsAccessMode = .owner,
         calendar: Calendar = .current,
         nowProvider: @escaping () -> Date = Date.init,
-        reviewerUserIdProvider: @escaping () -> String? = { Auth.auth().currentUser?.uid }
+        reviewerUserIdProvider: @escaping () -> String? = { Auth.auth().currentUser?.uid },
+        sessionKeyProvider: (() -> String)? = nil
     ) {
+        let provider: () -> String = sessionKeyProvider ?? (repository == nil ? { Self.liveSessionKey } : { "fixture" })
+        self.sessionKeyProvider = provider; self.currentSessionKey = provider()
         self.repository = repository ?? FirestoreSystemLogRepository()
         self.accessMode = accessMode
         self.calendar = calendar
@@ -136,12 +204,14 @@ final class SystemLogsViewModel: ObservableObject {
     }
 
     func refresh() async {
+        let scope = requestScope()
         dataRequestRevision &+= 1
         let requestRevision = dataRequestRevision
         let key = queryKey
         let filter = repository.usesServerFiltering ? queryFilter : SystemLogFilter(isAppAdminReadable: accessMode == .appAdmin ? true : nil)
         let sort = sortOption
-        isLoading = true
+        isLoading = true; cursorRequiresRefresh = false
+        pageRequest = UUID(); isLoadingNextPage = false
         defer {
             if requestRevision == dataRequestRevision {
                 isLoading = false
@@ -151,48 +221,51 @@ final class SystemLogsViewModel: ObservableObject {
         do {
             var page = try await repository.queryPage(filter: filter, sortOption: sort, limit: fetchLimit, cursor: nil)
             for _ in 0..<7 {
-                guard page.entries.isEmpty, let cursor = page.cursor, !Task.isCancelled, requestRevision == dataRequestRevision else { break }
+                guard page.entries.isEmpty, let cursor = page.cursor, !Task.isCancelled, requestRevision == dataRequestRevision, isCurrent(scope) else { break }
                 page = try await repository.queryPage(filter: filter, sortOption: sort, limit: fetchLimit, cursor: cursor)
             }
-            guard requestRevision == dataRequestRevision, key == queryKey, !Task.isCancelled else { return }
-            logs = page.entries.map(applyingReviewOverride)
+            guard isCurrent(scope), requestRevision == dataRequestRevision, key == queryKey else { return }
+            logs = page.entries.filter { !unavailableLogIDs.contains($0.id) }.map(applyingReviewOverride)
             nextCursor = page.cursor
             canLoadMore = page.cursor != nil
             loadedQueryKey = key
             lastLoadedAt = nowProvider()
             hasLoadedInitialPage = true
-            errorMessage = nil
+            accessDenied = false; errorMessage = nil
         } catch {
-            guard requestRevision == dataRequestRevision else { return }
+            guard isCurrent(scope), requestRevision == dataRequestRevision else { return }
+            withdrawIfDenied(error)
             errorMessage = readableErrorMessage(for: error)
         }
     }
 
     func loadNextPage() async {
+        let scope = requestScope()
+        guard !accessDenied else { return }
+        if cursorRequiresRefresh { await refresh(); return }
         guard canLoadMore, !isLoading, !isLoadingNextPage else { return }
-        let requestRevision = dataRequestRevision
-        let requestedSortOption = sortOption
-        let key = queryKey
-        let filter = queryFilter
+        let revision = dataRequestRevision, key = queryKey
+        let token = UUID(); pageRequest = token
+        let sort = sortOption, filter = queryFilter
+        var cursor = nextCursor
         isLoadingNextPage = true
-        defer { isLoadingNextPage = false }
-
+        defer { if pageRequest == token { isLoadingNextPage = false } }
         do {
-            var page = try await repository.queryPage(filter: filter, sortOption: requestedSortOption, limit: fetchLimit, cursor: nextCursor)
+            var page = try await repository.queryPage(filter: filter, sortOption: sort, limit: fetchLimit, cursor: cursor)
             for _ in 0..<7 {
-                guard page.entries.isEmpty, let cursor = page.cursor, !Task.isCancelled, requestRevision == dataRequestRevision else { break }
-                page = try await repository.queryPage(filter: filter, sortOption: requestedSortOption, limit: fetchLimit, cursor: cursor)
+                guard page.entries.isEmpty, let next = page.cursor, isCurrent(scope), revision == dataRequestRevision else { break }
+                cursor = next
+                page = try await repository.queryPage(filter: filter, sortOption: sort, limit: fetchLimit, cursor: cursor)
             }
-            guard key == queryKey else { return }
-            let nextPage = page.entries.map(applyingReviewOverride)
-            guard requestRevision == dataRequestRevision, requestedSortOption == sortOption else { return }
-            let existingIDs = Set(logs.map(\.id))
-            logs.append(contentsOf: nextPage.filter { !existingIDs.contains($0.id) })
-            nextCursor = page.cursor
-            canLoadMore = page.cursor != nil
-            errorMessage = nil
+            guard isCurrent(scope), revision == dataRequestRevision, key == queryKey else { return }
+            let ids = Set(logs.map(\.id))
+            logs.append(contentsOf: page.entries.filter { !ids.contains($0.id) && !unavailableLogIDs.contains($0.id) }.map(applyingReviewOverride))
+            nextCursor = page.cursor; canLoadMore = page.cursor != nil; errorMessage = nil
         } catch {
-            guard requestRevision == dataRequestRevision, requestedSortOption == sortOption else { return }
+            guard isCurrent(scope), revision == dataRequestRevision, key == queryKey else { return }
+            withdrawIfDenied(error)
+            if SystemLogFailureKind(error) == .expiredCursor { cursorRequiresRefresh = true }
+            else if !accessDenied { nextCursor = cursor }
             errorMessage = readableErrorMessage(for: error)
         }
     }
@@ -202,31 +275,22 @@ final class SystemLogsViewModel: ObservableObject {
         selectedSection = .all
     }
 
-    private func readableErrorMessage(for error: Error) -> String {
-        let nsError = error as NSError
-        let details = [nsError.domain, nsError.localizedDescription].joined(separator: " ").lowercased()
-
-        if details.contains("permission") || details.contains("denied") {
-            switch accessMode {
-            case .owner:
-                return AppStrings.SystemLogs.ownerLoadPermissionError
-            case .appAdmin:
-                return AppStrings.SystemLogs.adminLoadPermissionError
-            }
+    func readableErrorMessage(for error: Error) -> String {
+        switch SystemLogFailureKind(error) {
+        case .access:
+            return accessMode == .owner ? AppStrings.SystemLogs.ownerLoadPermissionError : AppStrings.SystemLogs.adminLoadPermissionError
+        case .session: return SystemLogJournalStrings.sessionRequired
+        case .requirements: return SystemLogJournalStrings.requirements
+        case .expiredCursor: return SystemLogJournalStrings.cursorExpired
+        case .index: return AppStrings.SystemLogs.indexRequiredError
+        case .network: return AppStrings.SystemLogs.networkLoadError
+        case .other: return AppStrings.SystemLogs.genericLoadError
         }
-
-        if details.contains("index") || details.contains("failed-precondition") {
-            return AppStrings.SystemLogs.indexRequiredError
-        }
-
-        if details.contains("unavailable") || details.contains("network") {
-            return AppStrings.SystemLogs.networkLoadError
-        }
-
-        return AppStrings.SystemLogs.genericLoadError
     }
 
     func markReviewed(logID: String) async {
+        let scope = requestScope()
+        guard !accessDenied, !unavailableLogIDs.contains(logID) else { return }
         guard !reviewingLogIDs.contains(logID) else { return }
         guard let reviewerUserId = reviewerUserIdProvider()?.trimmingCharacters(in: .whitespacesAndNewlines), !reviewerUserId.isEmpty else {
             reviewErrorMessages[logID] = AppStrings.SystemLogs.missingReviewerError
@@ -235,12 +299,14 @@ final class SystemLogsViewModel: ObservableObject {
 
         reviewingLogIDs.insert(logID)
         reviewErrorMessages[logID] = nil
-        defer { reviewingLogIDs.remove(logID) }
+        defer { if scope == sessionGeneration { reviewingLogIDs.remove(logID) } }
 
         do {
             try await repository.markReviewed(logID: logID, reviewedByUserId: reviewerUserId)
+            guard isCurrent(scope), !unavailableLogIDs.contains(logID) else { return }
             applyReviewedState(logID: logID, reviewedByUserId: reviewerUserId, reviewedAt: nowProvider())
         } catch {
+            guard isCurrent(scope) else { return }; withdrawIfDenied(error)
             reviewErrorMessages[logID] = readableReviewErrorMessage(for: error)
         }
     }
@@ -250,33 +316,37 @@ final class SystemLogsViewModel: ObservableObject {
     }
 
     func log(id: String) -> SystemLogEntry? {
-        logs.first { $0.id == id }
+        guard isSessionCurrent, !accessDenied, !unavailableLogIDs.contains(id) else { return nil }
+        return details[id] ?? logs.first { $0.id == id }
     }
 
     func refreshLogDetail(id: String) async {
-        guard !refreshingDetailLogIDs.contains(id) else { return }
-        refreshingDetailLogIDs.insert(id)
-        detailRefreshErrorMessages[id] = nil
-        defer { refreshingDetailLogIDs.remove(id) }
-
+        let scope = requestScope()
+        guard !refreshingDetailLogIDs.contains(id), !unavailableLogIDs.contains(id) else { return }
+        let token = UUID(); detailRequests[id] = token
+        refreshingDetailLogIDs.insert(id); detailRefreshErrorMessages[id] = nil
+        defer { if detailRequests[id] == token { refreshingDetailLogIDs.remove(id) } }
         do {
-            guard let refreshedLog = try await repository.fetchLog(id: id) else {
-                detailRefreshErrorMessages[id] = LocalizationStore.localizedString(
-                    "system_logs.detail.not_found",
-                    defaultValue: "Запис журналу більше не доступний."
-                )
+            let refreshed = try await repository.fetchLog(id: id)
+            guard isCurrent(scope), detailRequests[id] == token, !unavailableLogIDs.contains(id) else { return }
+            guard let refreshed else {
+                forgetLog(id); refreshingDetailLogIDs.remove(id)
+                detailRefreshErrorMessages[id] = SystemLogJournalStrings.notFound
                 return
             }
-            if let index = logs.firstIndex(where: { $0.id == id }) {
-                logs[index] = refreshedLog
-            }
+            accessDenied = false
+            details[id] = refreshed
+            if let index = logs.firstIndex(where: { $0.id == id }) { logs[index] = refreshed }
         } catch {
+            guard isCurrent(scope), detailRequests[id] == token else { return }
+            withdrawIfDenied(error)
             detailRefreshErrorMessages[id] = readableErrorMessage(for: error)
         }
     }
 
     private func applyReviewedState(logID: String, reviewedByUserId: String, reviewedAt: Date) {
         reviewedOverrides[logID] = (reviewedByUserId, reviewedAt)
+        if let detail = details[logID] { details[logID] = detail.markedReviewed(at: reviewedAt, reviewedByUserId: reviewedByUserId) }
         guard let index = logs.firstIndex(where: { $0.id == logID }) else { return }
         logs[index] = logs[index].markedReviewed(at: reviewedAt, reviewedByUserId: reviewedByUserId)
     }
@@ -287,10 +357,9 @@ final class SystemLogsViewModel: ObservableObject {
     }
 
     private func readableReviewErrorMessage(for error: Error) -> String {
-        let nsError = error as NSError
-        let details = [nsError.domain, nsError.localizedDescription].joined(separator: " ").lowercased()
-
-        if details.contains("permission") || details.contains("denied") {
+        if SystemLogFailureKind(error) == .session { return SystemLogJournalStrings.sessionRequired }
+        if SystemLogFailureKind(error) == .requirements { return SystemLogJournalStrings.requirements }
+        if SystemLogFailureKind(error).isAccessFailure {
             switch accessMode {
             case .owner:
                 return AppStrings.SystemLogs.ownerReviewPermissionError
@@ -299,7 +368,7 @@ final class SystemLogsViewModel: ObservableObject {
             }
         }
 
-        if details.contains("unavailable") || details.contains("network") {
+        if SystemLogFailureKind(error) == .network {
             return AppStrings.SystemLogs.networkReviewError
         }
 
@@ -356,6 +425,8 @@ final class SystemLogsViewModel: ObservableObject {
     }
 
     func markVisibleReviewed() async {
+        let scope = requestScope()
+        guard !accessDenied else { return }
         let candidates = unreviewedVisibleLogs
         guard !candidates.isEmpty, !isMarkingVisibleReviewed else { return }
         guard let reviewerUserId = reviewerUserIdProvider()?.trimmingCharacters(in: .whitespacesAndNewlines), !reviewerUserId.isEmpty else {
@@ -365,20 +436,23 @@ final class SystemLogsViewModel: ObservableObject {
 
         isMarkingVisibleReviewed = true
         bulkReviewErrorMessage = nil
-        defer { isMarkingVisibleReviewed = false }
+        defer { if scope == sessionGeneration { isMarkingVisibleReviewed = false } }
 
         do {
             try await repository.markReviewed(
                 logIDs: candidates.map(\.id),
                 reviewedByUserId: reviewerUserId
             )
+            guard isCurrent(scope) else { return }
             let reviewedAt = nowProvider()
-            for log in candidates {
+            for log in candidates where !unavailableLogIDs.contains(log.id) {
                 applyReviewedState(logID: log.id, reviewedByUserId: reviewerUserId, reviewedAt: reviewedAt)
             }
         } catch let partialError as SystemLogBulkReviewPartialError {
+            guard isCurrent(scope) else { return }
             let reviewedAt = nowProvider()
             for logID in partialError.committedLogIDs {
+                guard !unavailableLogIDs.contains(logID) else { continue }
                 applyReviewedState(logID: logID, reviewedByUserId: reviewerUserId, reviewedAt: reviewedAt)
             }
             bulkReviewErrorMessage = LocalizationStore.localizedString(
@@ -386,18 +460,25 @@ final class SystemLogsViewModel: ObservableObject {
                 defaultValue: "Частину записів позначено як переглянуті. Не вдалося завершити всю операцію. Оновіть журнал і повторіть спробу."
             )
         } catch {
+            guard isCurrent(scope) else { return }; withdrawIfDenied(error)
             bulkReviewErrorMessage = readableReviewErrorMessage(for: error)
         }
     }
 
     func clearAllLogs() async {
+        let scope = requestScope()
+        guard !accessDenied else { return }
         guard accessMode == .owner, !isClearingLogs else { return }
         isClearingLogs = true
         clearLogsErrorMessage = nil
-        defer { isClearingLogs = false }
+        defer { if scope == sessionGeneration { isClearingLogs = false } }
 
         do {
             _ = try await repository.clearAllLogs()
+            guard isCurrent(scope) else { return }
+            logs.forEach { unavailableLogIDs.insert($0.id) }; details.keys.forEach { unavailableLogIDs.insert($0) }
+            withdrawPrivateData()
+            hasLoadedInitialPage = true
             dataRequestRevision &+= 1
             isLoading = false
             nextCursor = nil
@@ -406,33 +487,38 @@ final class SystemLogsViewModel: ObservableObject {
             errorMessage = nil
             clearSearchAndFilters()
         } catch {
+            guard isCurrent(scope) else { return }; withdrawIfDenied(error)
             clearLogsErrorMessage = readableClearLogsErrorMessage(for: error)
         }
     }
 
     func deleteLog(id: String) async {
+        let scope = requestScope()
+        guard !accessDenied else { return }
         guard accessMode == .owner, !deletingLogIDs.contains(id) else { return }
         deletingLogIDs.insert(id)
         clearLogsErrorMessage = nil
-        defer { deletingLogIDs.remove(id) }
+        defer { if scope == sessionGeneration { deletingLogIDs.remove(id) } }
 
         do {
             try await repository.deleteLog(id: id)
-            logs.removeAll { $0.id == id }
+            guard isCurrent(scope) else { return }
+            forgetLog(id)
             reviewErrorMessages[id] = nil
             errorMessage = nil
         } catch {
+            guard isCurrent(scope) else { return }; withdrawIfDenied(error)
             clearLogsErrorMessage = readableClearLogsErrorMessage(for: error)
         }
     }
 
     private func readableClearLogsErrorMessage(for error: Error) -> String {
-        let nsError = error as NSError
-        let details = [nsError.domain, nsError.localizedDescription].joined(separator: " ").lowercased()
-        if details.contains("permission") || details.contains("denied") {
+        if SystemLogFailureKind(error) == .session { return SystemLogJournalStrings.sessionRequired }
+        if SystemLogFailureKind(error) == .requirements { return SystemLogJournalStrings.requirements }
+        if SystemLogFailureKind(error).isAccessFailure {
             return AppStrings.SystemLogs.clearPermissionError
         }
-        if details.contains("unavailable") || details.contains("network") {
+        if SystemLogFailureKind(error) == .network {
             return AppStrings.SystemLogs.clearNetworkError
         }
         return AppStrings.SystemLogs.clearGenericError

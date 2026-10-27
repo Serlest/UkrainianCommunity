@@ -94,6 +94,30 @@ export async function queryJournal(actorID: string, role: string, input: unknown
   if (role === "admin") query = query.where("isAppAdminReadable", "==", true);
   if (indexed) query = query.where(journalIndexField, "array-contains-any", [anchor, adminSearchOverflow]);
   const descending = p.sort !== "oldestFirst";
+  const dateSort = p.sort === "newestFirst" || p.sort === "oldestFirst";
+  // Only combine scalar filters with date ordering. Search keeps its existing
+  // bounded gram-index fan-out; other orderings retain the compatibility scan.
+  // Missing legacy isReviewed means false, so only true can safely be pushed.
+  let primary: string | undefined;
+  if (!indexed && dateSort) {
+    for (const [key, field] of [["severities", "severity"], ["categories", "category"], ["outcomes", "outcome"]]) {
+      if (p.filter[key]?.length) { primary = key; query = query.where(field, "in", p.filter[key]); break; }
+    }
+    if (!primary && p.filter.isReviewed === true) { primary = "isReviewed"; query = query.where("isReviewed", "==", true); }
+  }
+  if (dateSort) {
+    if (p.filter.startDate != null) query = query.where("createdAt", ">=", Timestamp.fromMillis(p.filter.startDate));
+    if (p.filter.endDate != null) query = query.where("createdAt", "<=", Timestamp.fromMillis(p.filter.endDate));
+  }
+  const residual = Object.entries(p.filter).some(([key, value]) => {
+    if (key === "section") return value !== "all";
+    if (key === "searchText") return normalized.length > 0;
+    if (["startDate", "endDate"].includes(key)) return !dateSort;
+    if (key === "isAppAdminReadable" && role === "admin" && value === true) return false;
+    if (key === primary) return false;
+    return Array.isArray(value) ? value.length > 0 : value != null;
+  });
+  const scanLimit = residual || p.operationAliases.length > 0 ? 250 : p.limit + 1;
   if (p.sort.startsWith("severity")) query = query.orderBy("severityRank", p.sort === "severityHighToLow" ? "desc" : "asc");
   if (p.sort === "category") query = query.orderBy("category", "asc");
   query = query.orderBy("createdAt", descending ? "desc" : "asc").orderBy(FieldPath.documentId(), descending ? "desc" : "asc");
@@ -102,7 +126,7 @@ export async function queryJournal(actorID: string, role: string, input: unknown
     if (!cursor || cursor.fingerprint !== fingerprint || !(cursor.expiresAt instanceof Timestamp) || cursor.expiresAt.toMillis() <= now.getTime() || !Array.isArray(cursor.position)) throw new HttpsError("aborted", "Journal query expired. Refresh the list.");
     query = query.startAfter(...cursor.position);
   }
-  const page = await query.limit(250).get(), items: DocumentData[] = [];
+  const page = await query.limit(scanLimit).get(), items: DocumentData[] = [];
   let last: typeof page.docs[number] | undefined;
   for (const doc of page.docs) {
     last = doc;
@@ -114,7 +138,7 @@ export async function queryJournal(actorID: string, role: string, input: unknown
       if (items.length === p.limit) break;
     }
   }
-  const hasMore = !!last && (page.size === 250 || last.id !== page.docs.at(-1)?.id);
+  const hasMore = !!last && (page.size === scanLimit || last.id !== page.docs.at(-1)?.id);
   let cursor: string | null = null;
   if (hasMore && last) {
     cursor = randomUUID();
@@ -124,7 +148,7 @@ export async function queryJournal(actorID: string, role: string, input: unknown
     position.push(last.get("createdAt"), last.id);
     await database.collection(journalCursorCollection).doc(cursor).set({fingerprint, position, expiresAt: Timestamp.fromMillis(now.getTime() + 3600000)});
   }
-  return {items, cursor, scanned: last ? page.docs.findIndex(d => d.id === last!.id) + 1 : 0};
+  return {items, cursor, scanned: page.size, processed: last ? page.docs.findIndex(d => d.id === last!.id) + 1 : 0};
 }
 export const listSystemLogs = onCall({region: "europe-west3", maxInstances: 10, enforceAppCheck: true}, async request => {
   const actor = await requireVerifiedActiveUser(request);

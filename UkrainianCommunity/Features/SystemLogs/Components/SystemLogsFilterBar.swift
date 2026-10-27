@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SystemLogsFilterBar: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     @Binding var selectedSection: SystemLogDashboardSection
     @Binding var sortOption: SystemLogSortOption
     let sections: [SystemLogDashboardSection]
@@ -11,7 +12,12 @@ struct SystemLogsFilterBar: View {
     let onShowAdvancedFilters: () -> Void
 
     var body: some View {
-        AppHorizontalFilterRow {
+        Group {
+            if typeSize.isAccessibilitySize { VStack(alignment: .leading, spacing: 10) { controls } }
+            else { AppHorizontalFilterRow { controls } }
+        }
+    }
+    @ViewBuilder private var controls: some View {
             Menu {
                 Picker(AppStrings.SystemLogs.sectionPickerLabel, selection: $selectedSection) {
                     ForEach(sections) { section in
@@ -74,6 +80,5 @@ struct SystemLogsFilterBar: View {
                 title: \.title,
                 systemImage: \.systemImage
             )
-        }
     }
 }

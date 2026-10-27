@@ -45,11 +45,13 @@ final class SystemLogDeliveryQueue {
         if automaticallyDelivers {
             if FirebaseApp.app() != nil {
                 authListener = Auth.auth().addStateDidChangeListener { [weak self] _, _ in
-                    Task { @MainActor in self?.resume() }
+                    let queue = self
+                    Task { @MainActor in queue?.resume() }
                 }
             }
             foregroundObserver = NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
-                Task { @MainActor in self?.resume() }
+                let queue = self
+                Task { @MainActor in queue?.resume() }
             }
             resume()
         }

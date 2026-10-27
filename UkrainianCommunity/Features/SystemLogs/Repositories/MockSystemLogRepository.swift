@@ -1,9 +1,10 @@
 import Foundation
 
-struct MockSystemLogRepository: SystemLogRepositoryProtocol {
-    private let entries: [SystemLogEntry]
+@MainActor
+final class MockSystemLogRepository: SystemLogRepositoryProtocol {
+    private var entries: [SystemLogEntry]
 
-    nonisolated init(entries: [SystemLogEntry] = MockSystemLogRepository.sampleEntries) {
+    init(entries: [SystemLogEntry] = MockSystemLogRepository.sampleEntries) {
         self.entries = entries
     }
 
@@ -26,8 +27,12 @@ struct MockSystemLogRepository: SystemLogRepositoryProtocol {
     }
 
     func markReviewed(logID: String, reviewedByUserId: String) async throws {
-        // Mock repository does not persist changes; the view model updates local state.
+        guard let index = entries.firstIndex(where: { $0.id == logID }) else { return }
+        entries[index] = entries[index].markedReviewed(at: Date(), reviewedByUserId: reviewedByUserId)
     }
+
+    func deleteLog(id: String) async throws { entries.removeAll { $0.id == id } }
+    func clearAllLogs() async throws -> Int { let count = entries.count; entries = []; return count }
 
     private func matches(_ entry: SystemLogEntry, filter: SystemLogFilter) -> Bool {
         if !filter.categories.isEmpty, !filter.categories.contains(entry.category) {

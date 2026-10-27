@@ -66,15 +66,7 @@ struct SystemLogDetailView: View {
             }
 
             DetailHeaderCard(title: SystemLogExplanation.title(log), subtitle: SystemLogExplanation.action(log)) {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), alignment: .leading)], alignment: .leading, spacing: 8) {
-                    AppInfoChip(
-                        title: SystemLogDisplayFormatting.severityTitle(log.severity),
-                        tint: SystemLogDisplayFormatting.severityTint(log.severity),
-                        fill: SystemLogDisplayFormatting.severityFill(log.severity)
-                    )
-                    AppInfoChip(title: SystemLogDisplayFormatting.categoryTitle(log.category), systemImage: "folder")
-                    AppInfoChip(title: log.isReviewed ? AppStrings.SystemLogs.reviewed : AppStrings.SystemLogs.notReviewed, systemImage: log.isReviewed ? "checkmark.seal" : "circle.badge.questionmark")
-                }
+                SystemLogStatusChips(log: log)
             }
 
             if SystemLogExplanation.isFailure(log) {
@@ -219,7 +211,7 @@ struct SystemLogDetailView: View {
                 PrimaryActionButton(
                     title: AppStrings.SystemLogs.markReviewed,
                     loadingTitle: AppStrings.SystemLogs.markingReviewed,
-                    isEnabled: true,
+                    isEnabled: !isRefreshing && refreshErrorMessage == nil,
                     isLoading: isMarkingReviewed,
                     systemImage: "checkmark.seal"
                 ) {
@@ -306,35 +298,18 @@ struct SystemLogDetailView: View {
 private struct SystemLogDetailRow: View {
     let title: String
     let value: String
-
+    @Environment(\.dynamicTypeSize) private var typeSize
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: 12) {
-                titleLabel.frame(width: 104, alignment: .leading)
-                valueLabel
-                Spacer(minLength: 0)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                titleLabel
-                valueLabel
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        layout {
+            Text(title).font(.caption.weight(.semibold)).foregroundStyle(AppTheme.textSecondary)
+                .frame(width: typeSize.isAccessibilitySize ? nil : 104, alignment: .leading)
+            Text(value).font(.caption.weight(.medium)).foregroundStyle(AppTheme.textPrimary)
+                .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }.frame(maxWidth: .infinity, alignment: .leading)
     }
-
-    private var titleLabel: some View {
-        Text(title)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(AppTheme.textSecondary)
-    }
-
-    private var valueLabel: some View {
-        Text(value)
-            .font(.caption.weight(.medium))
-            .foregroundStyle(AppTheme.textPrimary)
-            .textSelection(.enabled)
-            .fixedSize(horizontal: false, vertical: true)
+    private var layout: AnyLayout {
+        typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4)) : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
     }
 }
 
@@ -355,7 +330,9 @@ struct SystemLogDiagnosisAuditHarness: View {
             metadata: ["invalidField": "imageURL", "validationRule": "invalidHTTPURL", "recoveryMode": "managementPlaceholder", "appBuild": "114"])]
     }
     var body: some View {
-        SystemLogsDashboardView(viewModel: SystemLogsViewModel(repository: MockSystemLogRepository(entries: Self.entries)))
+        SystemLogsDashboardView(viewModel: SystemLogsViewModel(repository: MockSystemLogRepository(entries: Self.entries),
+            accessMode: ProcessInfo.processInfo.environment["UITestProfileRole"] == "admin" ? .appAdmin : .owner,
+            reviewerUserIdProvider: { AuthService.shared.authState.user?.id }))
             .environmentObject(AuthService.shared.authState)
             .environment(\.locale, LocalizationStore.locale)
             .preferredColorScheme(AppAppearance.stored.colorScheme)

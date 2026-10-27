@@ -52,3 +52,32 @@ have no separate collection charge. Recheck pricing before that date.
   excluded from the per-attempt failure alert. A manual Scheduler invocation
   after deployment returned HTTP 200 at 07:37 UTC. The function remains at zero
   minimum instances; the next automatic execution still requires observation.
+
+## 2026-10-27 journal audit follow-up
+
+The existing no-success policy now also covers all seven previously uncovered,
+**enabled** maintenance jobs. The original three conditions, email channel,
+notification preferences, and all schedules are preserved.
+
+| Added scope | Functions | Window and confirmation |
+| --- | --- | --- |
+| Every five minutes | `rollupBannerMeasurementReports` | 20 minutes without 2xx, then 2 minutes confirmation |
+| Daily maintenance | `migrateLegacyContentMedia`, `cleanupStaleFeaturedBannerOrphans`, `cleanupExpiredData`, `cleanupUnverifiedAccounts`, `cleanupStaleContentMediaOrphans`, `cleanupAnnouncements` | 25 hours without 2xx, then 30 minutes confirmation |
+
+Cloud Monitoring limits metric alignment to 25 hours. The additional daily
+confirmation period accommodates the Vienna 25-hour DST interval and metric
+arrival delay. An initial 26-hour alignment request was rejected before saving;
+the accepted configuration above was read back from the server. Existing daily
+organization-request coverage retains its original 25-hour/10-minute condition.
+All 14 enabled jobs have matching recent Cloud Run 2xx series; aligned bucket
+counts are not exact execution counts for the requested wall-clock interval.
+
+`cleanupOrganizationPhotoLifecycle` remains intentionally paused and excluded;
+its independent cleanup gates remain intact. No cleanup job was manually run.
+New saved conditions still need subsequent natural missing/success behavior to
+be observed; no production failure was induced to manufacture an alert.
+
+The idempotent configuration helper is
+`scripts/configure_scheduler_monitoring.py` (dry run by default; `--apply` changes
+only the existing policy's conditions). Its contract tests run in static CI.
+Local saved configuration and readback: `build/fix-system17-20261027/monitoring/`.

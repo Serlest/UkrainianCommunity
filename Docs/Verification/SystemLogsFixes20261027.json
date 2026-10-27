@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "block": 17,
+  "totalBlocks": 19,
+  "status": "implemented_pending_final_regression_and_device_acceptance",
+  "updatedAt": "2026-10-27T11:12:04.570772+00:00",
+  "audit": "Docs/Verification/SystemLogsAudit20261027.json",
+  "inventory": "Docs/Verification/SystemLogsInventory20261027.json",
+  "findings": [
+    {
+      "id": "P17-F01",
+      "status": "implemented",
+      "resolution": "Initial request starts without debounce; explicit initial/loading/empty/error state. Filter reset discards stale cache key."
+    },
+    {
+      "id": "P17-F02",
+      "status": "implemented",
+      "resolution": "Exact-read cache shared by list and push; no fallback after deletion/denial. Account revision, role/status, pending reads/actions and search input are fenced/withdrawn. Actor profile lookup is session-bound with retry."
+    },
+    {
+      "id": "P17-F03",
+      "status": "implemented",
+      "resolution": "Expired cursor exposes refresh-required recovery; network retries retain the precise failed cursor and loaded rows."
+    },
+    {
+      "id": "P17-F04",
+      "status": "implemented",
+      "resolution": "Deleted IDs remain tombstoned within the view-model scope; pending list/detail callbacks cannot restore them; clear invalidates all pending reads."
+    },
+    {
+      "id": "P17-F05",
+      "status": "implemented",
+      "resolution": "Inclusive7/30 calendar dates, bounded through today, local calendar/DST. Request dates encode integer milliseconds required by callable."
+    },
+    {
+      "id": "P17-F06",
+      "status": "implemented",
+      "resolution": "Stable Firebase domain/code handling, separate session/permission/precondition/index/network/expired-cursor messages; MFA rejection no longer claimed to be missing index."
+    },
+    {
+      "id": "P17-F07",
+      "status": "implemented",
+      "resolution": "Date boundaries and one selective scalar predicate are pushed to supported indexed queries. Unfiltered pages fetch limit+1; legacy false/missing review and arbitrary combinations retain bounded complete scans. scanned means fetched candidates; processed separate.16 additive scalar/sort indexes plus matrix contract."
+    },
+    {
+      "id": "P17-F08",
+      "status": "implemented",
+      "resolution": "Fixed decorative icon sizes; accessibility rows stack; statuses use full-width single-column layout; metadata/date wrap; metric subtitles are not truncated; AX filters become vertical; detail and actor fields stack."
+    },
+    {
+      "id": "P17-F09",
+      "status": "implemented",
+      "resolution": "Admin title Журнал адміністратора/Administrationsprotokoll; counter note correctly distinguishes loaded filtered results from whole-journal search."
+    },
+    {
+      "id": "P17-F10",
+      "status": "implemented",
+      "resolution": "Saved no-success monitoring covers14/14 enabled jobs. Five-minute20m/2m confirmation, additional daily25h/30m confirmation. Prior3 conditions/channels/preferences preserved; photo cleanup remains paused."
+    }
+  ],
+  "additionalRegressions": [
+    {
+      "id": "P17-followup-query-ABA",
+      "fix": "Changing away and back during debounce reloads cleared results; obsolete loadedQueryKey does not suppress request.",
+      "test": "returningToOriginalQueryDuringDebounceReloadsDiscardedRows"
+    },
+    {
+      "id": "P17-followup-denied-pending-detail",
+      "fix": "An explicit access denial invalidates already-pending exact reads as well as list requests and mutations.",
+      "test": "deniedListInvalidatesAlreadyPendingExactRead"
+    },
+    {
+      "id": "P17-followup-sort-indexes",
+      "fix": "Three previously absent owner/admin non-search severity sort indexes added; emulator alone cannot detect absence.",
+      "test": "functions/scripts/systemLogIndexContract.test.mjs"
+    },
+    {
+      "id": "P17-followup-mock-persistence",
+      "fix": "Mock journal preserves review/delete/clear state so exact rereads test real behavior. Admin UI review verified after returning to lazy status header.",
+      "test": "testAdminLimitedJournalReviewAndOwnerRowExclusion"
+    }
+  ],
+  "verification": {
+    "initialFocused": {
+      "passed": 33,
+      "failed": 0,
+      "artifact": "build/fix-system17-20261027/CoreAndVisualFixed.xcresult"
+    },
+    "finalStateAndAdmin": {
+      "passed": 34,
+      "failed": 0,
+      "artifact": "build/fix-system17-20261027/FinalStateAndAdmin.xcresult"
+    },
+    "finalContract": {
+      "passed": 18,
+      "failed": 0,
+      "artifact": "build/fix-system17-20261027/FinalContract.xcresult"
+    },
+    "maxAXFilters": {
+      "passed": 1,
+      "artifact": "build/fix-system17-20261027/FinalFocusedFixed.xcresult",
+      "scope": "uk/light,de/dark selection,reopen,reset,Done; separate admin selector failure from this bundle corrected later"
+    },
+    "serverHandlers": {
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0,
+      "artifact": "build/fix-system17-20261027/server-tests-final.log",
+      "scope": "Auth+Firestore emulator; actual list callable owner/admin/user/blocked/MFA, pagination, idempotency and1200-row selective fixture"
+    },
+    "serverRules": {
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0,
+      "artifact": "build/fix-system17-20261027/rules-tests.log"
+    },
+    "serverUnit": "517passed/171opt-in skipped before added index script; final rerun pending",
+    "schedulerContracts": {
+      "passed": 3,
+      "failed": 0,
+      "runInCI": true
+    },
+    "indexContract": {
+      "passed": 1,
+      "failed": 0
+    },
+    "fullIOSRegression": "pending",
+    "releaseBuild": "pending",
+    "hostedCI": "pending"
+  },
+  "production": {
+    "changedHandlers": [
+      "listSystemLogs"
+    ],
+    "deployedProof": "build/fix-system17-20261027/deployed-proof.json",
+    "exactTSAndCompiledJS": true,
+    "ready": true,
+    "intendedRevisionTrafficPercent": 100,
+    "onDeployUpdatePolicyPreserved": true,
+    "actualUnauthenticatedResponse": "JSON401; startup/routing only, not a real-user business invocation",
+    "authenticatedContract": "Real handler in isolated Auth/Firestore; physical production authenticated call remains pending",
+    "journalIndexes": {
+      "added": 16,
+      "total": 38,
+      "finalReadback": "build/fix-system17-20261027/indexes-final.json"
+    },
+    "monitoring": {
+      "readback": "build/fix-system17-20261027/monitoring/monitoring-readback.json",
+      "enabledJobsCovered": 14,
+      "priorConditionsPreserved": 3,
+      "newConditions": 2,
+      "all14HaveRecent2xxSeries": true,
+      "alignedBucketCountsAreNotExact26HourExecutionCounts": true,
+      "noJobsManuallyRun": true,
+      "pausedPhotoCleanupPreserved": true,
+      "futureMissingSuccessBehavior": "not induced; requires natural observation"
+    },
+    "noRealJournalRecordsReviewedOrDeleted": true,
+    "noSyntheticOwnerPushSent": true,
+    "noNewsEventsOrganizationsUsersChanged": true
+  },
+  "acceptance": {
+    "implementation": "complete for recorded finding groups; final broad regression pending",
+    "simulator": "documented fixture/contract coverage, not physical proof",
+    "physicalIPhone": "unavailable via Mac on current readback; pending",
+    "newAPNsOnPhysicalPhone": "pending; prior real accepted receipts and controlled sender contracts are separate",
+    "testFlight": "unchanged1.2.1(129), does not contain block17",
+    "publicStore": "unchanged"
+  },
+  "preservedDirtyWork": [
+    "UkrainianCommunity.xcodeproj/project.pbxproj: existing ordering only",
+    "UkrainianCommunity/Localization/Localizable.xcstrings: existing extraction metadata; localized values unchanged"
+  ],
+  "remainingLedger": [
+    "Final source broad unit/Release and hostedCI",
+    "All final unique windows under ordinary/max type; role-specific positive/negative UI limits recorded separately",
+    "Physical signed-copy and fresh APNs acceptance"
+  ]
+}

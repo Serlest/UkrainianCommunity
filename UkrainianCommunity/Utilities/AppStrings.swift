@@ -3176,7 +3176,7 @@ enum AppStrings {
         static var ownerTitle: String { text("system_logs.owner.title", "Журнал системи") }
         static var ownerSubtitle: String { text("system_logs.owner.subtitle", "Дії, помилки та технічна діагностика") }
         static var ownerProfileSubtitle: String { text("system_logs.owner.profile_subtitle", "Дії, помилки, безпека та модерація") }
-        static var appAdminTitle: String { text("system_logs.app_admin.title", "Журнал модерації") }
+        static var appAdminTitle: String { SystemLogJournalStrings.adminTitle }
         static var appAdminSubtitle: String { text("system_logs.app_admin.subtitle", "Помилки, модерація та організації") }
         static var all: String { text("system_logs.section.all", "Усі") }
         static var actions: String { text("system_logs.section.actions", "Дії") }
@@ -3208,7 +3208,7 @@ enum AppStrings {
         static var loading: String { text("system_logs.loading", "Завантаження журналу") }
         static var loadMore: String { text("system_logs.load_more", "Завантажити ще") }
         static var loadingMore: String { text("system_logs.loading_more", "Завантаження") }
-        static var loadedMetricsNote: String { text("system_logs.metrics.loaded_note", "Показники та пошук охоплюють завантажені записи. Завантажте наступну сторінку для старіших подій.") }
+        static var loadedMetricsNote: String { SystemLogJournalStrings.metricsScope }
         static var clearFilters: String { text("system_logs.filters.clear", "Очистити пошук і фільтри") }
         static var clearSearch: String { text("system_logs.search.clear", "Очистити пошук") }
         static var filtersTitle: String { text("system_logs.filters.title", "Фільтри") }

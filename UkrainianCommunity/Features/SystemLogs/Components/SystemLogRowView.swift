@@ -1,11 +1,12 @@
 import SwiftUI
 
 struct SystemLogRowView: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     let log: SystemLogEntry
     var isDeleting = false
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        layout {
             severityIcon
 
             VStack(alignment: .leading, spacing: 8) {
@@ -13,7 +14,7 @@ struct SystemLogRowView: View {
                     Text(SystemLogExplanation.title(log))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
-                        .lineLimit(2)
+                        .lineLimit(typeSize.isAccessibilitySize ? nil : 2)
 
                     Spacer(minLength: 8)
 
@@ -26,35 +27,12 @@ struct SystemLogRowView: View {
                 Text(SystemLogDisplayFormatting.dateTime(log.createdAt))
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(AppTheme.textSecondary)
-                    .lineLimit(1)
+                    .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
 
                 metadataLine
                 contextLine
 
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), alignment: .leading)], alignment: .leading, spacing: 6) {
-                    AppInfoChip(
-                        title: SystemLogDisplayFormatting.severityTitle(log.severity),
-                        tint: SystemLogDisplayFormatting.severityTint(log.severity),
-                        fill: SystemLogDisplayFormatting.severityFill(log.severity),
-                        size: .small
-                    )
-
-                    AppInfoChip(
-                        title: SystemLogDisplayFormatting.categoryTitle(log.category),
-                        systemImage: "folder",
-                        size: .small
-                    )
-
-                    if !log.isReviewed {
-                        AppInfoChip(
-                            title: AppStrings.SystemLogs.notReviewed,
-                            systemImage: "circle.badge.questionmark",
-                            tint: Color.orange,
-                            fill: Color.orange.opacity(0.12),
-                            size: .small
-                        )
-                    }
-                }
+                SystemLogStatusChips(log: log, compact: true)
             }
         }
         .padding(AppTheme.rowCardPadding)
@@ -66,9 +44,13 @@ struct SystemLogRowView: View {
         )
     }
 
+    private var layout: AnyLayout {
+        typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10)) : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
+    }
+
     private var severityIcon: some View {
         Image(systemName: log.severity == .critical ? "exclamationmark.triangle.fill" : "doc.text.magnifyingglass")
-            .font(.headline.weight(.semibold))
+            .font(.system(size: 18, weight: .semibold))
             .foregroundStyle(SystemLogDisplayFormatting.severityTint(log.severity))
             .frame(width: AppTheme.rowIconSurfaceSize, height: AppTheme.rowIconSurfaceSize)
             .background(
@@ -87,7 +69,7 @@ struct SystemLogRowView: View {
         }
         .font(.caption.weight(.medium))
         .foregroundStyle(AppTheme.textSecondary)
-        .lineLimit(1)
+        .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
     }
 
     @ViewBuilder
@@ -96,7 +78,7 @@ struct SystemLogRowView: View {
             Text(text)
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(AppTheme.textSecondary)
-                .lineLimit(2)
+                .lineLimit(typeSize.isAccessibilitySize ? nil : 2)
         }
     }
 

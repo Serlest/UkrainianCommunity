@@ -394,14 +394,29 @@
     {
       "number": 17,
       "name": "Журнал системы и серверные процессы",
-      "status": "audited_findings_awaiting_implementation",
+      "status": "implemented_locally_verified_and_deployed_pending_final_regression",
       "openChecks": [
-        "10 recorded finding groups plus remaining visual/device matrix; current audit is not implementation acceptance."
+        "Final broad regression and exact-source hostedCI",
+        "Physical iPhone acceptance and fresh APNs; device unavailable",
+        "New TestFlight delivery only when requested"
       ],
       "inventory": "Docs/Verification/SystemLogsInventory20261027.json",
       "report": "Docs/Verification/SystemLogsAudit20261027.json",
-      "productionChanged": false,
-      "testFlightChanged": false
+      "productionChanged": true,
+      "testFlightChanged": false,
+      "resolutionReport": "Docs/Verification/SystemLogsFixes20261027.json",
+      "implementedFindings": [
+        "P17-F01",
+        "P17-F02",
+        "P17-F03",
+        "P17-F04",
+        "P17-F05",
+        "P17-F06",
+        "P17-F07",
+        "P17-F08",
+        "P17-F09",
+        "P17-F10"
+      ]
     },
     {
       "number": 18,
@@ -513,13 +528,13 @@
     "block13AuthorizedByUser": "2026-10-26: Вперед. Думаю что после этого я проверю детально оповещения и уведомления."
   },
   "schemaVersion": 2,
-  "blocksWithImplementedFixes": 16,
+  "blocksWithImplementedFixes": 17,
   "blocksReopenedForCompletion": 0,
   "notStartedBlocks": 2,
   "nextNewBlock": 18,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "Implement approved block17 findings after review. Blocks18–19 remain unstarted. Physical acceptance and TestFlight129 review for previous blocks remain separate.",
+  "nextAction": "Finish final block17 regression/CI, then user acceptance and separate requested delivery. Blocks18–19 remain unstarted.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SystemLogsOverviewCards: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     let metrics: [SystemLogOverviewMetric]
     var onSelect: ((SystemLogOverviewMetric) -> Void)?
 
@@ -23,7 +24,7 @@ struct SystemLogsOverviewCards: View {
         SoftContentCard(padding: AppTheme.metricCardPadding) {
             HStack(alignment: .top, spacing: AppTheme.compactCardInnerSpacing) {
                 Image(systemName: metric.systemImage)
-                    .font(.headline.weight(.semibold))
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(SystemLogDisplayFormatting.toneTint(metric.tone))
                     .frame(width: AppTheme.compactIconSurfaceSize, height: AppTheme.compactIconSurfaceSize)
                     .background(
@@ -40,10 +41,11 @@ struct SystemLogsOverviewCards: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
 
-                    Text(metric.subtitle)
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(2)
+                    if !typeSize.isAccessibilitySize {
+                        Text(metric.subtitle).font(.caption2.weight(.medium))
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
 
                 Spacer(minLength: 0)

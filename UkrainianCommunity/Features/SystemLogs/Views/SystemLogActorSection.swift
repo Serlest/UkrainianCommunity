@@ -1,11 +1,13 @@
 import SwiftUI
 
 struct SystemLogActorSection: View {
+    @EnvironmentObject private var authState: AuthState
     let log: SystemLogEntry
 
     private let resolver: any SystemLogActorIdentityResolving
     @State private var lookupState: LookupState = .idle
     @State private var attemptedUserID: String?
+    @State private var resolvedSessionKey: String?
 
     @MainActor
     init(
@@ -44,13 +46,17 @@ struct SystemLogActorSection: View {
                 }
             }
         }
-        .task(id: actorUserID) {
+        .task(id: [actorUserID ?? "", SystemLogsViewModel.liveSessionKey, authState.user?.id ?? ""].joined(separator: "|")) {
+            attemptedUserID = nil; lookupState = .idle
             await resolveCurrentProfileOnce()
         }
     }
 
     @ViewBuilder
     private var resolvedProfileRows: some View {
+        if resolvedSessionKey != SystemLogsViewModel.liveSessionKey {
+            ActorDetailRow(title: Strings.currentProfile, value: Strings.loading)
+        } else {
         switch lookupState {
         case .idle, .loading:
             ActorDetailRow(title: Strings.currentProfile, value: Strings.loading)
@@ -68,6 +74,11 @@ struct SystemLogActorSection: View {
             ActorDetailRow(title: Strings.currentProfile, value: Strings.notFound)
         case .unavailable:
             ActorDetailRow(title: Strings.currentProfile, value: Strings.unavailable)
+            Button(AppStrings.Action.retry) {
+                attemptedUserID = nil
+                Task { await resolveCurrentProfileOnce() }
+            }.buttonStyle(.bordered)
+        }
         }
     }
 
@@ -75,6 +86,8 @@ struct SystemLogActorSection: View {
     private func resolveCurrentProfileOnce() async {
         guard let actorUserID, attemptedUserID != actorUserID else { return }
         attemptedUserID = actorUserID
+        let scope = SystemLogsViewModel.liveSessionKey
+        resolvedSessionKey = scope
         lookupState = .loading
 
         do {
@@ -83,14 +96,14 @@ struct SystemLogActorSection: View {
                 resetCancelledAttempt(for: actorUserID)
                 return
             }
-            guard actorUserID == self.actorUserID else { return }
+            guard actorUserID == self.actorUserID, scope == SystemLogsViewModel.liveSessionKey else { return }
             lookupState = identity.map(LookupState.resolved) ?? .notFound
         } catch {
             guard !Task.isCancelled, !(error is CancellationError) else {
                 resetCancelledAttempt(for: actorUserID)
                 return
             }
-            guard actorUserID == self.actorUserID else { return }
+            guard actorUserID == self.actorUserID, scope == SystemLogsViewModel.liveSessionKey else { return }
             lookupState = .unavailable
         }
     }
@@ -155,33 +168,17 @@ private extension SystemLogActorSection {
 private struct ActorDetailRow: View {
     let title: String
     let value: String
-
+    @Environment(\.dynamicTypeSize) private var typeSize
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: 12) {
-                titleLabel.frame(width: 104, alignment: .leading)
-                valueLabel
-                Spacer(minLength: 0)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                titleLabel
-                valueLabel
-            }
-        }
+        layout {
+            Text(title).font(.caption.weight(.semibold)).foregroundStyle(AppTheme.textSecondary)
+                .frame(width: typeSize.isAccessibilitySize ? nil : 104, alignment: .leading)
+            Text(value).font(.caption.weight(.medium)).foregroundStyle(AppTheme.textPrimary)
+                .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }.frame(maxWidth: .infinity, alignment: .leading)
     }
-
-    private var titleLabel: some View {
-        Text(title)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(AppTheme.textSecondary)
-    }
-
-    private var valueLabel: some View {
-        Text(value)
-            .font(.caption.weight(.medium))
-            .foregroundStyle(AppTheme.textPrimary)
-            .textSelection(.enabled)
-            .fixedSize(horizontal: false, vertical: true)
+    private var layout: AnyLayout {
+        typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4)) : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
     }
 }

@@ -51,6 +51,9 @@ final class AuthState: ObservableObject {
     private let userProfileLoader: UserProfileLoader
     let appLock: AppLockService
     private var userLoadGeneration = 0
+    /// Monotonic authorization scope, including A → B → A. Ordinary profile
+    /// reads do not invalidate feature caches; role/status changes remain visible.
+    private(set) var authorizationRevision = 0
     private var accessObservation: AnyCancellable?
 
     init(
@@ -303,6 +306,7 @@ final class AuthState: ObservableObject {
 
     @MainActor
     private func invalidateUserLoad() {
+        authorizationRevision &+= 1
         protectedSessionCheckID = nil
         sessionRecoveryFailure = nil
         userLoadGeneration &+= 1

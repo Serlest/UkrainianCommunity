@@ -27,11 +27,20 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
 
     var usesServerFiltering: Bool { true }
 
-    func queryPage(filter: SystemLogFilter, sortOption: SystemLogSortOption, limit: Int, cursor: String?) async throws -> SystemLogPage {
+    static func requestFilter(_ filter: SystemLogFilter) throws -> [String: Any] {
         let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .millisecondsSince1970
+        // The callable validates integer milliseconds; binary Date arithmetic at
+        // the end of a day must not leak fractional milliseconds into its DTO.
+        encoder.dateEncodingStrategy = .custom { date, encoder in
+            var value = encoder.singleValueContainer()
+            try value.encode(Int64((date.timeIntervalSince1970 * 1000).rounded()))
+        }
+        return try JSONSerialization.jsonObject(with: encoder.encode(filter)) as? [String: Any] ?? [:]
+    }
+
+    func queryPage(filter: SystemLogFilter, sortOption: SystemLogSortOption, limit: Int, cursor: String?) async throws -> SystemLogPage {
         var request: [String: Any] = [
-            "filter": try JSONSerialization.jsonObject(with: encoder.encode(filter)),
+            "filter": try Self.requestFilter(filter),
             "sort": sortOption.rawValue, "limit": limit,
             "operationAliases": SystemLogExplanation.operationAliases(matching: filter.searchText ?? "")
         ]

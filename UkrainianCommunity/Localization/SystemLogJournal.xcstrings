@@ -32,6 +32,102 @@
           }
         }
       }
+    },
+    "system_logs.journal.not_found": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запис журналу більше не доступний."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Protokolleintrag ist nicht mehr verfügbar."
+          }
+        }
+      }
+    },
+    "system_logs.journal.session_required": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сесію входу не підтверджено. Увійдіть повторно, щоб відкрити журнал."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Sitzung wurde nicht bestätigt. Melden Sie sich erneut an, um das Protokoll zu öffnen."
+          }
+        }
+      }
+    },
+    "system_logs.journal.cursor_expired": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ця сторінка історії застаріла. Оновіть журнал, щоб продовжити."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Seite ist abgelaufen. Aktualisieren Sie das Protokoll, um fortzufahren."
+          }
+        }
+      }
+    },
+    "system_logs.journal.admin_title": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Журнал адміністратора"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Administrationsprotokoll"
+          }
+        }
+      }
+    },
+    "system_logs.journal.metrics_scope": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показники стосуються завантажених результатів. Пошук і фільтри охоплюють увесь журнал."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kennzahlen beziehen sich auf geladene Ergebnisse. Suche und Filter gelten für das gesamte Protokoll."
+          }
+        }
+      }
+    },
+    "system_logs.journal.requirements": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сервер не підтвердив умови доступу. Перевірте вхід і чинні підтвердження та спробуйте ще раз."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Server hat die Zugangsbedingungen nicht bestätigt. Prüfen Sie Ihre Anmeldung und aktuellen Bestätigungen und versuchen Sie es erneut."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

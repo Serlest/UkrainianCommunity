@@ -58,7 +58,8 @@ extension SystemLogsViewModel {
             case .today:
                 calendar.isDate(log.createdAt, inSameDayAs: nowProvider())
             case .sevenDays:
-                log.createdAt >= calendar.date(byAdding: .day, value: -7, to: calendar.startOfDay(for: nowProvider())) ?? nowProvider()
+                log.createdAt >= (calendar.date(byAdding: .day, value: -6, to: calendar.startOfDay(for: nowProvider())) ?? nowProvider())
+                    && log.createdAt < (calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: nowProvider())) ?? .distantFuture)
             }
         }
     }
@@ -91,11 +92,13 @@ extension SystemLogsViewModel {
         case .today:
             startDate = calendar.startOfDay(for: nowProvider())
         case .sevenDays:
-            startDate = calendar.date(byAdding: .day, value: -7, to: calendar.startOfDay(for: nowProvider()))
+            startDate = calendar.date(byAdding: .day, value: -6, to: calendar.startOfDay(for: nowProvider()))
         case .thirtyDays:
-            startDate = calendar.date(byAdding: .day, value: -30, to: calendar.startOfDay(for: nowProvider()))
+            startDate = calendar.date(byAdding: .day, value: -29, to: calendar.startOfDay(for: nowProvider()))
         }
-        return startDate.map { log.createdAt >= $0 } ?? true
+        guard let startDate else { return true }
+        let end = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: nowProvider())) ?? .distantFuture
+        return log.createdAt >= startDate && log.createdAt < end
     }
 
     private func matchesSearch(_ log: SystemLogEntry) -> Bool {

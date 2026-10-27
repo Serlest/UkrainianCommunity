@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SystemLogsDashboardView: View {
+    @EnvironmentObject private var authState: AuthState
     @StateObject private var viewModel: SystemLogsViewModel
     @FocusState private var isSearchFocused: Bool
     @State private var isConfirmingClear = false
@@ -40,10 +41,12 @@ struct SystemLogsDashboardView: View {
             searchBar
         } metrics: {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                if viewModel.isSessionCurrent {
                 SystemLogsOverviewCards(metrics: viewModel.overviewMetrics) { metric in
                     withAnimation(.easeInOut(duration: 0.2)) {
                         viewModel.applyMetric(id: metric.id)
                     }
+                }
                 }
                 Text(AppStrings.SystemLogs.loadedMetricsNote)
                     .font(.caption2.weight(.medium))
@@ -65,13 +68,18 @@ struct SystemLogsDashboardView: View {
             filters
             content
         }
-        .task(id: viewModel.queryKey) {
+        .task(id: viewModel.queryKey + "|" + SystemLogsViewModel.liveSessionKey) {
+            _ = authState.user?.id
+            viewModel.synchronizeSession()
             viewModel.ensureSelectedSectionIsVisible()
             await viewModel.queryChanged()
         }
         .analyticsRefreshLifecycle { await viewModel.refreshIfStale() }
         .appRefreshable {
             await viewModel.refresh()
+        }
+        .onChange(of: SystemLogsViewModel.liveSessionKey) { _, _ in
+            isConfirmingClear = false; logPendingDeletion = nil; isShowingAdvancedFilters = false
         }
         .sheet(isPresented: $isShowingAdvancedFilters) {
             SystemLogsAdvancedFilterSheet(viewModel: viewModel)
@@ -184,7 +192,9 @@ struct SystemLogsDashboardView: View {
 
     @ViewBuilder
     private var content: some View {
-        if let errorMessage = viewModel.errorMessage, viewModel.logs.isEmpty {
+        if !viewModel.isSessionCurrent {
+            ProgressView().frame(maxWidth: .infinity)
+        } else if let errorMessage = viewModel.errorMessage, viewModel.logs.isEmpty {
             ErrorStateCard(
                 title: viewModel.accessMode.title,
                 message: errorMessage,
@@ -192,7 +202,7 @@ struct SystemLogsDashboardView: View {
             ) {
                 Task { await viewModel.refresh() }
             }
-        } else if viewModel.isLoading && viewModel.logs.isEmpty {
+        } else if (viewModel.isLoading || !viewModel.hasLoadedInitialPage) && viewModel.logs.isEmpty {
             SoftContentCard(padding: 16) {
                 HStack(spacing: AppTheme.eventsMetadataSpacing) {
                     ProgressView()
@@ -242,7 +252,7 @@ struct SystemLogsDashboardView: View {
 
                 if viewModel.canLoadMore {
                     PrimaryActionButton(
-                        title: AppStrings.SystemLogs.loadMore,
+                        title: viewModel.cursorRequiresRefresh ? AppStrings.SystemLogs.refresh : AppStrings.SystemLogs.loadMore,
                         loadingTitle: AppStrings.SystemLogs.loadingMore,
                         isLoading: viewModel.isLoadingNextPage,
                         systemImage: "arrow.down.circle"
@@ -264,11 +274,7 @@ struct SystemLogsDashboardView: View {
                 Task { await viewModel.markReviewed(logID: log.id) }
             },
             destination: { log in
-                SystemLogDetailRoute(
-                    viewModel: viewModel,
-                    logID: log.id,
-                    fallbackLog: log
-                )
+                SystemLogRecordView(viewModel: viewModel, logID: log.id)
             }
         )
     }
@@ -276,15 +282,15 @@ struct SystemLogsDashboardView: View {
     private var emptyState: some View {
         SoftContentCard(padding: 16) {
             VStack(alignment: .leading, spacing: 6) {
-                Label(viewModel.logs.isEmpty ? AppStrings.SystemLogs.emptyTitle : AppStrings.SystemLogs.filteredEmptyTitle, systemImage: "doc.text.magnifyingglass")
+                Label(viewModel.hasActiveFilters ? AppStrings.SystemLogs.filteredEmptyTitle : AppStrings.SystemLogs.emptyTitle, systemImage: "doc.text.magnifyingglass")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textPrimary)
 
-                Text(viewModel.logs.isEmpty ? AppStrings.SystemLogs.emptyMessage : AppStrings.SystemLogs.filteredEmptyMessage)
+                Text(viewModel.hasActiveFilters ? AppStrings.SystemLogs.filteredEmptyMessage : AppStrings.SystemLogs.emptyMessage)
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
 
-                if !viewModel.logs.isEmpty {
+                if viewModel.hasActiveFilters {
                     Button(AppStrings.SystemLogs.clearFilters) {
                         viewModel.clearSearchAndFilters()
                     }
@@ -296,35 +302,8 @@ struct SystemLogsDashboardView: View {
     }
 }
 
-private struct SystemLogDetailRoute: View {
-    @ObservedObject var viewModel: SystemLogsViewModel
-    let logID: String
-    let fallbackLog: SystemLogEntry
-
-    var body: some View {
-        let currentLog = viewModel.log(id: logID) ?? fallbackLog
-        SystemLogDetailView(
-            log: currentLog,
-            isRefreshing: viewModel.refreshingDetailLogIDs.contains(logID),
-            refreshErrorMessage: viewModel.detailRefreshErrorMessages[logID],
-            isMarkingReviewed: viewModel.reviewingLogIDs.contains(logID),
-            reviewErrorMessage: viewModel.reviewErrorMessage(for: logID),
-            onRetryRefresh: {
-                await viewModel.refreshLogDetail(id: logID)
-            },
-            onMarkReviewed: {
-                await viewModel.markReviewed(logID: logID)
-                await viewModel.refreshLogDetail(id: logID)
-            }
-        )
-        .task {
-            await viewModel.refreshLogDetail(id: logID)
-        }
-    }
-}
-
 #Preview {
     SystemLogsDashboardView(
         viewModel: SystemLogsViewModel(repository: MockSystemLogRepository())
-    )
+    ).environmentObject(AuthService.shared.authState)
 }

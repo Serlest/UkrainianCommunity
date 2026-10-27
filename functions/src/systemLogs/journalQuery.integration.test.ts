@@ -2,7 +2,7 @@ import {strict as assert} from "node:assert";
 import {after, before, test} from "node:test";
 import {Timestamp} from "firebase-admin/firestore";
 import {db} from "../firebase/admin";
-import {buildJournalGrams, journalIndexField, journalIndexState, journalCursorCollection, queryJournal, reconcileJournalIndex} from "./journalQuery";
+import {buildJournalGrams, journalIndexField, journalIndexState, journalCursorCollection, queryJournal, reconcileJournalIndex, listSystemLogs} from "./journalQuery";
 import {seedCurrentLegalForIntegration} from "../auth/legalIntegrationFixture";
 import {writeClientDiagnostic} from "./clientDiagnostics";
 const skip = !process.env.FIRESTORE_EMULATOR_HOST, prefix = "journal-query-test-";
@@ -91,4 +91,60 @@ test("diagnostic retry has one ID and quota write; deleted logs never resurrect"
 test("long diagnostic text uses overflow rather than exceeding Firestore index fan-out", () => {
   const text = Array.from({length: 1000}, (_, i) => String.fromCodePoint(0x4e00 + i)).join("");
   assert.deepEqual(buildJournalGrams("large", {technicalMessage: text}), ["!overflow-v1"]);
+});
+
+test("selective scalar/date queries and small pages fetch only relevant candidates", {skip}, async () => {
+  const ids = Array.from({length: 1200}, (_, i) => `journal-scale-${String(i).padStart(5, "0")}`);
+  for (let start = 0; start < ids.length; start += 400) {
+    const batch = db.batch();
+    ids.slice(start, start + 400).forEach((id, offset) => {
+      const i = start + offset;
+      batch.set(db.doc(`systemLogs/${id}`), {createdAt: Timestamp.fromMillis(base.toMillis() + 500000 + i),
+        category: i < 3 ? "userAccount" : "diagnostics", severity: i < 3 ? "critical" : "info",
+        severityRank: i < 3 ? 5 : 1, outcome: i < 3 ? "failed" : "succeeded", isReviewed: false,
+        isAppAdminReadable: true, targetType: "none"});
+    });
+    await batch.commit();
+  }
+  try {
+    const window = {startDate: base.toMillis() + 500000};
+    for (const role of ["owner", "admin"]) for (const sort of ["newestFirst", "oldestFirst"]) {
+      const plain = await queryJournal("scale-actor", role, {sort, limit: 2, filter: window});
+      assert.equal(plain.items.length, 2); assert.equal(plain.scanned, 3); assert.equal(plain.processed, 2);
+      for (const condition of [{severities: ["critical"]}, {categories: ["userAccount"]}, {outcomes: ["failed"]}]) {
+        const page = await queryJournal("scale-actor", role, {sort, limit: 2, filter: {...window, ...condition}});
+        assert.equal(page.items.length, 2); assert.equal(page.scanned, 3); assert.ok(page.cursor);
+        const tail = await queryJournal("scale-actor", role, {sort, limit: 2, filter: {...window, ...condition}, cursor: page.cursor});
+        assert.equal(tail.items.length, 1); assert.equal(tail.scanned, 1); assert.equal(tail.cursor, null);
+      }
+    }
+    const combined = await queryJournal("scale-actor", "owner", {filter: {...window, severities: ["critical"], categories: ["userAccount"], isReviewed: false}});
+    assert.equal(combined.items.length, 3); assert.equal(combined.scanned, 3);
+    // Legacy missing isReviewed is still treated as unreviewed, never dropped by a false equality filter.
+    await db.doc(`systemLogs/${ids[0]}`).update({isReviewed: (await import("firebase-admin/firestore")).FieldValue.delete()});
+    const legacy = await queryJournal("scale-actor", "owner", {filter: {...window, severities: ["critical"], isReviewed: false}});
+    assert.equal(legacy.items.length, 3);
+  } finally {
+    for (let start = 0; start < ids.length; start += 400) {
+      const batch = db.batch(); ids.slice(start, start + 400).forEach(id => batch.delete(db.doc(`systemLogs/${id}`))); await batch.commit();
+    }
+  }
+});
+
+
+test("actual journal callable preserves owner/admin/ordinary/MFA boundaries", {skip}, async () => {
+  const uid = "journal-callable-role-user";
+  const request = (mfa: boolean) => ({data: {limit: 2}, auth: {uid, token: {email_verified: true, ...(mfa ? {firebase: {sign_in_second_factor: "totp"}} : {})}}}) as any;
+  try {
+    await db.doc(`users/${uid}`).set({globalRole: "owner", accountStatus: "active", requiresMultiFactorAuth: true});
+    await seedCurrentLegalForIntegration(uid);
+    await assert.rejects(listSystemLogs.run(request(false)), {code: "failed-precondition"});
+    assert.equal((await listSystemLogs.run(request(true))).items.length, 2);
+    await db.doc(`users/${uid}`).update({globalRole: "admin"});
+    assert.ok((await listSystemLogs.run(request(true))).items.every((d: any) => d.isAppAdminReadable === true));
+    await db.doc(`users/${uid}`).update({globalRole: "user", requiresMultiFactorAuth: false});
+    await assert.rejects(listSystemLogs.run(request(false)), {code: "permission-denied"});
+    await db.doc(`users/${uid}`).update({globalRole: "admin", accountStatus: "blocked"});
+    await assert.rejects(listSystemLogs.run(request(true)), {code: "permission-denied"});
+  } finally { await db.doc(`users/${uid}`).delete(); }
 });
