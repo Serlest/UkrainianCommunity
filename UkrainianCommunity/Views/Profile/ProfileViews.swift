@@ -53,7 +53,8 @@ enum ProfileNavigationRoute: Hashable {
     var hidesRootTabBar: Bool {
         switch self {
         case .accountSecurity, .directoryEditors, .userManagement, .contentPlanning(draftID: nil),
-             .legalDocumentManagement, .legalEvidence, .legal, .donationSettings, .notifications: true
+             .legalDocumentManagement, .legalEvidence, .legal, .donationSettings, .notifications,
+             .featuredBannerManagement: true
         default: false
         }
     }

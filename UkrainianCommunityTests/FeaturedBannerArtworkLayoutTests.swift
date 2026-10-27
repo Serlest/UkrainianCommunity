@@ -7,6 +7,12 @@ import UIKit
 @Suite("Featured banner artwork sizing")
 @MainActor
 struct FeaturedBannerArtworkLayoutTests {
+    @Test func managementStackPreservesEditorTabBarPolicy() {
+        // Nested editors request hidden tabs; their owning stack must agree.
+        #expect(ProfileNavigationRoute.featuredBannerManagement.hidesRootTabBar)
+        #expect(!ProfileNavigationRoute.savedContent.hidesRootTabBar)
+    }
+
     private let width: CGFloat = 358
 
     @Test func countdownRetainsOriginalFullWidthImageAndUncroppedEdges() throws {
