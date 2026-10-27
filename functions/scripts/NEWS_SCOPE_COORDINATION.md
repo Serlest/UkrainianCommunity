@@ -51,6 +51,8 @@ The coordinator continuously improves search, parsing, editorial relevance and p
 
 For each completed full wave start with `node functions/scripts/newsWaveAudit.mjs <root> <runId>`. This read-only index checks source counts, closed batches, publication receipts, unverified candidates and rejection reasons. Saved receipts do not replace fresh production read-back or reading the primary. A completed workflow with inaccessible relevant articles is not proof of no worthwhile news. Examine important `no_practical_effect` and `unverified` decisions; distinguish source failure, paywall, weak relevance, wrong territory, stale date, duplicate and lock contention. Keep workflow completion separate from evidence coverage in QA.
 
+When recovering several missed scopes against one fresh snapshot, dispatch and verify one executor at a time. Wait for its turn to finish and confirm its report/batch and lock release before messaging the next executor. The shared publication lock serializes live writes; simultaneous catch-up passes can otherwise consume their bounded waits on one another and leave scopes partial. Never repeat a scope that has already completed or create a retry queue.
+
 ### Relevance and importance
 
 Select by concrete public interest: effects on people, households, jobs, costs, housing, education, health, infrastructure, rights or community life; scale and magnitude; and what is new today. Urgent active safety/service restrictions come first, then substantial economic/social developments and useful local changes. Small communities can have important news; size is not a quota or minimum threshold. One open approved primary remains sufficient.
