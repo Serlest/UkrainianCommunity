@@ -577,19 +577,22 @@
     {
       "number": 19,
       "name": "Поддержка проекта",
-      "status": "audit_findings_pending_user_implementation_approval",
+      "status": "implemented_scoped_verification_passed_rules_deployed_physical_acceptance_pending",
       "openChecks": [
-        "Implement approved support findings and repeat failing probes/visual scenarios.",
-        "Combined authenticated owner Swift SDK + live-matching Rules, public enabled route and conflict/reload/lost-ack/session UI variants remain explicit follow-up evidence.",
-        "Physical signed iPhone and external-site return acceptance; Serlest Mobile unavailable."
+        "Signed physical iPhone, VoiceOver spoken interaction and OS transparency/contrast settings remain pending; Serlest Mobile unavailable.",
+        "Real external-site return/payment and real provider translation quality were not invoked; provider-free UI/contract evidence is separate.",
+        "Narrow landscape interaction and an actual dropped Firestore acknowledgement remain unverified; portrait maximum-text and typed recovery evidence do not claim those scenarios.",
+        "Hosted CI status is recorded exactly above; a running or pending run is not passed. No TestFlight upload/public release in this turn."
       ],
       "authorizedByUser": "2026-10-27: Тогда переходи к следующему этапу",
       "inventory": "Docs/Verification/ProjectSupportInventory20261027.json",
       "report": "Docs/Verification/ProjectSupportAudit20261027.json",
       "findingGroups": 6,
       "reviewedSurfaces": 34,
-      "productionChanged": false,
-      "testFlightChanged": false
+      "productionChanged": true,
+      "testFlightChanged": false,
+      "fixesReport": "Docs/Verification/ProjectSupportFixes20261027.json",
+      "implementationApprovedByUser": "2026-10-27: Ну нсли в е четко и детально проверил то преступай"
     }
   ],
   "block1": {
@@ -689,13 +692,13 @@
     "block13AuthorizedByUser": "2026-10-26: Вперед. Думаю что после этого я проверю детально оповещения и уведомления."
   },
   "schemaVersion": 2,
-  "blocksWithImplementedFixes": 18,
+  "blocksWithImplementedFixes": 19,
   "blocksReopenedForCompletion": 0,
   "notStartedBlocks": 0,
   "nextNewBlock": null,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "All19 blocks have reached audit; block19 findings await implementation approval. Implemented fixes remain18; physical acceptance and TestFlight gates remain separate.",
+  "nextAction": "Implementation fixes exist for all19 blocks. Preserve the separate strict closure, physical acceptance and delivery gates; block19 follow-up is recorded in ProjectSupportFixes20261027.json.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,

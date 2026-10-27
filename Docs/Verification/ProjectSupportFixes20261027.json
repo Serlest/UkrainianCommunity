@@ -1,0 +1,439 @@
+{
+  "schemaVersion": 1,
+  "block": 19,
+  "totalBlocks": 19,
+  "name": "Поддержка проекта",
+  "status": "implemented_scoped_verification_passed_rules_deployed_physical_acceptance_pending",
+  "verifiedAt": "2026-10-27T17:07:19.078424+00:00",
+  "implementationCommit": "186c8e8f0afb2782486f37f26c1a0b8605464fe9",
+  "verificationFollowupCommit": "00f8cefd1b3024fb000a575d9e3a09952f25c1cc",
+  "historicalAudit": "Docs/Verification/ProjectSupportAudit20261027.json",
+  "inventory": "Docs/Verification/ProjectSupportInventory20261027.json",
+  "findings": [
+    {
+      "id": "S19-F01",
+      "status": "implemented",
+      "changes": "Terminal listener recovery, obsolete-read error clearing, callback fencing and coalesced initial reads."
+    },
+    {
+      "id": "S19-F02",
+      "status": "implemented",
+      "changes": "Short heading/Save footer, root tab-bar visibility policy, focus-aware scrolling, bounded message editor, separately accessible preview toggle and scrollable concise confirmation."
+    },
+    {
+      "id": "S19-F03",
+      "status": "implemented",
+      "changes": "Confirmed visibility, unsaved state and predictive preview are distinct; edit/preview languages are independent."
+    },
+    {
+      "id": "S19-F04",
+      "status": "implemented",
+      "changes": "Initial editor readiness, immutable confirmation command, principal/authorization-revision scope and exact new-revision readback before success."
+    },
+    {
+      "id": "S19-F05",
+      "status": "implemented",
+      "changes": "Confirmed revision/actor/outcome and typed write/readback failures in the existing journal pipeline; narrow owner-only audit Rules deployed."
+    },
+    {
+      "id": "S19-F06",
+      "status": "implemented",
+      "changes": "Neutral external-site wording, honest Open link action, guarded failure feedback and copy fallback; HTTPS validation retained."
+    }
+  ],
+  "surfaces": [
+    {
+      "id": "R01",
+      "surface": "Owner profile → project support settings",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "Baseline3 owner UI scenarios; source route policy and isolated server-role matrix."
+    },
+    {
+      "id": "R02",
+      "surface": "Public support entry visibility",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "ProfileAccessPolicy/source plus real disabled production config readback. No fresh non-owner public route UI pass."
+    },
+    {
+      "id": "R03",
+      "surface": "Public support screen and external action",
+      "status": "verified_in_recorded_scope",
+      "evidenceAndLimits": "SupportBranches public admin destination, open rejection, visible copy fallback and return; actual external website/payment not invoked."
+    },
+    {
+      "id": "L01",
+      "surface": "Initial loading, missing configuration, retry",
+      "status": "verified_in_recorded_scope",
+      "evidenceAndLimits": "SupportRegressionAndOffline plus held coalesced parent/editor read regression: loading → failure → retry → confirmed form, no default saved state."
+    },
+    {
+      "id": "L02",
+      "surface": "Realtime document subscription and lifecycle",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "Actual Swift SDK stream test plus source cache/pending exclusion and registration cleanup."
+    },
+    {
+      "id": "L03",
+      "surface": "Terminal subscription failure and retry",
+      "status": "verified_in_recorded_scope",
+      "evidenceAndLimits": "ProjectSupportRecoveryTests: terminal listener is canceled/reattached; stale callbacks ignored; fresh authoritative data clears read error but preserves mutation warning."
+    },
+    {
+      "id": "L04",
+      "surface": "Pending read versus save and streamed changes",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "Existing held-read model regression plus actual SDK stale-save rejection."
+    },
+    {
+      "id": "L05",
+      "surface": "Public disable and removal",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "SDK streamed disable succeeds; public entry/action binding reviewed in source; not a fresh enabled public UI route test."
+    },
+    {
+      "id": "E01",
+      "surface": "Visibility toggle and saved state",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "Visibility switch/save/reopen baseline UI; misleading unsaved preview wording separately F03."
+    },
+    {
+      "id": "E02",
+      "surface": "HTTPS URL validation and normalization",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "Client normalization unit cases and3 actual Rules boundary tests."
+    },
+    {
+      "id": "E03",
+      "surface": "Link preview/open and failure feedback",
+      "status": "verified_in_recorded_scope",
+      "evidenceAndLimits": "Neutral Open link label and guarded scoped callback in editor/public card; public rejected-open UI and copy fallback passed. No provider availability/security guarantee."
+    },
+    {
+      "id": "E04",
+      "surface": "Independent editing and preview language",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "Baseline translation editor/preview locale independence and maximum fixture switching."
+    },
+    {
+      "id": "E05",
+      "surface": "Title/message/button fields",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "Both-language limits/normalization source, client unit and Rules assertions; actual max typing/reopen recorded separately."
+    },
+    {
+      "id": "E06",
+      "surface": "Live card preview",
+      "status": "verified_in_recorded_scope",
+      "evidenceAndLimits": "OwnerSupportRegression3 confirms predictive draft visibility differs from actual confirmed disabled config; final maximum UI switches preview language independently."
+    },
+    {
+      "id": "E07",
+      "surface": "Keyboard and field focus",
+      "status": "verified_in_recorded_scope",
+      "evidenceAndLimits": "MaximumFinalBothLanguages asserts focused URL/message remain above pinned Save; frames reviewed. Root route hides tabs; local clipping prevents content under status indicators."
+    },
+    {
+      "id": "E08",
+      "surface": "Save and independent reopen",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "Baseline UI independent reopen plus actual Swift transaction/readback/conflict. No live owner save."
+    },
+    {
+      "id": "E09",
+      "surface": "Unsaved close/cancel/save-and-close/discard",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "Normal UI close cancellation and discard/reopen passed in CloseAndDirections; save-and-close/reopen passed at UK and DE maximum text. Oversized max confirmation remains F02."
+    },
+    {
+      "id": "E10",
+      "surface": "Concurrent update conflict and explicit reload",
+      "status": "verified_in_recorded_scope",
+      "evidenceAndLimits": "SupportBranches explicit reload cancel preserves LOCAL19; confirmed reload and independent reopen show server fixture. Strict authenticated SDK rejects actual stale transaction."
+    },
+    {
+      "id": "E11",
+      "surface": "Lost response, unconfirmed result and recovery",
+      "status": "verified_in_recorded_scope",
+      "evidenceAndLimits": "SupportBranches persisted-but-unconfirmed fixture blocks another save until explicit authoritative reload; unit guard requires new revision/exact content/author. Actual dropped Firestore acknowledgement was not injected."
+    },
+    {
+      "id": "E12",
+      "surface": "Role/principal/session change while editing/saving",
+      "status": "verified_in_recorded_scope",
+      "evidenceAndLimits": "Held same-UID authorization-revision change cannot complete stale Save/navigation; denied scope never starts write. Strict SDK admin denial and16 Rules contexts supplement retained profile policy evidence; no physical account switch in this turn."
+    },
+    {
+      "id": "T01",
+      "surface": "Translation UK→DE and DE→UK",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "Baseline DE→UK apply/save/reopen plus CloseAndDirections UK→DE exact apply and DE→UK cancel; actual handler routing with injected provider."
+    },
+    {
+      "id": "T02",
+      "surface": "Translation preview/apply/cancel/overwrite",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "CloseAndDirections overwrite disabled until confirmation, apply and reverse cancel/preserved original target; baseline persisted translation."
+    },
+    {
+      "id": "T03",
+      "surface": "Stale translation and language/session switch",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "Unchanged shared ContentTranslation scope/direction guard from block18; successful prior FullRegressionFinal/ContentTranslationTests retained, source rechecked. No new held-response donation UI injection."
+    },
+    {
+      "id": "T04",
+      "surface": "Translation errors/quota/provider boundary",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "Three translation server contract tests with actual Firestore and injected provider; source limits/owner denial. No real provider quality call."
+    },
+    {
+      "id": "S01",
+      "surface": "Actual Swift Firestore save/read/conflict/stream",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "SDKAndProbes actual SDK lifecycle passes; permissive demo transport Rules, separate actual-rule authorization proof."
+    },
+    {
+      "id": "S02",
+      "surface": "Full Rules role/state authority matrix",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "Sixteen final isolated role/auth-state variants including valid/revoked passkey plus3 existing boundary tests against exact live Rules source."
+    },
+    {
+      "id": "S03",
+      "surface": "Production Rules exact readback",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "Active production Rules source readback matches full local hash exactly."
+    },
+    {
+      "id": "S04",
+      "surface": "Production support configuration and compatibility",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "Read-only production-config.json: support disabled, URL/config schema retained; no live mutation."
+    },
+    {
+      "id": "S05",
+      "surface": "Actual deployed translation source/runtime",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "CloudRun Ready/intended100% traffic/onDeploy retained; six actual deployed TS/JS files match; anonymous JSON401 confirms startup only."
+    },
+    {
+      "id": "S06",
+      "surface": "Operation journal coverage",
+      "status": "verified_in_recorded_scope",
+      "evidenceAndLimits": "ConnectedFinal: actual strict Swift SDK → audit outbox/Firestore and diagnostics outbox/writeClientDiagnostic emulator → Firestore; two distinct revision confirmations plus typed conflict and admin denial."
+    },
+    {
+      "id": "P01",
+      "surface": "Read count, listener lifetime, loading costs",
+      "status": "retained_audit_evidence",
+      "evidenceAndLimits": "Source read-budget and lifecycle review: one small document, up to two bootstrap reads, no large-collection scans; no measured speedup."
+    },
+    {
+      "id": "V01",
+      "surface": "Ordinary UK light and DE dark layouts",
+      "status": "verified_in_recorded_scope",
+      "evidenceAndLimits": "OwnerSupportRegression3 and FinalRecoveryAndDark plus reviewed ordinary dialogs/public failure/translation frames."
+    },
+    {
+      "id": "V02",
+      "surface": "Maximum text, keyboard, lower controls and dialogs",
+      "status": "verified_in_recorded_scope",
+      "evidenceAndLimits": "MaximumFinalBothLanguages UK/light and DE/dark AccessibilityXXXL; fields, keyboard, preview, reachable scrollable close actions, save and exact reopened values."
+    },
+    {
+      "id": "V03",
+      "surface": "Physical device/VoiceOver/contrast/transparency",
+      "status": "pending_physical_acceptance",
+      "evidenceAndLimits": "Serlest Mobile unavailable; physical acceptance pending."
+    }
+  ],
+  "verification": {
+    "fullUnits": {
+      "artifact": "build/fix-support19-20261027/FullUnits.xcresult",
+      "passed": 972,
+      "failed": 0,
+      "skipped": 42,
+      "scope": "972 ordinary tests pass;42 opt-in SDK/live/device scenarios skip here by design. Current support strict SDK was run explicitly below; this is not a claim that42 integration scenarios ran."
+    },
+    "strictAuthenticatedSDK": {
+      "artifact": "build/fix-support19-20261027/ConnectedFinal.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Verified isolated owner and admin, current full Rules, confirmed writes/readback, stale conflict, actual production-shaped audit/diagnostic pipeline, admin write denial and unchanged independent readback."
+    },
+    "simulatorRuns": [
+      {
+        "artifact": "build/fix-support19-20261027/MaximumFinalBothLanguages.xcresult",
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "UK/light and DE/dark AccessibilityXXXL; actual focused URL/message bounds, lower controls, preview, save-and-close, exact reopened values"
+      },
+      {
+        "artifact": "build/fix-support19-20261027/SupportBranches.xcresult",
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "Close cancel/discard, bidirectional translation apply/cancel, eligible admin public route and external-open rejection/copy, conflict cancel/reload/reopen, unconfirmed result/reload"
+      },
+      {
+        "artifact": "build/fix-support19-20261027/SupportRegressionAndOffline.xcresult",
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "One actual discovered test: initial loading/offline error/retry; no default draft or Save before authoritative recovery. The three initial filters used the wrong class and did not run here."
+      },
+      {
+        "artifact": "build/fix-support19-20261027/OwnerSupportRegression3.xcresult",
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "Two actual discovered owner regressions: unsafe URL rejection, exact replace/save/reopen, translated draft preview versus confirmed visibility"
+      },
+      {
+        "artifact": "build/fix-support19-20261027/FinalRecoveryAndDark.xcresult",
+        "passed": 10,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "DE/dark AccessibilityM layout (1 UI case) and9 recovery/authority/redaction unit cases"
+      }
+    ],
+    "rules": {
+      "supportAndDonation": {
+        "artifact": "build/fix-support19-20261027/rules2.log",
+        "passed": 5,
+        "failed": 0
+      },
+      "existingJournal": {
+        "artifact": "build/fix-support19-20261027/journal-rules.log",
+        "passed": 19,
+        "failed": 0
+      },
+      "roleAndStateVariants": {
+        "artifact": "build/fix-support19-20261027/roles-final.log",
+        "passed": 16
+      }
+    },
+    "unsignedDeviceRelease": {
+      "artifact": "build/fix-support19-20261027/release-final-confirmed.log",
+      "result": "BUILD SUCCEEDED",
+      "codeSigning": false,
+      "uploaded": false
+    },
+    "validators": [
+      "Repository structure passed",
+      "Release configuration build129 passed",
+      "de/uk localization3462 entries passed",
+      "git diff --check passed"
+    ],
+    "hostedCI": [
+      {
+        "conclusion": "",
+        "headSha": "186c8e8f0afb2782486f37f26c1a0b8605464fe9",
+        "jobs": [
+          {
+            "name": "Change classification and static checks",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Firebase affected checks",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "iOS build and unit checks",
+            "status": "in_progress",
+            "conclusion": ""
+          },
+          {
+            "name": "Firebase and rules",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ],
+        "status": "in_progress",
+        "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40543677795",
+        "runId": 40543677795
+      },
+      {
+        "conclusion": "",
+        "headSha": "00f8cefd1b3024fb000a575d9e3a09952f25c1cc",
+        "jobs": [],
+        "status": "pending",
+        "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40546354411",
+        "runId": 40546354411
+      }
+    ],
+    "physicalDevice": {
+      "status": "unavailable",
+      "device": "Serlest Mobile",
+      "artifact": "build/fix-support19-20261027/devices.json"
+    },
+    "initialFailuresRetained": {
+      "Connected.xcresult": "Raw revision hash was redacted and audit denied; now strict checksum grouping survives unchanged credential redaction.",
+      "ConnectedRechecked.xcresult": "First OR Rules routing exceeded1000 evaluation expressions; replaced with event discriminant, all existing journal/role checks re-passed.",
+      "MaximumUK through MaximumUK4": "Root tabs, field placement and disclosure descendant identifier failures were diagnosed and corrected. Final same flows passed.",
+      "OwnerSupportRegression and OwnerSupportRegression2": "Old native Select All menu driver failed; public iOS Cmd+A replacement now retains exact product value/readback assertions. OwnerSupportRegression3 passes both affected scenarios."
+    },
+    "uiScenarioCount": 10,
+    "reviewedImages": [
+      "build/fix-support19-20261027/final-maximum-attachments/F764E7DA-1C19-40D9-BA08-2648B53BB420.png",
+      "build/fix-support19-20261027/final-maximum-attachments/3C55043E-3110-401F-B2B9-885B974D772A.png",
+      "build/fix-support19-20261027/final-maximum-attachments/ED4FA198-DCD4-4CE6-8BC4-730A8B0353CB.png",
+      "build/fix-support19-20261027/final-maximum-attachments/861916BC-BF08-4A90-A16F-9D596E3D50C2.png",
+      "build/fix-support19-20261027/branches-attachments/165CE862-52DB-4F90-895A-E2D169C8165E.png",
+      "build/fix-support19-20261027/branches-attachments/4079B812-8D4A-49B8-9DFC-047A1CEFC9C9.png",
+      "build/fix-support19-20261027/branches-attachments/1470E9DE-902A-4E2D-B62E-A0978519588E.png",
+      "build/fix-support19-20261027/branches-attachments/98429C6B-34C2-4DAC-82D3-53374B09F1F7.png",
+      "build/fix-support19-20261027/branches-attachments/A2CF3396-5AB8-46E4-ACB5-3C00C5B00A19.png",
+      "build/fix-support19-20261027/branches-attachments/FAAF41D2-BFE4-44CB-BCEE-65B1D33B992A.png",
+      "build/fix-support19-20261027/offline-attachments/247B5B3C-4729-4426-869F-EDE434030148.png",
+      "build/fix-support19-20261027/offline-attachments/5CD99F62-47F1-45B7-B56B-2C7B3F60F2A5.png",
+      "build/fix-support19-20261027/final-dark-attachments/2BC2F24F-BB71-443C-A827-03F992FD7671.png"
+    ]
+  },
+  "server": {
+    "verifiedAt": "2026-10-27T16:30:55.924240+00:00",
+    "previousRuleset": "projects/ukrainiancommunity-dbd5f/rulesets/8fcc8f19-645a-47d1-b9fd-61972df04ed4",
+    "ruleset": "projects/ukrainiancommunity-dbd5f/rulesets/3de32b84-2446-484c-958e-7b997a6c04ef",
+    "sourceMatches": true,
+    "sha256": "e80473695f95da8546e3e7435ec49149f5efa544e20d190b2d8af976e3c29add",
+    "productionConfigUnchanged": true,
+    "isEnabled": false,
+    "finalVerifiedAt": "2026-10-27T17:07:16.104363+00:00",
+    "functionsChangedOrDeployed": false,
+    "appConfigSchemaChanged": false,
+    "compatibility": "Existing public reads and configuration writes retain their old contracts; only a narrow owner audit grant was added. Old installed clients retain old UI until a new binary."
+  },
+  "productionSupport": {
+    "changed": false,
+    "enabled": false,
+    "updatedAt": "2026-09-09T15:44:18.487Z",
+    "fullBeforeAfterDocumentEqual": true,
+    "paymentURLTextOrConsentChanged": false
+  },
+  "optimization": {
+    "verified": "Two simultaneous parent/editor loads coalesce into one read; one active listener registration, renewed only after terminal error; message editor has bounded height. No list/collection scans added.",
+    "notClaimed": "No measured launch/CPU/memory or bill reduction; no synthetic latency target substituted for runtime evidence."
+  },
+  "remainingAcceptance": [
+    "Signed physical iPhone, VoiceOver spoken interaction and OS transparency/contrast settings remain pending; Serlest Mobile unavailable.",
+    "Real external-site return/payment and real provider translation quality were not invoked; provider-free UI/contract evidence is separate.",
+    "Narrow landscape interaction and an actual dropped Firestore acknowledgement remain unverified; portrait maximum-text and typed recovery evidence do not claim those scenarios.",
+    "Hosted CI status is recorded exactly above; a running or pending run is not passed. No TestFlight upload/public release in this turn."
+  ],
+  "acceptanceGates": {
+    "implementationComplete": true,
+    "recordedLocalChecksPassed": true,
+    "strictWholeBlockClosureClaimed": false,
+    "physicalAcceptance": false,
+    "testFlightDelivered": false
+  },
+  "preservedGeneratedFiles": [
+    "UkrainianCommunity.xcodeproj/project.pbxproj",
+    "UkrainianCommunity/Localization/Localizable.xcstrings"
+  ],
+  "cleanup": "Task-specific SDK emulators stopped gracefully; no shared outbox cleared or production payment/provider flow invoked."
+}
