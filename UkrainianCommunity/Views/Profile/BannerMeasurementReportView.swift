@@ -24,7 +24,7 @@ struct BannerMeasurementReportView: View {
             introSubtitle: AppStrings.BannerReport.subtitle,
             scrollsIntroSubtitle: dynamicTypeSize.isAccessibilitySize) {
             if PermissionService.isAppOwner(user: authState.user) {
-            BannerReportFilterMenu(title: AppStrings.OwnerAnalytics.periodPicker,
+            AnalyticsReportFilterMenu(title: AppStrings.OwnerAnalytics.periodPicker,
                 selectedTitle: AnalyticsPresentationText.bannerPeriod(viewModel.selectedPeriod),
                 identifier: "bannerReport.period") {
                 Picker(AppStrings.OwnerAnalytics.periodPicker, selection: $viewModel.selectedPeriod) {
@@ -126,7 +126,7 @@ struct BannerMeasurementReportView: View {
     private var filters: some View {
         OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.filters) {
             if viewModel.fixedBannerID == nil {
-                BannerReportFilterMenu(title: AppStrings.BannerReport.byBanner,
+                AnalyticsReportFilterMenu(title: AppStrings.BannerReport.byBanner,
                     selectedTitle: viewModel.selectedBannerID.map { viewModel.title(for: $0) } ?? AppStrings.BannerReport.allBanners,
                     identifier: "bannerReport.bannerFilter") {
                     Picker(AppStrings.BannerReport.byBanner, selection: $viewModel.selectedBannerID) {
@@ -135,7 +135,7 @@ struct BannerMeasurementReportView: View {
                     }
                 }
             }
-            BannerReportFilterMenu(title: AppStrings.BannerReport.byRegion,
+            AnalyticsReportFilterMenu(title: AppStrings.BannerReport.byRegion,
                 selectedTitle: viewModel.selectedRegion.map { AppStrings.BannerReport.regionTitle($0) } ?? AppStrings.BannerReport.allRegions,
                 identifier: "bannerReport.regionFilter") {
                 Picker(AppStrings.BannerReport.byRegion, selection: $viewModel.selectedRegion) {
@@ -143,7 +143,7 @@ struct BannerMeasurementReportView: View {
                     ForEach((viewModel.report?.regions.keys.sorted() ?? []), id: \.self) { Text(AppStrings.BannerReport.regionTitle($0)).tag(Optional($0)) }
                 }
             }
-            BannerReportFilterMenu(title: AppStrings.BannerReport.bySection,
+            AnalyticsReportFilterMenu(title: AppStrings.BannerReport.bySection,
                 selectedTitle: viewModel.selectedSection.map { sectionTitle($0) } ?? AppStrings.BannerReport.allSections,
                 identifier: "bannerReport.sectionFilter") {
                 Picker(AppStrings.BannerReport.bySection, selection: $viewModel.selectedSection) {

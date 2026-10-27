@@ -232,13 +232,17 @@ struct OwnerAnalyticsTrendChart: View {
     }
 
     private var metricPicker: some View {
-        Picker(AppStrings.OwnerAnalytics.trendMetricPicker, selection: $selectedMetric) {
-            ForEach(metricOptions) { metric in
-                Text(metric.analyticsTitle).tag(metric)
+        AnalyticsReportFilterMenu(
+            title: AppStrings.OwnerAnalytics.trendMetricPicker,
+            selectedTitle: selectedMetric.analyticsTitle,
+            identifier: "ownerAnalytics.trendMetricPicker"
+        ) {
+            Picker(AppStrings.OwnerAnalytics.trendMetricPicker, selection: $selectedMetric) {
+                ForEach(metricOptions) { metric in
+                    Text(metric.analyticsTitle).tag(metric)
+                }
             }
         }
-        .pickerStyle(.menu)
-        .accessibilityIdentifier("ownerAnalytics.trendMetricPicker")
     }
 
     private var chartAccessibilityValue: String {

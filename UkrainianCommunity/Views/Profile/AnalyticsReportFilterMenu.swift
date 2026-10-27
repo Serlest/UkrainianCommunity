@@ -2,7 +2,7 @@ import SwiftUI
 
 /// A wrapping SwiftUI label avoids the native picker title's clipped
 /// intrinsic height at accessibility text sizes; options remain a native picker.
-struct BannerReportFilterMenu<Options: View>: View {
+struct AnalyticsReportFilterMenu<Options: View>: View {
     let title: String
     let selectedTitle: String
     let identifier: String
