@@ -379,7 +379,9 @@
       "result": "passed",
       "artifact": "build/fix-legal18-20261027/release-device-build.log",
       "scope": "Generic iOS unsigned Release build; no archive, upload, installation or physical execution.",
-      "finalWordingFollowupArtifact": "build/fix-legal18-20261027/release-label-final.log"
+      "finalWordingFollowupArtifact": "build/fix-legal18-20261027/release-label-final.log",
+      "finalWordingFollowupResult": "passed",
+      "finalWordingFollowupSource": "c27a9a0d executable/resource tree; documentation-only commits do not change binary inputs."
     },
     "manualDecline": {
       "result": "passed",
@@ -449,8 +451,41 @@
       "change": "German receipt action wording only; no executable Swift change relative to validated d93 source.",
       "localUI": "ReceiptLabelFinal passed; pixel readback confirms full wording.",
       "localizationValidation": "3435 entries/Swift references passed for de and uk.",
-      "hostedValidation": "Pending on final source/documentation head; not represented as passed.",
+      "hostedValidation": "Final documentation-head static validation passed on 7b80c467. Full iOS lane was correctly skipped for docs-only diff; the c27 wording-only run was superseded/cancelled. Full executable-source iOS CI remains the successful d93 run; do not count skipped gate as another full test run.",
       "priorAttempt": "ReceiptWrappingFinal passed interaction but pixels still truncated; plain-style experiment reverted. Not counted as visual success."
+    },
+    "documentationCI": {
+      "conclusion": "success",
+      "headSha": "7b80c467a8146759f743d2369a0b577c135d30d8",
+      "jobs": [
+        {
+          "name": "Change classification and static checks",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "iOS build and unit tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Firebase and rules",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Firebase affected checks",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "iOS build and unit checks",
+          "status": "completed",
+          "conclusion": "skipped"
+        }
+      ],
+      "status": "completed",
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40526660156"
     }
   },
   "boundaries": [

@@ -570,7 +570,8 @@
       "finalWordingFollowup": {
         "localUI": "passed",
         "localization": "passed",
-        "hostedCI": "pending; core d93 pipeline passed"
+        "hostedCI": "Final docs-head static checks passed; full executable-source d93 pipeline passed. Wording-only hosted iOS run superseded, covered by final local UI/localization/unsigned Release.",
+        "unsignedRelease": "passed"
       }
     },
     {
