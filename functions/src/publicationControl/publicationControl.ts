@@ -114,13 +114,29 @@ export const getPublicationControl=onCall({region:"europe-west3",maxInstances:6,
     if(input.region!=null)query=query.where("region","==",input.region);
     query=query.orderBy("endedAt","desc").orderBy(FieldPath.documentId());
     if(input.cursor!=null) {
-      if(typeof input.cursor!=="string"||!/^[a-f0-9]{40}$/.test(input.cursor))throw new HttpsError("invalid-argument","Invalid cursor.");
-      const anchor=await db.doc(`publicationControlRuns/${input.cursor}`).get();
-      if(!anchor.exists||(input.region!=null&&anchor.get("region")!==input.region))throw new HttpsError("aborted","History changed. Refresh it.");
+      if(typeof input.cursor!=="string"||input.cursor.length>1000)throw new HttpsError("invalid-argument","Invalid cursor.");
+      let anchorID=input.cursor, expectedTime:number[]|null=null;
+      // Existing clients may still hold a plain document-ID cursor. New pages bind
+      // the anchor timestamp and region, so a revised report cannot silently skip rows.
+      if(!/^[a-f0-9]{40}$/.test(anchorID)) {
+        try {
+          if(!input.cursor.startsWith("v2.")||!/^v2\.[A-Za-z0-9_-]+$/.test(input.cursor))throw Error();
+          const cursor=JSON.parse(Buffer.from(input.cursor.slice(3),"base64url").toString("utf8"));
+          if(cursor.v!==2||typeof cursor.id!=="string"||!/^[a-f0-9]{40}$/.test(cursor.id)||cursor.region!==(input.region??null)
+            ||!Array.isArray(cursor.time)||cursor.time.length!==2||!cursor.time.every(Number.isSafeInteger)
+            ||cursor.time[0]<-62135596800||cursor.time[0]>253402300799||cursor.time[1]<0||cursor.time[1]>=1000000000)throw Error();
+          anchorID=cursor.id;expectedTime=cursor.time;
+        }catch{throw new HttpsError("invalid-argument","Invalid cursor.");}
+      }
+      const anchor=await db.doc(`publicationControlRuns/${anchorID}`).get(),time=anchor.get("endedAt");
+      if(!anchor.exists||(input.region!=null&&anchor.get("region")!==input.region)
+        ||expectedTime&&(!(time instanceof Timestamp)||time.seconds!==expectedTime[0]||time.nanoseconds!==expectedTime[1]))throw new HttpsError("aborted","History changed. Refresh it.");
       query=query.startAfter(anchor);
     }
     const result=await query.limit(81).get(),rows=result.docs.slice(0,80);
-    return {runs:rows.map(d=>dto(d.data(),d.id)),cursor:result.size>80?rows.at(-1)!.id:null};
+    const last=rows.at(-1),time=last?.get("endedAt");
+    const cursor=result.size>80&&last ? time instanceof Timestamp ? "v2."+Buffer.from(JSON.stringify({v:2,id:last.id,time:[time.seconds,time.nanoseconds],region:input.region??null})).toString("base64url") : last.id : null;
+    return {runs:rows.map(d=>dto(d.data(),d.id)),cursor};
   }
   throw new HttpsError("invalid-argument","Invalid action.");
 });

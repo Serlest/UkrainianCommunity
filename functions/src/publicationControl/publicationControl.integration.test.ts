@@ -58,6 +58,11 @@ test('regional history is paged on the server and foreign or vanished cursors ca
   const more=await getPublicationControl.run(req('runs',{day,region:'tirol',cursor:page.cursor})) as any;
   assert.equal(more.runs.length,2);assert.equal(more.cursor,null);assert.equal(new Set([...page.runs,...more.runs].map(r=>r.id)).size,82);
   await assert.rejects(getPublicationControl.run(req('runs',{day,region:'tirol',cursor:ids[83]})),{code:'aborted'});
-  await db.doc(`publicationControlRuns/${page.cursor}`).delete();await assert.rejects(getPublicationControl.run(req('runs',{day,region:'tirol',cursor:page.cursor})),{code:'aborted'});
+  const anchorID=page.runs.at(-1).id;
+  const legacy=await getPublicationControl.run(req('runs',{day,region:'tirol',cursor:anchorID})) as any;assert.equal(legacy.runs.length,2);
+  await assert.rejects(getPublicationControl.run(req('runs',{day,region:'wien',cursor:page.cursor})),{code:'invalid-argument'});
+  await db.doc(`publicationControlRuns/${anchorID}`).update({endedAt:Timestamp.fromMillis(0)});
+  await assert.rejects(getPublicationControl.run(req('runs',{day,region:'tirol',cursor:page.cursor})),{code:'aborted'});
+  await db.doc(`publicationControlRuns/${anchorID}`).delete();await assert.rejects(getPublicationControl.run(req('runs',{day,region:'tirol',cursor:page.cursor})),{code:'aborted'});
  }finally{await Promise.all(ids.map(id=>db.doc(`publicationControlRuns/${id}`).delete()));await db.doc(`users/${actor}`).delete();}
 });
