@@ -495,8 +495,16 @@
     {
       "number": 18,
       "name": "Правовые документы и согласия",
-      "status": "pending",
-      "openChecks": []
+      "status": "audit_findings_pending_user_implementation_approval",
+      "openChecks": [
+        "Implement approved findings; complete linked SDK/UI and physical acceptance ledger separately."
+      ],
+      "authorizedByUser": "2026-10-27: Тогда переходи к следующему этапу, подойди максимально детально",
+      "inventory": "Docs/Verification/LegalInventory20261027.json",
+      "report": "Docs/Verification/LegalAudit20261027.json",
+      "productionChanged": false,
+      "testFlightChanged": false,
+      "findingGroups": 10
     },
     {
       "number": 19,
@@ -604,11 +612,11 @@
   "schemaVersion": 2,
   "blocksWithImplementedFixes": 17,
   "blocksReopenedForCompletion": 0,
-  "notStartedBlocks": 2,
-  "nextNewBlock": 18,
+  "notStartedBlocks": 1,
+  "nextNewBlock": 19,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "Block17 implementation, local verification, deployed readback and exact-source CI complete. Physical acceptance and requested TestFlight delivery remain separate; await user instruction for block18.",
+  "nextAction": "Block18 audit findings recorded; await user approval to implement. Block19 remains unstarted.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,
@@ -680,5 +688,5 @@
     },
     "physicalBoundary": "User acceptance of signed TestFlight129 on real iPhone remains pending."
   },
-  "currentBlock": 17
+  "currentBlock": 18
 }

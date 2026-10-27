@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "block": 18,
+  "totalBlocks": 19,
+  "status": "audit_findings_pending_user_implementation_approval",
+  "createdAt": "2026-10-27T12:00:34.088477+00:00",
+  "inventory": "Docs/Verification/LegalInventory20261027.json",
+  "sourceHead": "9f68644c4c2c538bdd40d676f1280de5bb4b0767",
+  "findings": [
+    {
+      "id": "L18-F01",
+      "priority": "high",
+      "title": "Withdraw private evidence after explicit denial",
+      "evidence": "Two regression probes keep account identities/counts and prepared export/summary after permission-denied.",
+      "location": "LegalEvidenceViewModel.swift: load catch / prepareExport / clear",
+      "proposedResolution": "Clear protected data and share payload on confirmed permission/session/not-found responses; preserve known rows only on transient connection failure. Fence outstanding reads and exports by auth revision."
+    },
+    {
+      "id": "L18-F02",
+      "priority": "medium",
+      "title": "Search race and initial loading states",
+      "evidence": "Held-response probe displays old account rows after text changes before debounced next request. Initial hasLoaded=false/isLoading=false renders empty; management initially exposes nil-state editor cards.",
+      "location": "LegalEvidenceView.swift .task/.content; LegalEvidenceViewModel; LegalDocumentManagementView",
+      "proposedResolution": "Invalidate on input change immediately; query/session-bound response acceptance; explicit not-requested/loading/confirmed-empty states; disable nil-state editing."
+    },
+    {
+      "id": "L18-F03",
+      "priority": "medium",
+      "title": "Reader silently downgrades previously confirmed document on refresh error",
+      "evidence": "LegalDocumentReaderViewModel replaces known document with bundled fallback for all errors and has no request generation; generic offline wording also hides invalid-data/service errors.",
+      "location": "LegalViews.swift:157-183",
+      "proposedResolution": "Keep last confirmed document on transient refresh failure; use clearly labeled offline bundle only when needed; typed error and stale-request fencing."
+    },
+    {
+      "id": "L18-F04",
+      "priority": "medium",
+      "title": "Long-lived owner commands and history use insufficient child session checks",
+      "evidence": "Parent removes navigation on ProfileAccessIdentity change, but child editor/history/exact reader guards mostly compare UID; publish/discard continue after awaits and confirmation has no captured immutable command.",
+      "location": "LegalDocumentManagementView.swift:saveDraft/publish/discardDraft; LegalVersionHistoryView; LegalEvidenceVersionView",
+      "proposedResolution": "Capture auth revision/authority and exact draft payload for commands, recheck after every await, invalidate stale callbacks. Preserve server MFA/rules; this finding does not demonstrate a server authorization bypass."
+    },
+    {
+      "id": "L18-F05",
+      "priority": "medium",
+      "title": "Acknowledgement retries duplicate immutable receipts",
+      "evidence": "Actual isolated acceptLegalDocument calls for same user/type/version produced2 receipts. Same handler accepted active published record with null hash. Production source TS/JS matches local; actual current hashes valid.",
+      "location": "functions/src/legal/legalDocuments.ts:112-178",
+      "proposedResolution": "Idempotent immutable acknowledgement with authoritative response recovery, backward compatible old clients/receipts, strict published version/type/hash checks. Do not rewrite historical receipts."
+    },
+    {
+      "id": "L18-F06",
+      "priority": "medium",
+      "title": "Maximum text layout and duplicate reader headings",
+      "evidence": "Inspected UK/light and DE/dark maximum AX: truncated date/status chips, excessively narrow multi-line receipt action, oversized decorative controls; current reader repeats document title. Pinned editor bar and root tab bar consume substantial viewport.",
+      "location": "LegalEvidenceView.swift; LegalDocumentManagementView.swift; LegalVersionHistoryView.swift",
+      "proposedResolution": "Adaptive vertical fields and full-width actions/chips, fixed decorative icon sizes, compact accessible action layout, one document heading, deliberate tab-bar policy. Preserve Dynamic Type and scrolling rather than globally shrinking text."
+    },
+    {
+      "id": "L18-F07",
+      "priority": "low",
+      "title": "Management refresh reloads all documents and loses confirmed state on failure",
+      "evidence": "Each strict state uses pointer+version+draft query; onSaved invokes all three states. Source budget up to9 reads vs3 for one changed document. Results replace all confirmed states including failures.",
+      "location": "LegalDocumentManagementViewModel.load / onSaved",
+      "proposedResolution": "Targeted per-type refresh, shared in-flight requests, retain safe confirmed state with separate refresh error. Measure the same scenario before claiming latency improvement."
+    },
+    {
+      "id": "L18-F08",
+      "priority": "low",
+      "title": "History current-version context and empty/retry presentation",
+      "evidence": "History captures active document once and compares later rows against that snapshot; no explicit confirmed-empty state and no refresh-current action. Exact immutable readers themselves validate hashes correctly.",
+      "location": "LegalVersionHistoryView.swift",
+      "proposedResolution": "Label captured comparison target precisely or refresh authoritative current version; add explicit loading/empty/error/continuation states and stale-session fencing."
+    },
+    {
+      "id": "L18-F09",
+      "priority": "verification_gap",
+      "title": "Close missing linked and device scenarios",
+      "evidence": "Existing ordinary UI tests pass but maximum size exposed issues. Actual Swift repository emulator cycle, historical comparison with multiple versions, translation review/provider error and physical APNs remain distinct from existing source/handler tests.",
+      "location": "LegalInventory20261027.json",
+      "proposedResolution": "Add controlled SDK client fixtures and meaningful regressions when implementing; finish unique previews/confirmations/transitions and record exact physical boundaries. Do not replace these with a total test count."
+    },
+    {
+      "id": "L18-F10",
+      "priority": "medium",
+      "title": "Concurrent metadata-only draft edits can silently overwrite one another",
+      "evidence": "Source optimistic guard compares contentHash, which excludes changeSummary. Actual isolated Rules/client SDK probe loads two snapshots; first summary edit is overwritten by stale second summary edit while both keep same content hash.",
+      "location": "LegalDocumentDraft.normalizedContentHash; FirestoreLegalDocumentRepository.saveDraft/discardDraft/publishDraft; validLegalDraftUpdate",
+      "proposedResolution": "Add full draft revision/precondition including mutable metadata; use it for save/discard/publish and lost-response reconciliation. Preserve published content hashes and historical immutable versions.",
+      "artifact": "build/audit-legal18-20261027/draft-metadata-probe.log"
+    }
+  ],
+  "verification": {
+    "unitBaseline": {
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0,
+      "artifact": "build/audit-legal18-20261027/Baseline.xcresult"
+    },
+    "ordinaryUI": {
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "artifact": "build/audit-legal18-20261027/BaselineUI.xcresult"
+    },
+    "regressionProbes": {
+      "passed": 0,
+      "failed": 3,
+      "meaning": "Deliberate failing expected-behavior tests reproduce findings; not a production change or a CI run. Probe source kept in ignored audit artifacts.",
+      "artifact": "build/audit-legal18-20261027/DefectProbes.xcresult",
+      "source": "build/audit-legal18-20261027/LegalAudit18Probes.swift"
+    },
+    "server": {
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Actual Auth/Firestore emulator; includes103-account legal notice fanout and evidence history/search contracts",
+      "artifact": "build/audit-legal18-20261027/server-baseline.log"
+    },
+    "rules": {
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "artifact": "build/audit-legal18-20261027/server-baseline.log"
+    },
+    "roles": {
+      "variants": 10,
+      "result": "passed",
+      "scope": "Actual isolated Firestore client SDK and owner callable handlers. Organization roles have user global role; independent business role does not grant owner authority.",
+      "artifact": "build/audit-legal18-20261027/roles.log"
+    },
+    "productionDocuments": "build/audit-legal18-20261027/production-documents.json",
+    "bundleSemanticComparison": "build/audit-legal18-20261027/bundle-production-body-comparison.json",
+    "productionQueryShapes": {
+      "passed": 6,
+      "artifact": "build/audit-legal18-20261027/production-query-proof.json"
+    },
+    "deployedSources": "build/audit-legal18-20261027/deployed-source-proof.json",
+    "productionRules": "Readback blocked HTTP403 using existing read-only gcloud session. Isolated Rules pass is not active-rules hash proof.",
+    "largestUI": {
+      "evidenceFamily": {
+        "passed": 1,
+        "failed": 0,
+        "artifact": "build/audit-legal18-20261027/LargestVisual.xcresult",
+        "scope": "UK/light + DE/dark maximum accessibility account, receipt, recorded reader, filter row/menu. Other management family in this bundle failed due driver gesture."
+      },
+      "managementFamily": {
+        "passed": 1,
+        "failed": 0,
+        "artifact": "build/audit-legal18-20261027/ManagementVisualCorrectGesture.xcresult",
+        "scope": "UK/light + DE/dark maximum accessibility management, locale reader, editor action menu, preview and Done. Selector reach is not complete pixel proof of body editing; full edit/reopen at maximum remains in implementation ledger."
+      },
+      "driverFailure": "Original gesture started at y0.8 inside pinned Save bar; y0.55 within scroll viewport fixed same expected route. Prior failed evidence retained.",
+      "source": "build/audit-legal18-20261027/LegalAudit18VisualUITests.swift"
+    },
+    "reviewedImages": [
+      "build/audit-legal18-20261027/baseline-attachments/B65A9428-AE12-459E-B7C8-3546A2BE0847.png",
+      "build/audit-legal18-20261027/baseline-attachments/E7F96C58-2BFA-44DE-B3E6-7F001F19C8D2.png",
+      "build/audit-legal18-20261027/baseline-attachments/D188CA83-B8DC-4EC8-8261-B459953AB60E.png",
+      "build/audit-legal18-20261027/largest-attachments/6602343D-3A1A-48E9-9702-71B26A9EC81A.png",
+      "build/audit-legal18-20261027/largest-attachments/3CA20E18-D8B5-420F-A2C9-1B3083C067B6.png",
+      "build/audit-legal18-20261027/largest-attachments/90A0BEEF-CDAE-411D-BAB6-2C2501C9033F.png",
+      "build/audit-legal18-20261027/largest-attachments/88CB6DA7-C9AB-4A49-BFA3-37B8A04512C6.png",
+      "build/audit-legal18-20261027/management-final-attachments/0D316FCA-8B7E-4CD7-97E5-45FDBA14D679.png",
+      "build/audit-legal18-20261027/management-final-attachments/D21669E3-82F1-4B4A-9606-4E534AC0FE64.png",
+      "build/audit-legal18-20261027/management-final-attachments/53CE060D-77BD-40DC-AA75-3EFD32C4DEDA.png"
+    ]
+  },
+  "recommendation": {
+    "keep": [
+      "Separate document management and evidence history: distinct tasks and permissions.",
+      "Strict exact-version/hash reader, published immutability, optional analytics consent separation.",
+      "Bounded history pagination and retry-safe notice fanout."
+    ],
+    "improve": [
+      "Clear contextual labels and adaptive actions; remove duplicate visual headings.",
+      "Harden private cache/session lifecycle and acknowledge receipt idempotency.",
+      "Targeted document reloads; no new standalone screens needed."
+    ]
+  },
+  "boundaries": {
+    "implementation": "No product fixes yet; approval-stage audit only. Temporary probes are not left in active test targets.",
+    "legalText": "No actual legal document text/version/acceptance published or changed. Functional audit is not a qualified legal opinion.",
+    "productionWrites": false,
+    "testFlight": "Unchanged; previous delivery1.2.1(129).",
+    "physical": "Serlest Mobile currently unavailable according to devicectl readback; no physical test.",
+    "remainingBlocksAfter18": 1
+  },
+  "updatedAt": "2026-10-27T12:04:53.547848+00:00"
+}

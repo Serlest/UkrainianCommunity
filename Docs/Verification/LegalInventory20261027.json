@@ -1,0 +1,392 @@
+{
+  "schemaVersion": 1,
+  "block": 18,
+  "totalBlocks": 19,
+  "name": "Правовые документы и согласия",
+  "stage": "audit_before_implementation",
+  "createdAt": "2026-10-27T12:00:34.088477+00:00",
+  "sourceHead": "9f68644c4c2c538bdd40d676f1280de5bb4b0767",
+  "surfaces": [
+    {
+      "id": "M01",
+      "surface": "Owner Profile → legal document management",
+      "roles": "owner",
+      "dataPath": "ProfileViews → LegalDocumentManagementView",
+      "evidenceAndLimits": "Role policy + source; owner fixture navigation",
+      "status": "verified"
+    },
+    {
+      "id": "M02",
+      "surface": "Three independently loaded document cards: terms/privacy/organization rules",
+      "roles": "owner",
+      "dataPath": "fetchManagementState → strict Firestore pointer/version/draft",
+      "evidenceAndLimits": "29 unit baseline; current public version readback",
+      "status": "verified"
+    },
+    {
+      "id": "M03",
+      "surface": "Initial loading versus actionable nil-state cards",
+      "roles": "owner",
+      "dataPath": "initial isLoading=false/states=[:] before .task",
+      "evidenceAndLimits": "Source: nil card enables editor fallback before request; initial-frame fix needed",
+      "status": "open"
+    },
+    {
+      "id": "M04",
+      "surface": "First failure, retry and independently failed card",
+      "roles": "owner",
+      "dataPath": "loadState/failedTypes/refresh",
+      "evidenceAndLimits": "LegalDocumentManagementTests + LegalEditorRecoveryTests",
+      "status": "verified"
+    },
+    {
+      "id": "M05",
+      "surface": "Refresh failure after already confirmed document state",
+      "roles": "owner",
+      "dataPath": "load resets all states after results",
+      "evidenceAndLimits": "Source: lost cards on network refresh; preserve confirmed state where safe",
+      "status": "open"
+    },
+    {
+      "id": "M06",
+      "surface": "Current document reader, locale change, back",
+      "roles": "owner",
+      "dataPath": "LegalVersionReader(document:)",
+      "evidenceAndLimits": "UK/light and DE/dark maximum screenshot + locale switch/back or preview/Done passed; layout defects recorded separately.",
+      "status": "verified"
+    },
+    {
+      "id": "M07",
+      "surface": "Published history initial/error/retry/pagination",
+      "roles": "owner",
+      "dataPath": "fetchVersionHistory order versionNumber limit21/page20",
+      "evidenceAndLimits": "Source + ordinary DE fixture opening; full paginated SDK client path not independently exercised",
+      "status": "open"
+    },
+    {
+      "id": "M08",
+      "surface": "History exact document and comparison with selected/current version",
+      "roles": "owner",
+      "dataPath": "LegalVersionReader / LegalTextChange.compare",
+      "evidenceAndLimits": "Unit comparison; source checked. Separate historical comparison UI needs fixture with more than one real version",
+      "status": "open"
+    },
+    {
+      "id": "M09",
+      "surface": "Create draft and edit existing draft",
+      "roles": "owner",
+      "dataPath": "LegalDocumentDraft.from + editor bindings",
+      "evidenceAndLimits": "Six baseline UI scenarios; saved draft reopened",
+      "status": "verified"
+    },
+    {
+      "id": "M10",
+      "surface": "DE/UK titles, Markdown bodies and change summaries",
+      "roles": "owner",
+      "dataPath": "Editor local state → normalizedDraft",
+      "evidenceAndLimits": "Partial summaries unit; ordinary save/reopen UI; max body navigation followup",
+      "status": "open"
+    },
+    {
+      "id": "M11",
+      "surface": "Title/body limits and bilingual publication validation",
+      "roles": "owner",
+      "dataPath": "publishValidationErrors + Rules validators",
+      "evidenceAndLimits": "Source and incomplete draft integrity unit; full invalid-field UI matrix not exercised",
+      "status": "open"
+    },
+    {
+      "id": "M12",
+      "surface": "Save draft then independent reopen",
+      "roles": "owner",
+      "dataPath": "Firestore transaction/source hash + onSaved",
+      "evidenceAndLimits": "OwnerProfileAudit UI mock persistence + server Rules draft contract; production journal/text not written",
+      "status": "verified"
+    },
+    {
+      "id": "M13",
+      "surface": "Close: save / leave unsaved / cancel",
+      "roles": "owner",
+      "dataPath": "confirmationDialog → saveDraft or dismiss",
+      "evidenceAndLimits": "Unsaved leave UI passed; source reviewed other branches",
+      "status": "open"
+    },
+    {
+      "id": "M14",
+      "surface": "Discard saved draft, cancel and immutable published version",
+      "roles": "owner",
+      "dataPath": "discardDraft optimistic hash transaction",
+      "evidenceAndLimits": "Explicit discard/reopen UI and SDK Rules tests passed; destructive production operation excluded",
+      "status": "verified"
+    },
+    {
+      "id": "M15",
+      "surface": "Markdown preview modal and Done",
+      "roles": "owner",
+      "dataPath": "LegalMarkdownPreview → shared renderer",
+      "evidenceAndLimits": "UK/light and DE/dark maximum screenshot + locale switch/back or preview/Done passed; layout defects recorded separately.",
+      "status": "verified"
+    },
+    {
+      "id": "M16",
+      "surface": "Translation both directions, review/apply/overwrite/cancel/error",
+      "roles": "owner",
+      "dataPath": "ContentTranslationButton → translateContent provider → bindings",
+      "evidenceAndLimits": "Existing guarded source, no provider call made this audit; dedicated full translation SDK/provider check remains open",
+      "status": "open"
+    },
+    {
+      "id": "M17",
+      "surface": "Publication confirmation and unsaved draft save → publish",
+      "roles": "owner",
+      "dataPath": "saveDraft → onSaved(load all) → publishDraft transaction",
+      "evidenceAndLimits": "Source: session/role not rechecked after every await; confirmation payload not frozen. Isolated SDK publish contract passed",
+      "status": "open"
+    },
+    {
+      "id": "M18",
+      "surface": "Concurrency, lost response, draft hashes, active-pointer advance",
+      "roles": "owner",
+      "dataPath": "Firestore transactions / draftIsSaved / publicationIsActive",
+      "evidenceAndLimits": "Actual isolated SDK metadata-only concurrent edits silently overwrite; source content-hash precondition omits summary. Dedicated revision fix needed.",
+      "status": "open"
+    },
+    {
+      "id": "M19",
+      "surface": "Account/role/session change while editor/history requests pending",
+      "roles": "owner → changed principal",
+      "dataPath": "UID-only child guards; parent ProfileAccessIdentity removes navigation",
+      "evidenceAndLimits": "Parent policy works; same-UID session revision and late child completions need hardening; not proof of a server authorization bypass",
+      "status": "open"
+    },
+    {
+      "id": "P01",
+      "surface": "Public reader via settings/registration/notification",
+      "roles": "all roles including guest",
+      "dataPath": "LegalDocumentView → active pointer + version",
+      "evidenceAndLimits": "Actual hosted pages all3 HTTP200; source routes; current reader fixtures",
+      "status": "verified"
+    },
+    {
+      "id": "P02",
+      "surface": "Offline reader and retry after a prior successful read",
+      "roles": "all roles",
+      "dataPath": "LegalDocumentReaderViewModel.load catch fallback",
+      "evidenceAndLimits": "Source: replaces previously confirmed server document with bundled copy on every error; no generation fence",
+      "status": "open"
+    },
+    {
+      "id": "P03",
+      "surface": "Links, Markdown headings/lists/table/text selection",
+      "roles": "all reader roles",
+      "dataPath": "LegalMarkdownRenderer / parser",
+      "evidenceAndLimits": "Reader screenshots and source; all external URL destinations not individually opened",
+      "status": "open"
+    },
+    {
+      "id": "C01",
+      "surface": "Registration document fetch/refresh/review gating",
+      "roles": "signed out/new account",
+      "dataPath": "RegistrationLegalDocumentsViewModel server-only reads → TermsPrivacyConsentView",
+      "evidenceAndLimits": "Source + existing strict loader and offline contract tests; no real registration per earlier user boundary",
+      "status": "open"
+    },
+    {
+      "id": "C02",
+      "surface": "Updated terms/privacy: review, acknowledgement and return",
+      "roles": "active user incl owner/admin",
+      "dataPath": "LegalComplianceMonitorService → LegalComplianceView → acceptLegalDocument",
+      "evidenceAndLimits": "11 monitor race tests passed; current requirement fixture path from prior blocks not newly physically exercised",
+      "status": "verified"
+    },
+    {
+      "id": "C03",
+      "surface": "Partial acknowledgement, cancellation, retry and account change",
+      "roles": "active user",
+      "dataPath": "acceptance/configuration generations and local accepted versions",
+      "evidenceAndLimits": "LegalComplianceMonitorRaceTests passed",
+      "status": "verified"
+    },
+    {
+      "id": "C04",
+      "surface": "Decline acknowledgement/logout confirmation",
+      "roles": "active user",
+      "dataPath": "LegalComplianceView decline alert → callback",
+      "evidenceAndLimits": "Source checked; actual decline UI not exercised this audit",
+      "status": "open"
+    },
+    {
+      "id": "C05",
+      "surface": "Optional analytics independent from terms/privacy acknowledgement",
+      "roles": "active user",
+      "dataPath": "AnalyticsConsentService per-principal grants/withdrawal",
+      "evidenceAndLimits": "Source contract; no forced opt-in added. Separate optional decision preserved",
+      "status": "verified"
+    },
+    {
+      "id": "C06",
+      "surface": "Organization rules → exact org-bound acceptance/proof",
+      "roles": "organization applicant",
+      "dataPath": "OrganizationEditorView → acceptOrganizationRules → proof + immutable log",
+      "evidenceAndLimits": "Source + organization rule parser tests; prior block8 physical scenario retained, no new live request",
+      "status": "open"
+    },
+    {
+      "id": "E01",
+      "surface": "Owner-only legal confirmations entry and server authority",
+      "roles": "owner; others denied",
+      "dataPath": "ProfileAccessPolicy + assertOwner + verified active MFA",
+      "evidenceAndLimits": "10-variant actual SDK/handler role matrix passed",
+      "status": "verified"
+    },
+    {
+      "id": "E02",
+      "surface": "Account search length, browse/search continuation, query changes",
+      "roles": "owner",
+      "dataPath": "LegalEvidenceView.task(debounce) → fetchAccounts",
+      "evidenceAndLimits": "Baseline search/paging passed; held-response probe reproduced stale results during new-query debounce",
+      "status": "open"
+    },
+    {
+      "id": "E03",
+      "surface": "Account list loading/empty/network/retry",
+      "roles": "owner",
+      "dataPath": "LegalEvidenceViewModel.hasLoaded/isLoading/error",
+      "evidenceAndLimits": "Initial empty render and stale query state source review; corrected phase model needed",
+      "status": "open"
+    },
+    {
+      "id": "E04",
+      "surface": "Account list permission/session denial after successful load",
+      "roles": "owner whose access is withdrawn",
+      "dataPath": "LegalEvidenceViewModel.load catch",
+      "evidenceAndLimits": "Red probe: private account rows/count remain after permission-denied",
+      "status": "open"
+    },
+    {
+      "id": "E05",
+      "surface": "Selected account summary and paginated legal/analytics events",
+      "roles": "owner",
+      "dataPath": "getLegalEvidencePage format2 merged streams",
+      "evidenceAndLimits": "Emulator chronology/dedup/cursor/filter tests; UI next-page20 assertion passed",
+      "status": "verified"
+    },
+    {
+      "id": "E06",
+      "surface": "History filter, search, empty intermediate page and continuation",
+      "roles": "owner",
+      "dataPath": "requestKey → page filter/query → cursor",
+      "evidenceAndLimits": "Baseline filter/paging passed; maximum filter row/menu observed UK/DE; source query transition gap noted",
+      "status": "open"
+    },
+    {
+      "id": "E07",
+      "surface": "Immutable receipt provenance versus mutable profile fallback",
+      "roles": "owner",
+      "dataPath": "profileFallbackEvents + legalAcceptanceEvents",
+      "evidenceAndLimits": "Server duplicate exclusion and source labeling tests passed",
+      "status": "verified"
+    },
+    {
+      "id": "E08",
+      "surface": "Recorded document exact version/hash, legacy no-hash, missing/error/retry",
+      "roles": "owner",
+      "dataPath": "fetchPublishedVersion(expectedHash:) → LegalEvidenceVersionView",
+      "evidenceAndLimits": "Hash/version rejection unit and actual fixture reader UI; no current/bundled substitution. Permission/session child fence needs strengthening",
+      "status": "open"
+    },
+    {
+      "id": "E09",
+      "surface": "Complete export independent from visible filter, explicit preparation/share",
+      "roles": "owner",
+      "dataPath": "prepareExport → CloudLegalEvidenceRepository.fetchEvidence all pages",
+      "evidenceAndLimits": "Full-history unit and explicit UI prepare passed; red probe: old export/summary remain shareable after explicit denial",
+      "status": "open"
+    },
+    {
+      "id": "E10",
+      "surface": "Owner session/account/role change with outstanding detail/export",
+      "roles": "owner → changed principal",
+      "dataPath": "revision + UID callbacks / parent navigation removal",
+      "evidenceAndLimits": "Source; same-UID auth revision not used. Full physical variant matrix pending",
+      "status": "open"
+    },
+    {
+      "id": "S01",
+      "surface": "Acknowledgement receipt idempotency and integrity validation",
+      "roles": "verified active user",
+      "dataPath": "acceptLegalDocument transaction",
+      "evidenceAndLimits": "Actual isolated handler: identical repeated call creates2 receipts; null document hash accepted. Current production documents have valid hashes",
+      "status": "open"
+    },
+    {
+      "id": "S02",
+      "surface": "Published document immutability and draft-only deletion",
+      "roles": "owner; public read current only",
+      "dataPath": "Firestore legalDocuments/versions and acceptance Rules",
+      "evidenceAndLimits": "9 Rules tests + role matrix pass; active production Rules readback HTTP403, not inferred from emulator",
+      "status": "verified"
+    },
+    {
+      "id": "S03",
+      "surface": "Publication notice fanout, paging, retry/dedup/supersession",
+      "roles": "server → eligible accounts",
+      "dataPath": "queueLegalPublication → deliverLegalPublicationPage → inbox/push pipeline",
+      "evidenceAndLimits": "Auth/Firestore test103 accounts passed; deployed relevant TS/JS matches; fresh APNs physical delivery not exercised",
+      "status": "verified"
+    },
+    {
+      "id": "S04",
+      "surface": "Production active pointers, stored versions, bilingual public web and bundle",
+      "roles": "operator",
+      "dataPath": "Firestore + hosted HTTP + bundled sources",
+      "evidenceAndLimits": "All3 versions current; six locale hashes valid; bodies equal after excluding duplicated version/date metadata",
+      "status": "verified"
+    },
+    {
+      "id": "S05",
+      "surface": "History query indexes and source/runtime deployment compatibility",
+      "roles": "server/operator",
+      "dataPath": "six real query shapes + four source artifacts",
+      "evidenceAndLimits": "Six read-only production queries succeeded. Four handlers relevant TS+JS match, CloudRun Ready and100% intended traffic",
+      "status": "verified"
+    },
+    {
+      "id": "S06",
+      "surface": "Load/read budgets, full history export and long-document rendering",
+      "roles": "owner/server",
+      "dataPath": "3 parallel management loaders, uncoalesced reload all onSaved, bounded evidence pages",
+      "evidenceAndLimits": "Source read budget: up to9 management reads per full load; save reloads all3. No measured before/after speedup claimed",
+      "status": "open"
+    },
+    {
+      "id": "V01",
+      "surface": "Ordinary UK/light and DE/dark; maximum accessibility nested variants",
+      "roles": "owner/public reader layouts",
+      "dataPath": "Shared shells, chips, HStack rows, pinned editor actions",
+      "evidenceAndLimits": "Six ordinary baseline UI scenarios and two maximum-text families passed in separate bundles. Pixels inspected; original pinned-bar gesture failures excluded from product verdict.",
+      "status": "open"
+    },
+    {
+      "id": "V02",
+      "surface": "Physical signed app, reduced transparency/contrast, narrow/landscape, VoiceOver",
+      "roles": "applicable roles",
+      "dataPath": "device/OS presentation",
+      "evidenceAndLimits": "Not exercised this audit; separate acceptance dependency, not a claimed pass",
+      "status": "blocked_by_concrete_dependency"
+    }
+  ],
+  "scope": "Existing management, version readers, public legal readers, acceptance gates and owner evidence history. Functional/data/UI audit; no legal text approval or legal opinion. Source-reviewed is not full runtime acceptance.",
+  "rolePolicy": {
+    "owner": "Manage drafts/publish/history and evidence only while active, verified and satisfying configured MFA.",
+    "admin": "Public legal reading/own required acknowledgement only; no owner evidence or management.",
+    "organizationRoles": "No independent global legal management/evidence entitlement.",
+    "userGuestRestricted": "Published current legal documents readable; acknowledgement requires active verified user; closed history and drafts denied."
+  },
+  "verificationBoundaries": [
+    "No real legal acceptance, draft discard or publication created in production.",
+    "No production fanout or APNs test sent.",
+    "No real registration per user-established boundary.",
+    "Mock UI persistence, isolated SDK/handlers, production readback and physical acceptance are separate."
+  ]
+}
