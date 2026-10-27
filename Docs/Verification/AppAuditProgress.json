@@ -1,8 +1,8 @@
 {
   "auditDate": "2026-10-23",
   "totalBlocks": 19,
-  "completedBlocks": 10,
-  "remainingBlocks": 9,
+  "completedBlocks": 12,
+  "remainingBlocks": 7,
   "nextBlock": 19,
   "blocks": [
     {
@@ -179,10 +179,8 @@
     {
       "number": 11,
       "name": "Управление пользователями",
-      "status": "verification_pending_final_device_readback",
-      "openChecks": [
-        "U11-FINAL-INSTALLED-COPY"
-      ],
+      "status": "verification_closed_device_readback_confirmed_pending_user_acceptance",
+      "openChecks": [],
       "inventory": "Docs/Verification/UserManagementInventory20261025.json",
       "authorizedByUser": "2026-10-25: приступай к 11",
       "report": "Docs/Verification/UserManagementAudit20261025.json",
@@ -191,9 +189,11 @@
       "closedScenarioChecks": 44,
       "testFlightChanged": true,
       "closedChecks": [
-        "U11-FINAL-SOURCE-CI"
+        "U11-FINAL-SOURCE-CI",
+        "U11-FINAL-INSTALLED-COPY"
       ],
-      "testFlightBuild": "1.2.1 (123)"
+      "testFlightBuild": "1.2.1 (123)",
+      "physicalAcceptanceReport": "Docs/Verification/PhysicalAcceptance11to19Progress20261027.json"
     },
     {
       "number": 12,
@@ -698,12 +698,12 @@
   "nextNewBlock": null,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "Implementation fixes exist for all19 blocks. Preserve the separate strict closure, physical acceptance and delivery gates; block19 follow-up is recorded in ProjectSupportFixes20261027.json.",
+  "nextAction": "Continue actual iPhone notification permission/foreground/lock scenarios; Mac remains second actor only.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,
     "remainingScenarioGroups": 0,
-    "fullyClosedBlocks": 10,
+    "fullyClosedBlocks": 11,
     "block10Report": "Docs/Verification/ModerationAudit20261025.json",
     "block10ScenarioChecks": 32,
     "block11Report": "Docs/Verification/UserManagementAudit20261025.json",
@@ -770,5 +770,6 @@
     },
     "physicalBoundary": "User acceptance of signed TestFlight129 on real iPhone remains pending."
   },
-  "currentBlock": 19
+  "currentBlock": 13,
+  "physicalAcceptanceCurrentBlock": 13
 }

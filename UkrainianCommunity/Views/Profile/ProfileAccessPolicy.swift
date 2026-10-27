@@ -50,7 +50,7 @@ struct ProfileAccessPolicy {
             case .owner: return PermissionService.isAppOwner(user: user)
             case .appAdmin: return PermissionService.isAppAdmin(user: user)
             }
-        case .myFeedback(let userID), .myFeedbackDetail(let userID, _):
+        case .myFeedback(let userID), .myFeedbackDetail(let userID, _, _):
             return user != nil && user?.globalRole.authorizationRole != .owner && userID == user?.id
         case .feedbackComposer, .announcementFeedback, .supportProject:
             return canContactSupport

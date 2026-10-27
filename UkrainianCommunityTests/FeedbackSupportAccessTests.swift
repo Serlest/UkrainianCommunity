@@ -2,6 +2,15 @@ import Testing
 @testable import UkrainianCommunity
 
 @MainActor struct FeedbackSupportAccessTests {
+    @Test func repeatedNotificationRoutesCreateFreshPresentationForSameFeedback() {
+        // Returning from a conversation leaves its parent route on the stack.
+        // A later push for the same thread must reopen it, rather than reuse
+        // that parent's already-handled initialFeedbackID state.
+        #expect(ProfileNavigationRoute.feedbackDetail(feedbackID: "case") != .feedbackDetail(feedbackID: "case"))
+        #expect(ProfileNavigationRoute.myFeedbackDetail(userID: "member", feedbackID: "case") != .myFeedbackDetail(userID: "member", feedbackID: "case"))
+        #expect(ProfileNavigationRoute.notifications.hidesRootTabBar)
+    }
+
     @Test func everyRoleHasExpectedSupportRoutesAndOwnHistoryScope() {
         for (name, globalRole, state) in [("owner", "owner", "active"), ("admin", "admin", "active"),
             ("org-owner", "user", "active"), ("org-admin", "user", "active"), ("org-editor", "user", "active"),

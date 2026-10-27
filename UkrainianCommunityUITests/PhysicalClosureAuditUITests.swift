@@ -23,7 +23,7 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         let search = app.textFields["userManagement.search"].firstMatch
         XCTAssertTrue(search.waitForExistence(timeout: 15))
         let row = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "userManagement.user.")).firstMatch
-        XCTAssertTrue(row.waitForExistence(timeout: 30)); capture(app, "physical-users-confirmed-directory")
+        XCTAssertTrue(row.waitForExistence(timeout: 30)); captureForeground(app, "physical-users-confirmed-directory")
         search.tap(); search.typeText("Serlest")
         if app.keyboards.firstMatch.exists { app.coordinate(withNormalizedOffset: .init(dx: 0.96, dy: 0.12)).tap() }
         let exact = app.descendants(matching: .any).matching(identifier: "userManagement.user.4jk3piOYIWMNsBf5gUAaOMpaQc83").firstMatch
@@ -31,16 +31,16 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         if let count = ProcessInfo.processInfo.environment["UACPhysicalExpectedOrganizationCount"] {
             XCTAssertTrue(exact.label.contains(count + " орг."), exact.label)
         }
-        capture(app, "physical-users-server-search"); exact.tap()
+        captureForeground(app, "physical-users-server-search"); exact.tap()
         let presence = app.descendants(matching: .any)["user.presence.section"].firstMatch
         XCTAssertTrue(presence.waitForExistence(timeout: 20))
         let presenceResult = app.descendants(matching: .any).matching(NSPredicate(format: "identifier IN %@",
             ["user.presence.online", "user.presence.lastSeen", "user.presence.unknown"])).firstMatch
         XCTAssertTrue(presenceResult.waitForExistence(timeout: 30), "Wait for actual presence response, not its container")
-        capture(app, "physical-users-presence-and-protected-self")
+        captureForeground(app, "physical-users-presence-and-protected-self")
         XCTAssertFalse(app.buttons["user.detail.accountAction.banned"].exists)
         let security = app.staticTexts["Вхід і безпека"].firstMatch
-        reveal(security, app); capture(app, "physical-users-security")
+        reveal(security, app); captureForeground(app, "physical-users-security")
         // Read only: no account/role confirmation is opened or executed.
     }
 
@@ -555,8 +555,92 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         XCTAssertTrue(element.exists && element.isHittable)
     }
 
+    private func captureForeground(_ app: XCUIApplication, _ name: String) {
+        // On a physical phone AX queries can still read a background app while
+        // screenshot() captures another foreground app. Never accept those pixels.
+        XCTAssertEqual(app.state, .runningForeground, "UAC must be foreground for visual acceptance")
+        guard app.state == .runningForeground else { return }
+        capture(app, name)
+    }
+
     private func capture(_ app: XCUIApplication, _ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
+    }
+}
+
+extension PhysicalClosureAuditUITests {
+    private func controlledFeedbackContext() throws -> (id: String, notice: String, marker: String) {
+        let env = ProcessInfo.processInfo.environment
+        guard let id = env["UACPhysicalFeedbackID"], UUID(uuidString: id) != nil,
+              let notice = env["UACPhysicalFeedbackOwnerNoticeID"], notice.hasPrefix("feedbackSubmitted_" + id + "_"),
+              let marker = env["UACPhysicalFeedbackMarker"], marker.hasPrefix("UAC TEST P12-20261027") else {
+            throw XCTSkip("Exact approved controlled feedback context required")
+        }
+        return (id, notice, marker)
+    }
+
+    private func openControlledFeedbackNotice(_ app: XCUIApplication, context: (id: String, notice: String, marker: String)) {
+        app.activate()
+        if app.textViews["feedback.reply.text"].firstMatch.exists {
+            let input = app.textViews["feedback.reply.text"].firstMatch
+            XCTAssertTrue((input.value as? String ?? "").isEmpty, "Do not discard a pending reply during setup")
+            let done = app.buttons.matching(NSPredicate(format: "label IN %@", ["Готово", "Fertig", "Done"])).firstMatch
+            XCTAssertTrue(done.isHittable); done.tap()
+        }
+        let detailClose = app.buttons["notificationDetail.close"].firstMatch
+        if detailClose.exists && detailClose.isHittable { detailClose.tap() }
+        openProfile(app)
+        let owner = app.staticTexts["Serlest"].firstMatch
+        reveal(owner, app, towardTop: true); XCTAssertTrue(owner.exists)
+        let notifications = app.buttons["profile.notifications.open"].firstMatch
+        reveal(notifications, app); notifications.tap()
+        let notice = app.buttons["notificationInbox.open." + context.notice].firstMatch
+        XCTAssertTrue(notice.waitForExistence(timeout: 20))
+        reveal(notice, app); captureForeground(app, "physical-p12-owner-exact-notice")
+        notice.tap()
+        let preview = app.staticTexts["notificationDetail.body"].firstMatch
+        XCTAssertTrue(preview.waitForExistence(timeout: 15))
+        XCTAssertTrue(preview.label.contains("UAC TEST P12-20261027"))
+        captureForeground(app, "physical-p12-owner-notification-detail")
+        let destination = app.buttons["notificationDetail.openDestination"].firstMatch
+        XCTAssertTrue(destination.waitForExistence(timeout: 15)); reveal(destination, app); destination.tap()
+        let original = app.staticTexts.matching(NSPredicate(format: "label == %@", context.marker)).firstMatch
+        XCTAssertTrue(original.waitForExistence(timeout: 20))
+        captureForeground(app, "physical-p12-exact-feedback-thread")
+        XCTAssertTrue(app.textViews["feedback.reply.text"].firstMatch.exists)
+    }
+
+    func testP12AOwnerNotificationOpensTheExactControlledFeedback() throws {
+        let context = try controlledFeedbackContext()
+        let app = XCUIApplication(); openControlledFeedbackNotice(app, context: context)
+        // A controlled deep link installs its manager inbox as the parent route.
+        // Done dismisses the conversation into that inbox, not into Profile.
+        let done = app.buttons.matching(NSPredicate(format: "label IN %@", ["Готово", "Fertig", "Done"])).firstMatch
+        XCTAssertTrue(done.isHittable); done.tap()
+        XCTAssertTrue(app.textViews["feedback.reply.text"].firstMatch.waitForNonExistence(timeout: 10))
+        let search = app.textFields["feedbackInbox.search"].firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 15)); reveal(search, app)
+        XCTAssertTrue(search.isHittable)
+        captureForeground(app, "physical-p12-return-to-manager-inbox")
+    }
+
+    func testP12BOwnerRepliesOnlyToTheApprovedControlledFeedback() throws {
+        let context = try controlledFeedbackContext()
+        guard ProcessInfo.processInfo.environment["UACPhysicalFeedbackRoundTripApproved"] == "2026-10-27" else {
+            throw XCTSkip("Human authorization for this exact test exchange required")
+        }
+        let app = XCUIApplication(); openControlledFeedbackNotice(app, context: context)
+        let reply = "UAC TEST P12-20261027 REPLY-1: повідомлення отримано. Контрольована перевірка відповіді."
+        XCTAssertFalse(app.staticTexts[reply].firstMatch.exists, "Never send this test response twice")
+        let input = app.textViews["feedback.reply.text"].firstMatch
+        reveal(input, app); input.tap(); input.typeText(reply)
+        XCTAssertEqual(input.value as? String, reply)
+        captureForeground(app, "physical-p12-owner-reply-keyboard")
+        dismissKeyboard(app)
+        let send = app.buttons["feedback.reply.send"].firstMatch
+        reveal(send, app); XCTAssertTrue(send.isEnabled); send.tap()
+        XCTAssertTrue(app.staticTexts[reply].firstMatch.waitForExistence(timeout: 20))
+        captureForeground(app, "physical-p12-owner-reply-saved")
     }
 }

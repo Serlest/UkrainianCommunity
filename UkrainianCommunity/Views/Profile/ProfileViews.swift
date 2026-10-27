@@ -36,8 +36,10 @@ enum ProfileNavigationRoute: Hashable {
     case bannerAnalytics(period: AnalyticsPeriod)
     case donationSettings
     case feedbackInbox
-    case feedbackDetail(feedbackID: String)
-    case myFeedbackDetail(userID: String, feedbackID: String)
+    // Each notification is a new presentation, even after Done returned to
+    // the existing inbox for this same thread. Its handled-ID state must reset.
+    case feedbackDetail(feedbackID: String, presentationID: UUID = UUID())
+    case myFeedbackDetail(userID: String, feedbackID: String, presentationID: UUID = UUID())
     case systemLogs(SystemLogsAccessMode)
     case systemLogDetail(String)
     case notifications
@@ -51,7 +53,7 @@ enum ProfileNavigationRoute: Hashable {
     var hidesRootTabBar: Bool {
         switch self {
         case .accountSecurity, .directoryEditors, .userManagement, .contentPlanning(draftID: nil),
-             .legalDocumentManagement, .legalEvidence, .legal, .donationSettings: true
+             .legalDocumentManagement, .legalEvidence, .legal, .donationSettings, .notifications: true
         default: false
         }
     }
@@ -741,18 +743,20 @@ struct ProfileView: View {
                 repository: feedbackRepository,
                 notificationInboxRepository: notificationInboxRepository
             )
-        case let .feedbackDetail(feedbackID):
+        case let .feedbackDetail(feedbackID, presentationID):
             FeedbackInboxView(
                 repository: feedbackRepository,
                 notificationInboxRepository: notificationInboxRepository,
                 initialFeedbackID: feedbackID
             )
-        case let .myFeedbackDetail(userID, feedbackID):
+            .id(presentationID)
+        case let .myFeedbackDetail(userID, feedbackID, presentationID):
             MyFeedbackView(
                 viewModel: myFeedbackViewModel,
                 currentUserID: userID,
                 initialFeedbackID: feedbackID
             )
+            .id(presentationID)
         case let .systemLogDetail(logID):
             if PermissionService.isAppOwner(user: permissionUser) { SystemLogNotificationDestinationView(logID: logID) }
         case let .systemLogs(accessMode):

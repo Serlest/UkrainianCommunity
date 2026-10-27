@@ -1,0 +1,262 @@
+{
+  "schemaVersion": 1,
+  "status": "in_progress",
+  "updatedAt": "2026-10-27T19:05:55.600707+00:00",
+  "scope": "Only outstanding physical checks from blocks11–19; retain existing source/emulator/simulator evidence. Each remaining scenario is observed step by step.",
+  "userConstraints": [
+    "Primary iPhone is the visual/interaction acceptance device.",
+    "Mac Serlest Gmail is only the controlled second actor/recipient; its pixels do not count as iPhone visual proof.",
+    "Keep Serlest signed in on iPhone; do not replace its session merely for recipient checks.",
+    "Role-specific iPhone views cannot be claimed from Mac observations. If another iPhone login is indispensable, request that concrete step rather than silently skipping it.",
+    "Do not repeat declined real registration; do not create credentials or accept legal terms for the user."
+  ],
+  "devices": {
+    "iPhone": {
+      "account": "Serlest",
+      "role": "appOwner",
+      "sourceBase": "091ca4352f87cd64807cd05e823a568e82faef20",
+      "installation": "Locally signed Release, product1.2.1(129); no TestFlight upload."
+    },
+    "Mac": {
+      "account": "Serlest Gmail",
+      "role": "ordinary user",
+      "build": "1.2.1(129)",
+      "sourceBoundary": "Existing TestFlight129; known delivery includes implemented blocks1–16. Use as compatible sender/recipient, not proof of latest17–19 UI."
+    }
+  },
+  "blocks": [
+    {
+      "block": 11,
+      "name": "Управление пользователями",
+      "status": "passed_remaining_installed_copy_check",
+      "remainingBeforeThisRun": [
+        "U11-FINAL-INSTALLED-COPY"
+      ],
+      "existingEvidence": "Docs/Verification/UserManagementAudit20261025.json"
+    },
+    {
+      "block": 12,
+      "name": "Отзывы, жалобы и поддержка",
+      "status": "passed_remaining_signed_read_and_actual_apns_tap",
+      "remainingBeforeThisRun": [
+        "F12-45"
+      ],
+      "existingEvidence": "Docs/Verification/FeedbackSupportAudit20261026.json"
+    },
+    {
+      "block": 13,
+      "name": "Уведомления и оповещения",
+      "status": "in_progress",
+      "remainingBeforeThisRun": [
+        "N13-57"
+      ],
+      "existingEvidence": "Docs/Verification/NotificationsAudit20261026.json"
+    },
+    {
+      "block": 14,
+      "name": "Баннеры",
+      "status": "queued",
+      "remainingBeforeThisRun": [
+        "B14-72-DEVICE-MATRIX",
+        "B14-79"
+      ],
+      "existingEvidence": "Docs/Verification/BannersAudit20261026.json"
+    },
+    {
+      "block": 15,
+      "name": "Аналитика",
+      "status": "queued",
+      "remainingBeforeThisRun": [
+        "Physical signed iPhone with real protected owner reads, both languages/themes and large text.",
+        "Narrow/landscape/reduced-transparency device matrix; long ranking expansion with real20item data. The shared disclosure controls and both region lists are tested locally.",
+        "No new TestFlight delivery was requested."
+      ],
+      "existingEvidence": "Docs/Verification/AnalyticsFixes20261027.json"
+    },
+    {
+      "block": 16,
+      "name": "Контроль публикаций и автоматических проходов",
+      "status": "queued",
+      "remainingBeforeThisRun": [
+        "Signed physical iPhone read/filters/date/detail/back and unchanged legacy compatibility modals; device currently unavailable."
+      ],
+      "existingEvidence": "Docs/Verification/PublicationControlFixes20261027.json"
+    },
+    {
+      "block": 17,
+      "name": "Журнал системы и серверные процессы",
+      "status": "queued",
+      "remainingBeforeThisRun": [
+        "Physical signed-copy journal reads and fresh APNs lock-screen/tap acceptance; phone unavailable",
+        "Reduced transparency / increased contrast and full physical role/device matrix",
+        "New TestFlight delivery only when requested; build129 does not include block17"
+      ],
+      "existingEvidence": "Docs/Verification/SystemLogsFixes20261027.json"
+    },
+    {
+      "block": 18,
+      "name": "Правовые документы и согласия",
+      "status": "queued",
+      "remainingBeforeThisRun": [
+        "Signed physical iPhone, VoiceOver, increased contrast/reduced transparency and narrow/landscape acceptance; phone unavailable.",
+        "No real registration per user boundary; no real external translation-provider quality assessment.",
+        "New TestFlight delivery when requested; build129 excludes blocks17–18."
+      ],
+      "existingEvidence": "Docs/Verification/LegalFixes20261027.json"
+    },
+    {
+      "block": 19,
+      "name": "Поддержка проекта",
+      "status": "queued",
+      "remainingBeforeThisRun": [
+        "Signed physical iPhone, VoiceOver spoken interaction and OS transparency/contrast settings remain pending; Serlest Mobile unavailable.",
+        "Real external-site return/payment and real provider translation quality were not invoked; provider-free UI/contract evidence is separate.",
+        "Narrow landscape interaction and an actual dropped Firestore acknowledgement remain unverified; portrait maximum-text and typed recovery evidence do not claim those scenarios.",
+        "Hosted CI status is recorded exactly above; a running or pending run is not passed. No TestFlight upload/public release in this turn."
+      ],
+      "existingEvidence": "Docs/Verification/ProjectSupportFixes20261027.json"
+    }
+  ],
+  "acceptedChecks": [
+    {
+      "id": "U11-FINAL-INSTALLED-COPY",
+      "result": "passed",
+      "artifact": "build/physical-acceptance11-19-20261027/P11ForegroundConfirmed.xcresult",
+      "device": "Serlest Mobile / iPhone16ProMax / iOS27.2",
+      "passed": 1,
+      "failed": 0,
+      "steps": [
+        "Current locally signed Release opens under existing Serlest session.",
+        "Working-server directory loaded40of70 users; distinct loaded/total labels are readable.",
+        "Search Serlest returns exactly the controlled main and Gmail accounts; owner displays9 organizations.",
+        "Owner detail shows actual Online state,3-minute grace explanation, self-account protections and organization roles.",
+        "Security text distinguishes authorization from app activity; protected owner role is not editable."
+      ],
+      "reviewedImages": [
+        "build/physical-acceptance11-19-20261027/p11-foreground-attachments/D40AB6A2-EC13-42AB-803D-827C248D1DD1.png",
+        "build/physical-acceptance11-19-20261027/p11-foreground-attachments/F9CA4240-9480-46F0-868B-23380429B4D8.png",
+        "build/physical-acceptance11-19-20261027/p11-foreground-attachments/88D5ACB3-1601-4AF4-94BE-0CB6F3242874.png",
+        "build/physical-acceptance11-19-20261027/p11-foreground-attachments/36354712-15F9-4C16-89BB-2C2A76E338DA.png"
+      ],
+      "excludedAttempt": {
+        "artifact": "build/physical-acceptance11-19-20261027/P11FinalInstalledRead.xcresult",
+        "reason": "Automatic assertions passed but one inspected screenshot showed Mail. Not accepted as visual proof; foreground assertion added and the full read repeated."
+      }
+    },
+    {
+      "id": "F12-45",
+      "result": "passed_remaining_conditions",
+      "evidence": "feedbackRoundTrip",
+      "boundary": "Retains earlier44 scenario evidence; this is not a claim of new physical execution for every role or every language."
+    }
+  ],
+  "feedbackRoundTrip": {
+    "marker": "UAC TEST P12-20261027",
+    "authorization": "User explicitly approved this test request and answers between Serlest Gmail and Serlest.",
+    "feedbackID": "C1BFBB90-0699-4178-9E96-7BA3C5A18616",
+    "status": "passed_real_exchange_and_repeat_push_after_explicit_install",
+    "submittedFromMac": true,
+    "independentFeedbackDocumentReadback": true,
+    "ownerInboxNoticeReadback": true,
+    "pushServerReceipt": {
+      "status": "complete",
+      "attempts": 1,
+      "artifact": "build/physical-acceptance11-19-20261027/p12-owner-push-receipt.json",
+      "boundary": "Provider acceptance is not physical APNs/banner/tap proof."
+    },
+    "iPhoneVisuals": [
+      "Actual notification list/detail, conversation original/reply and manager return inspected.",
+      "Reply draft was visible; screenshot named keyboard does not show a software keyboard, so software-keyboard acceptance is not inferred."
+    ],
+    "ownerReplySent": true,
+    "MacReplyReceiptVerified": true,
+    "independentExactOwnerReplyReadback": true,
+    "independentExactFollowupReadback": true,
+    "evidence": [
+      "build/physical-acceptance11-19-20261027/P12ExactRouteAndReturnFinal.xcresult",
+      "build/physical-acceptance11-19-20261027/P12RoundTripCorrectedRoute.xcresult (only individual B passed; A return expectation was wrong)",
+      "build/physical-acceptance11-19-20261027/p12-owner-reply.json",
+      "build/physical-acceptance11-19-20261027/p12-author-reply-notice.json",
+      "build/physical-acceptance11-19-20261027/p12-user-followup.json",
+      "build/physical-acceptance11-19-20261027/p12-followup-owner-notice.json"
+    ],
+    "physicalAPNs": {
+      "status": "passed_after_fix",
+      "time": "2026-10-27 19:53 Europe/Vienna",
+      "device": "Serlest Mobile physical iPhone",
+      "observation": "Actual native UAC banner and badge1 appeared while UAC was backgrounded. Tapping resumed manager inbox with exact FOLLOWUP-1 card but did not reopen conversation after previously pressing Done. No assumption that provider receipt alone proved this.",
+      "fix": "Give each feedback notification route a fresh presentation identity, resetting the handled-initial-ID state. Repeat on signed phone is pending.",
+      "repeatTime": "2026-10-27 20:04–20:05 Europe/Vienna",
+      "result": "After explicit signed app installation and restart, Done returned to the manager inbox. Background FOLLOWUP-3 arrived as actual system UAC notification; tapping it opened the exact conversation with FOLLOWUP-3 visible. Original banner delivery was directly observed at19:53. Later notices tapped through native Notification Center; no claim of locked-device/FaceID acceptance.",
+      "evidence": [
+        "build/physical-acceptance11-19-20261027/install-p12-push-fix.json",
+        "build/physical-acceptance11-19-20261027/P12ExplicitInstalledFix.xcresult",
+        "build/physical-acceptance11-19-20261027/p12-followup3-push-destination.png",
+        "build/physical-acceptance11-19-20261027/p12-followup3-owner-notice.json",
+        "build/physical-acceptance11-19-20261027/p12-followup3-push-receipt.json"
+      ]
+    },
+    "reviewedImages": [
+      "build/physical-acceptance11-19-20261027/p12-owner-reply-attachments/11B12F38-F5F6-47CA-BC02-D70EF9F64992.png",
+      "build/physical-acceptance11-19-20261027/p12-owner-reply-attachments/BEE79D4F-A871-4266-B75F-D98A7F25B077.png",
+      "build/physical-acceptance11-19-20261027/p12-route-final-attachments/3349DC9F-CB3A-4A38-9DE4-CBB8B0E7AFBE.png",
+      "build/physical-acceptance11-19-20261027/p12-followup3-push-destination.png",
+      "build/physical-acceptance11-19-20261027/p12-installed-fix-attachments/601504B2-3D03-463C-9CC2-5A1478344F09.png"
+    ],
+    "verificationBoundary": "Initial post-build attempt did not explicitly replace the already-running target. Do not accept it as fixed-source proof. Explicit devicectl installation, restart and repeated physical scenario supersede it.",
+    "testResults": [
+      {
+        "artifact": "build/physical-acceptance11-19-20261027/RouteAccessRegression.xcresult",
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "platform": "simulator unit tests; route identity and full role policy"
+      },
+      {
+        "artifact": "build/physical-acceptance11-19-20261027/P12ExplicitInstalledFix.xcresult",
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "platform": "physical iPhone; exact notification detail/thread/return"
+      }
+    ]
+  },
+  "observationsToReview": [
+    {
+      "id": "PHONE-NAV-01",
+      "surface": "Notification inbox/detail",
+      "observation": "iOS27.2 shows root tabs despite NotificationInboxView requesting hidden tabs; root policy currently does not include .notifications.",
+      "status": "fixed_and_observed_no_root_tabs_in_actual_notification_list_after_explicit_install"
+    },
+    {
+      "id": "PHONE-NAV-02",
+      "surface": "Feedback destination opened from notification",
+      "observation": "Done returns to the manager feedback inbox installed as the parent route. Earlier expectation of Profile return was a test-driver mistake. Retaining the original notification list is a separate UX candidate.",
+      "status": "recorded_ux_candidate"
+    },
+    {
+      "id": "PHONE-TEST-01",
+      "surface": "Physical screenshot acceptance",
+      "observation": "AX queries can pass for background UAC while screenshot captures another app. Guard foreground state for visual captures.",
+      "status": "test_guard_implemented_and_repeated"
+    },
+    {
+      "id": "PHONE-FEEDBACK-03",
+      "surface": "Repeat push for the same feedback after Done",
+      "observation": "Actual native UAC banner and badge1 appeared while UAC was backgrounded. Tapping resumed manager inbox with exact FOLLOWUP-1 card but did not reopen conversation after previously pressing Done. No assumption that provider receipt alone proved this.",
+      "status": "fixed_and_repeated_with_actual_native_notification_tap"
+    }
+  ],
+  "acceptanceMethod": [
+    "Verify action, intermediate loading, resulting screen and navigation/cancel.",
+    "Inspect actual iPhone pixels and focused inputs, not only AX existence.",
+    "For writes verify exact independent server readback and recipient identity, then reopen.",
+    "Evaluate applicable UK/DE, light/dark, large text, orientation and OS accessibility states on iPhone; never infer them from Mac layout.",
+    "Use only controlled test records for messages/status changes. Keep real user content, permissions and production publication unchanged."
+  ],
+  "notCompleted": [
+    "Blocks13–19 remain open; block12 remaining F12-45 signed read and APNs/tap conditions are now observed.",
+    "Full physical role/OS accessibility matrix remains open until individually observed.",
+    "No claim that all tests or all19 blocks are physically complete."
+  ]
+}
