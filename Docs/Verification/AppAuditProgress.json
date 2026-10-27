@@ -3,7 +3,7 @@
   "totalBlocks": 19,
   "completedBlocks": 10,
   "remainingBlocks": 9,
-  "nextBlock": 17,
+  "nextBlock": 19,
   "blocks": [
     {
       "number": 1,
@@ -495,16 +495,83 @@
     {
       "number": 18,
       "name": "Правовые документы и согласия",
-      "status": "audit_findings_pending_user_implementation_approval",
+      "status": "implemented_locally_verified_and_deployed_pending_device_acceptance",
       "openChecks": [
-        "Implement approved findings; complete linked SDK/UI and physical acceptance ledger separately."
+        "Signed physical iPhone, VoiceOver, increased contrast/reduced transparency and narrow/landscape acceptance; phone unavailable.",
+        "No real registration per user boundary; no real external translation-provider quality assessment.",
+        "New TestFlight delivery when requested; build129 excludes blocks17–18."
       ],
       "authorizedByUser": "2026-10-27: Тогда переходи к следующему этапу, подойди максимально детально",
       "inventory": "Docs/Verification/LegalInventory20261027.json",
       "report": "Docs/Verification/LegalAudit20261027.json",
-      "productionChanged": false,
+      "productionChanged": true,
       "testFlightChanged": false,
-      "findingGroups": 10
+      "findingGroups": 11,
+      "resolutionReport": "Docs/Verification/LegalFixes20261027.json",
+      "implementedFindings": [
+        "L18-F01",
+        "L18-F02",
+        "L18-F03",
+        "L18-F04",
+        "L18-F05",
+        "L18-F06",
+        "L18-F07",
+        "L18-F08",
+        "L18-F09",
+        "L18-F10",
+        "L18-F11"
+      ],
+      "implementationAuthorizedByUser": "2026-10-27: ИсправлЙ если детально все проверил",
+      "sourceCommit": "c27a9a0d5d2563ff27b75dd80e84e0146090898c",
+      "reviewedSurfaces": 46,
+      "localValidation": {
+        "iOSUnitPassed": 963,
+        "iOSUnitFailed": 0,
+        "iOSOptInSkipped": 41,
+        "connectedSDKAndModelPassed": 48,
+        "legalServerPassed": 24,
+        "rulesPassed": 9,
+        "roleVariants": 10,
+        "unsignedRelease": "passed"
+      },
+      "sourceCI": {
+        "conclusion": "success",
+        "headSha": "d93fade1fcb11471392a6d183704c8a9b2c2d1ec",
+        "jobs": [
+          {
+            "name": "Change classification and static checks",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "iOS build and unit checks",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Firebase and rules",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Firebase affected checks",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "iOS build and unit tests",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ],
+        "status": "completed",
+        "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40521264724"
+      },
+      "finalWordingFollowup": {
+        "localUI": "passed",
+        "localization": "passed",
+        "hostedCI": "pending; core d93 pipeline passed"
+      }
     },
     {
       "number": 19,
@@ -610,13 +677,13 @@
     "block13AuthorizedByUser": "2026-10-26: Вперед. Думаю что после этого я проверю детально оповещения и уведомления."
   },
   "schemaVersion": 2,
-  "blocksWithImplementedFixes": 17,
+  "blocksWithImplementedFixes": 18,
   "blocksReopenedForCompletion": 0,
   "notStartedBlocks": 1,
   "nextNewBlock": 19,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "Block18 audit findings recorded; await user approval to implement. Block19 remains unstarted.",
+  "nextAction": "Block18 fixes implemented and server deployed; device acceptance and new TestFlight remain separate. Block19 is unstarted and requires the next instruction.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,

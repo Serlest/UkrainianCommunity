@@ -1,0 +1,748 @@
+{
+  "schemaVersion": 1,
+  "block": 18,
+  "totalBlocks": 19,
+  "status": "implemented_locally_verified_and_deployed_pending_device_acceptance",
+  "baselineAudit": "Docs/Verification/LegalAudit20261027.json",
+  "inventory": "Docs/Verification/LegalInventory20261027.json",
+  "implementationCommits": [
+    "b9134ffe3ebe1d0bd8f09166bd618f9bc7a300ca",
+    "d265fdc686579abbe14f5e1ea54bd5a0fa8dc49a",
+    "809bbcf99e1794b9bc292507a9208a5d4b177214",
+    "16a194fad157cc10dd0d5f40150f3c2a4d33e2c2",
+    "d93fade1fcb11471392a6d183704c8a9b2c2d1ec",
+    "c27a9a0d5d2563ff27b75dd80e84e0146090898c"
+  ],
+  "findings": [
+    {
+      "id": "L18-F01",
+      "resolution": "Confirmed access/session/not-found responses withdraw identities, counts, summaries and prepared exports; outstanding responses cannot restore them.",
+      "status": "implemented"
+    },
+    {
+      "id": "L18-F02",
+      "resolution": "Search invalidates outstanding results immediately; query/auth-bound generations and explicit initial/loading/confirmed-empty states; editor links require confirmed management state.",
+      "status": "implemented"
+    },
+    {
+      "id": "L18-F03",
+      "resolution": "Reader retains last confirmed document, labels bundled copies including retries, coalesces requests and requires a server read rather than silently accepting cached Firestore snapshots.",
+      "status": "implemented"
+    },
+    {
+      "id": "L18-F04",
+      "resolution": "Owner children and translation bind commands/previews to authority and auth revision; publish/discard/close capture immutable payloads and recheck after awaits.",
+      "status": "implemented"
+    },
+    {
+      "id": "L18-F05",
+      "resolution": "Canonical idempotent receipt with exact published integrity validation and transaction-time user/MFA checks; preserves valid historical/random/registration receipts and request/response compatibility.",
+      "status": "implemented"
+    },
+    {
+      "id": "L18-F06",
+      "resolution": "Wrapping metadata, fixed decorative icons, full-width adaptive actions, compact accessible editor bar, one Markdown heading and deliberate root tab policy. Long translation source is expandable and the editable translation stays bounded and scrollable.",
+      "status": "implemented"
+    },
+    {
+      "id": "L18-F07",
+      "resolution": "Per-document coalesced refresh; saving refreshes the changed type; safe confirmed cards survive transient errors and failed cards cannot be edited until recovery.",
+      "status": "implemented"
+    },
+    {
+      "id": "L18-F08",
+      "resolution": "Explicit history loading/empty/retry/pagination and refreshed, labeled comparison reference. Archived versions remain readable. Removed and added paragraphs retain their respective document reading order.",
+      "status": "implemented"
+    },
+    {
+      "id": "L18-F09",
+      "resolution": "Actual connected Swift SDK lifecycle and held-response regressions added; UI journeys cover keyboard persistence, translation review, confirmation and historical comparison. Device-only acceptance remains separately pending.",
+      "status": "implemented_device_acceptance_separate"
+    },
+    {
+      "id": "L18-F10",
+      "resolution": "Full semantic draft state precondition includes mutable metadata; stale saves, discards and publication reject conflicts while immutable published hashes remain unchanged.",
+      "status": "implemented"
+    },
+    {
+      "id": "L18-F11",
+      "status": "implemented_and_deployed",
+      "title": "Organization-bound proof ownership, receipt time and immutable content integrity",
+      "discoveredDuringImplementation": true,
+      "before": {
+        "artifact": "build/fix-legal18-20261027/organization-proof-regression.log",
+        "passed": 1,
+        "failed": 3,
+        "sourceMatchedProduction": "build/fix-legal18-20261027/organization-proof-before-source-match.json"
+      },
+      "resolution": "Creation proof reservations cannot be overwritten by another account. Fresh transaction reads enforce verified active/MFA/legal authority and request limits. Exact published hashes are checked, and receipt/response times match across retry and concurrent calls. Existing proof lifetime and client protocol are preserved."
+    }
+  ],
+  "verification": {
+    "connectedClient": {
+      "artifact": "build/fix-legal18-20261027/ConnectedFinal.xcresult",
+      "passed": 48,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "47 focused model/contracts plus 1 actual Swift Firebase Auth/Firestore/Functions SDK lifecycle, including disabled-network cache check. No real production acceptance/publication."
+    },
+    "legalServer": {
+      "artifact": "build/fix-legal18-20261027/legal-rules-roles-final.log",
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0
+    },
+    "rules": {
+      "artifact": "build/fix-legal18-20261027/legal-rules-roles-final.log",
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0
+    },
+    "sharedTranslationServer": {
+      "artifact": "build/fix-legal18-20261027/translation-tests.log",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    "serverUnit": {
+      "artifact": "build/fix-legal18-20261027/server-unit-final.log",
+      "passed": 519,
+      "failed": 0,
+      "skipped": 180,
+      "meaning": "Integration-only tests intentionally skip without emulators; legal and translation integrations passed separately."
+    },
+    "productionDeployment": [
+      {
+        "function": "acceptLegalDocument",
+        "state": "ACTIVE",
+        "policyRetained": true,
+        "ready": true,
+        "traffic100": true,
+        "revision": "acceptlegaldocument-00015-zof",
+        "sourceMatches": true,
+        "comparisons": [
+          {
+            "file": "src/legal/legalDocuments.ts",
+            "matches": true,
+            "sha256": "e4590f8747836881a0c74d76786b452ecce21b86e8d8b32f987e318de2e0e18e"
+          },
+          {
+            "file": "lib/legal/legalDocuments.js",
+            "matches": true,
+            "sha256": "290e10186a16647e42e3e75f82333aa6c94643da15861dbe64a62fbabcfa4523"
+          },
+          {
+            "file": "src/legal/legalDocumentIntegrity.ts",
+            "matches": true,
+            "sha256": "52c9ca8601051af1221119fce9f87c1bc75157cd9c383a898169f1d27ff14db3"
+          },
+          {
+            "file": "lib/legal/legalDocumentIntegrity.js",
+            "matches": true,
+            "sha256": "08caba0ac5ced0c4d7fea442b607132b44c58d8a1994817de9d559d48536b2a1"
+          },
+          {
+            "file": "src/legal/organizationRulesAcceptance.ts",
+            "matches": true,
+            "sha256": "6084fd72415d7e287f9a11c083c822929b38b553a2e0c1daedbb7b91da458da7"
+          },
+          {
+            "file": "lib/legal/organizationRulesAcceptance.js",
+            "matches": true,
+            "sha256": "61b5e9ffae1a9b6d802dae406d07ab670698e13b6cb53605cc8334a4c58d319e"
+          },
+          {
+            "file": "src/auth/context.ts",
+            "matches": true,
+            "sha256": "691cbb4e1c6d3a0c0ced792913a5c7bc5e0f6c179b8f8201fff5e3728599cf1b"
+          },
+          {
+            "file": "lib/auth/context.js",
+            "matches": true,
+            "sha256": "e06efcb960f37b1a29bc736d1150f295fd74194500ea96e35d9149d7a517d205"
+          },
+          {
+            "file": "src/permissions/userPermissions.ts",
+            "matches": true,
+            "sha256": "35b5063e3f3ef8263b88e9d642a4c60835bc1e5ebe931c042746cd14d7692406"
+          },
+          {
+            "file": "lib/permissions/userPermissions.js",
+            "matches": true,
+            "sha256": "99c77ccf015ac54dd26d1938456d19b5ae00bf4036b81aa176dddc6e530b3842"
+          }
+        ],
+        "http": 401,
+        "response": {
+          "error": {
+            "message": "Authentication is required.",
+            "status": "UNAUTHENTICATED"
+          }
+        },
+        "businessProof": "Actual Swift Firebase SDK connected to isolated Auth/Firestore/Functions emulators; no production user acknowledgement was generated."
+      },
+      {
+        "function": "acceptOrganizationRules",
+        "state": "ACTIVE",
+        "policyRetained": true,
+        "ready": true,
+        "traffic100": true,
+        "revision": "acceptorganizationrules-00004-mit",
+        "sourceMatches": true,
+        "comparisons": [
+          {
+            "file": "src/legal/legalDocuments.ts",
+            "matches": true,
+            "sha256": "e4590f8747836881a0c74d76786b452ecce21b86e8d8b32f987e318de2e0e18e"
+          },
+          {
+            "file": "lib/legal/legalDocuments.js",
+            "matches": true,
+            "sha256": "290e10186a16647e42e3e75f82333aa6c94643da15861dbe64a62fbabcfa4523"
+          },
+          {
+            "file": "src/legal/legalDocumentIntegrity.ts",
+            "matches": true,
+            "sha256": "52c9ca8601051af1221119fce9f87c1bc75157cd9c383a898169f1d27ff14db3"
+          },
+          {
+            "file": "lib/legal/legalDocumentIntegrity.js",
+            "matches": true,
+            "sha256": "08caba0ac5ced0c4d7fea442b607132b44c58d8a1994817de9d559d48536b2a1"
+          },
+          {
+            "file": "src/legal/organizationRulesAcceptance.ts",
+            "matches": true,
+            "sha256": "6084fd72415d7e287f9a11c083c822929b38b553a2e0c1daedbb7b91da458da7"
+          },
+          {
+            "file": "lib/legal/organizationRulesAcceptance.js",
+            "matches": true,
+            "sha256": "61b5e9ffae1a9b6d802dae406d07ab670698e13b6cb53605cc8334a4c58d319e"
+          },
+          {
+            "file": "src/auth/context.ts",
+            "matches": true,
+            "sha256": "691cbb4e1c6d3a0c0ced792913a5c7bc5e0f6c179b8f8201fff5e3728599cf1b"
+          },
+          {
+            "file": "lib/auth/context.js",
+            "matches": true,
+            "sha256": "e06efcb960f37b1a29bc736d1150f295fd74194500ea96e35d9149d7a517d205"
+          },
+          {
+            "file": "src/permissions/userPermissions.ts",
+            "matches": true,
+            "sha256": "35b5063e3f3ef8263b88e9d642a4c60835bc1e5ebe931c042746cd14d7692406"
+          },
+          {
+            "file": "lib/permissions/userPermissions.js",
+            "matches": true,
+            "sha256": "99c77ccf015ac54dd26d1938456d19b5ae00bf4036b81aa176dddc6e530b3842"
+          }
+        ],
+        "http": 401,
+        "response": {
+          "error": {
+            "message": "Authentication is required.",
+            "status": "UNAUTHENTICATED"
+          }
+        },
+        "businessProof": "Four actual Firestore integration scenarios verify organization proof ownership, exact receipt retries, published integrity and verified active/MFA/request limits. This callable was not independently replayed through Swift transport; its client request/response contract is unchanged. No production user acknowledgement was generated."
+      }
+    ],
+    "productionDocumentsUnchanged": [
+      {
+        "type": "terms",
+        "unchanged": true,
+        "version": "2026.15"
+      },
+      {
+        "type": "privacy",
+        "unchanged": true,
+        "version": "2026.22"
+      },
+      {
+        "type": "organizationRules",
+        "unchanged": true,
+        "version": "2026.11"
+      }
+    ],
+    "productionReceiptQuery": {
+      "artifact": "build/fix-legal18-20261027/receipt-index-proof.json",
+      "success": true,
+      "returned": 0,
+      "scope": "Read-only equality index proof with a nonexistent UID; no user data queried."
+    },
+    "publishedCompatibility": {
+      "artifact": "build/fix-legal18-20261027/published-compatibility-final.json",
+      "validTypes": [
+        "terms",
+        "privacy",
+        "organizationRules"
+      ]
+    },
+    "fullIOSRegression": {
+      "artifact": "build/fix-legal18-20261027/FullRegressionFinal.xcresult",
+      "summary": "build/fix-legal18-20261027/full-regression-final-summary.json",
+      "passed": 963,
+      "failed": 0,
+      "skipped": 41,
+      "meaning": "41 opt-in external/SDK cases do not run in the ordinary environment; the legal SDK case was explicitly run successfully in ConnectedFinal.",
+      "sourceScope": "d93 executable source; subsequent c27 changes one German localized string only, covered by ReceiptLabelFinal/localization validation."
+    },
+    "roles": {
+      "artifact": "build/fix-legal18-20261027/legal-rules-roles-final.log",
+      "variants": 10,
+      "scope": "Actual emulator Rules plus legal evidence handler contexts: owner/admin/organization owner/admin/editor/user/blocked owner/MFA-incomplete/unverified/guest. No physical per-role pass is claimed."
+    },
+    "uiRuns": [
+      {
+        "artifact": "build/fix-legal18-20261027/VisualUK.xcresult",
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "UK light, maximum accessibility management/current reader/editor/preview and evidence family; followed by final labels below"
+      },
+      {
+        "artifact": "build/fix-legal18-20261027/VisualDEFixed.xcresult",
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "DE dark maximum accessibility management/current reader/editor/preview; followed by final labels below"
+      },
+      {
+        "artifact": "build/fix-legal18-20261027/KeyboardUKFinal.xcresult",
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "Maximum UK typing DE/UK summaries and Markdown, keyboard dismissal, save/independent reopen, publication cancel and root tab return"
+      },
+      {
+        "artifact": "build/fix-legal18-20261027/KeyboardDEFinal.xcresult",
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "Same complete editor path in DE/dark maximum text"
+      },
+      {
+        "artifact": "build/fix-legal18-20261027/CloseAndComparisonFinal.xcresult",
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "Missing bilingual publication summary blocks publication; close cancel/save, discard cancellation/persistence; translation source expand/collapse, cancel/apply/manual title edit, isolated publish/exact historical read/diff and unchanged other locale"
+      },
+      {
+        "artifact": "build/fix-legal18-20261027/EvidenceDEFinal.xcresult",
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "Final DE maximum receipt action/read/filter plus both existing ordinary evidence pagination/filter/export/exact reader journeys"
+      },
+      {
+        "artifact": "build/fix-legal18-20261027/OrdinaryEditors.xcresult",
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "Existing save/reopen, close without saving, DE dark editor/history and persisted draft discard"
+      },
+      {
+        "artifact": "build/fix-legal18-20261027/PublicLegalPaths.xcresult",
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "Required privacy review/acknowledgement/return, cold offline/retry in both languages, registration controls and public readers via settings"
+      },
+      {
+        "artifact": "build/fix-legal18-20261027/EvidenceUKAndConsentFinal.xcresult",
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "Final UK maximum-text receipt family and DE/UK consent controls; optional analytics remains off. No actual registration."
+      },
+      {
+        "artifact": "build/fix-legal18-20261027/BidirectionalTranslationFinal.xcresult",
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "DE→UK apply/manual title; UK→DE preview/cancel preserves German text; isolated publication and exact comparison."
+      },
+      {
+        "artifact": "build/fix-legal18-20261027/ReceiptLabelFinal.xcresult",
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "Final German action shortened to Version lesen; maximum-text screenshot inspected without ellipsis, exact version opens. Supersedes earlier receipt-label snapshots."
+      }
+    ],
+    "unsignedRelease": {
+      "result": "passed",
+      "artifact": "build/fix-legal18-20261027/release-device-build.log",
+      "scope": "Generic iOS unsigned Release build; no archive, upload, installation or physical execution.",
+      "finalWordingFollowupArtifact": "build/fix-legal18-20261027/release-label-final.log"
+    },
+    "manualDecline": {
+      "result": "passed",
+      "scope": "DE/light simulator, isolated mock account. Foreground update revalidation; refusal alert/cancel retains requirement with disabled acceptance; confirmed refusal returns to signed-out login. No agreement accepted.",
+      "screenshots": [
+        "build/fix-legal18-20261027/decline-confirmation.jpg",
+        "build/fix-legal18-20261027/decline-cancel-retains-gate.jpg",
+        "build/fix-legal18-20261027/decline-signout-completed.jpg"
+      ]
+    },
+    "transitionVideo": {
+      "artifact": "build/fix-legal18-20261027/evidence-consent-transitions.mp4",
+      "durationSeconds": 286,
+      "scope": "Evidence and registration fixture transitions. Includes intentional separate fixture relaunches; not full startup/no-flash proof."
+    },
+    "preservation": {
+      "generatedFiles": [
+        {
+          "path": "UkrainianCommunity.xcodeproj/project.pbxproj",
+          "unchangedFromPreexistingDirtyBackup": true,
+          "sha256": "1f09b74d6ea3160c2430aa69617b8a9b08dcf7539fb7a58fbfcfdc13bc1f956a"
+        },
+        {
+          "path": "UkrainianCommunity/Localization/Localizable.xcstrings",
+          "unchangedFromPreexistingDirtyBackup": true,
+          "sha256": "bb56175012119a73fddd48100c4dc0c9116c6237f9432a1e9d0b8a186c25793a"
+        }
+      ],
+      "concurrentSourceCommit": "8c2f71a78c334802915e27552541dd146cce84c5",
+      "concurrentScope": "Two unrelated news coordination files; preserved without reset or deployment."
+    },
+    "sourceCI": {
+      "conclusion": "success",
+      "headSha": "d93fade1fcb11471392a6d183704c8a9b2c2d1ec",
+      "jobs": [
+        {
+          "name": "Change classification and static checks",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "iOS build and unit checks",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Firebase and rules",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Firebase affected checks",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "iOS build and unit tests",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "status": "completed",
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40521264724"
+    },
+    "finalTextFollowup": {
+      "sourceCommit": "c27a9a0d5d2563ff27b75dd80e84e0146090898c",
+      "change": "German receipt action wording only; no executable Swift change relative to validated d93 source.",
+      "localUI": "ReceiptLabelFinal passed; pixel readback confirms full wording.",
+      "localizationValidation": "3435 entries/Swift references passed for de and uk.",
+      "hostedValidation": "Pending on final source/documentation head; not represented as passed.",
+      "priorAttempt": "ReceiptWrappingFinal passed interaction but pixels still truncated; plain-style experiment reverted. Not counted as visual success."
+    }
+  },
+  "boundaries": [
+    "No production legal document, user acknowledgement, organization rule acceptance, receipt or notification was created for testing.",
+    "Only acceptLegalDocument and acceptOrganizationRules were deployed; Firestore Rules, published texts, public release and TestFlight were not changed.",
+    "Installed older clients retain their previous editor implementation until updated. The new client adds full-state transactional preconditions without changing Rules or breaking old request formats.",
+    "Physical iPhone Serlest Mobile was unavailable; no physical APNs, VoiceOver, OS transparency/contrast or real-account acceptance pass is claimed.",
+    "No real registration was created, consistent with the user boundary. Initial registration receipts were verified using isolated Rules/contract tests.",
+    "No measured launch/latency improvement is claimed. Targeted refresh read budgets exclude mutation/read-back traffic.",
+    "Prior failing or interrupted driver runs are retained as diagnostic artifacts and are not counted as passes.",
+    "Production Rules readback remains HTTP403 with this gcloud account as recorded in the baseline. Emulator Rules proofs are not a claim that the live Rules hash was independently read.",
+    "Actual third-party translation provider quality was not tested; injected provider and UI review contracts were tested in both directions."
+  ],
+  "testFlightChanged": false,
+  "publicReleaseChanged": false,
+  "sourceHead": "c27a9a0d5d2563ff27b75dd80e84e0146090898c",
+  "surfaceFollowup": [
+    {
+      "id": "M01",
+      "surface": "Owner Profile → legal document management",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Source role policy and owner fixture entry; fresh 10-role emulator authority matrix."
+    },
+    {
+      "id": "M02",
+      "surface": "Three independently loaded document cards: terms/privacy/organization rules",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Management model loading/coalescing tests, UK/DE UI, read-only production pointer/hash check for all three types."
+    },
+    {
+      "id": "M03",
+      "surface": "Initial loading versus actionable nil-state cards",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Explicit loading/confirmed phases and no actionable nil-state; held-response model regression and UI fixtures."
+    },
+    {
+      "id": "M04",
+      "surface": "First failure, retry and independently failed card",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Independent failure/retry model regressions; confirmed cards remain noneditable after denied refresh."
+    },
+    {
+      "id": "M05",
+      "surface": "Refresh failure after already confirmed document state",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Held-response model proves safe retention on transient errors and withdrawal on authority denial."
+    },
+    {
+      "id": "M06",
+      "surface": "Current document reader, locale change, back",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "UK/light DE/dark maximum-text current reader/locale/back fixture journeys."
+    },
+    {
+      "id": "M07",
+      "surface": "Published history initial/error/retry/pagination",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "History model error/retry/paging and SDK two-version lifecycle; UI opens history. Full 20+ history-page Swift transport not replayed."
+    },
+    {
+      "id": "M08",
+      "surface": "History exact document and comparison with selected/current version",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Exact archived read via SDK/UI; changed UK/unchanged DE comparison and reading-order regression."
+    },
+    {
+      "id": "M09",
+      "surface": "Create draft and edit existing draft",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Actual Swift SDK draft creation/save/reopen plus ordinary and maximum-text UI."
+    },
+    {
+      "id": "M10",
+      "surface": "DE/UK titles, Markdown bodies and change summaries",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Actual keyboard typing both summaries/Markdown and independent reopen in both languages."
+    },
+    {
+      "id": "M11",
+      "surface": "Title/body limits and bilingual publication validation",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Boundary/bilingual validation models and Rules; missing summary UI blocks publish. Not every invalid field combination replayed in UI."
+    },
+    {
+      "id": "M12",
+      "surface": "Save draft then independent reopen",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Actual Swift Firebase SDK transaction save and independent read plus fixture UI."
+    },
+    {
+      "id": "M13",
+      "surface": "Close: save / leave unsaved / cancel",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "UI close cancel/save and ordinary leave-unsaved branches; persisted state checked after reopen."
+    },
+    {
+      "id": "M14",
+      "surface": "Discard saved draft, cancel and immutable published version",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "SDK stale discard conflict, ordinary confirmed discard/reopen and cancellation UI; published data untouched."
+    },
+    {
+      "id": "M15",
+      "surface": "Markdown preview modal and Done",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Both-language maximum-text Markdown preview/Done snapshots and UI."
+    },
+    {
+      "id": "M16",
+      "surface": "Translation both directions, review/apply/overwrite/cancel/error",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Both translation directions preview, apply/cancel/source expansion, manual title and language-direction stale guard; six provider-injected server tests. Real external provider/translation quality not invoked."
+    },
+    {
+      "id": "M17",
+      "surface": "Publication confirmation and unsaved draft save → publish",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Frozen full command/authority model regressions; isolated actual SDK save/publish and UI confirmation/cancel."
+    },
+    {
+      "id": "M18",
+      "surface": "Concurrency, lost response, draft hashes, active-pointer advance",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Actual Swift SDK metadata-only concurrent save/discard/publish rejection and exact publication readback; held-response recovery regressions."
+    },
+    {
+      "id": "M19",
+      "surface": "Account/role/session change while editor/history requests pending",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Auth revision/principal/authority generation tests across children/translation; no physical multi-account matrix."
+    },
+    {
+      "id": "P01",
+      "surface": "Public reader via settings/registration/notification",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Public settings and registration reader UI; notification route source and baseline hosted readbacks retained."
+    },
+    {
+      "id": "P02",
+      "surface": "Offline reader and retry after a prior successful read",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Both-language offline/retry UI plus actual SDK disabled-network/cache failure; confirmed-reader retention model."
+    },
+    {
+      "id": "P03",
+      "surface": "Links, Markdown headings/lists/table/text selection",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Shared Markdown source/parsing and screenshots; all external destinations not opened individually."
+    },
+    {
+      "id": "C01",
+      "surface": "Registration document fetch/refresh/review gating",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Registration legal UI/default controls and strict loader/Rules contracts. No actual registration per user boundary."
+    },
+    {
+      "id": "C02",
+      "surface": "Updated terms/privacy: review, acknowledgement and return",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Required update/read/ack/return isolated fixture UI; actual Swift SDK acknowledgement and exact receipt readback."
+    },
+    {
+      "id": "C03",
+      "surface": "Partial acknowledgement, cancellation, retry and account change",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Monitor races, partial acknowledgement and scoped account-change model regressions; no production acceptance."
+    },
+    {
+      "id": "C04",
+      "surface": "Decline acknowledgement/logout confirmation",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Manual simulator refusal alert/cancel/confirmed logout with screenshots and visible signed-out login."
+    },
+    {
+      "id": "C05",
+      "surface": "Optional analytics independent from terms/privacy acknowledgement",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Optional analytics remains independent and off in registration UI and source/model contracts."
+    },
+    {
+      "id": "C06",
+      "surface": "Organization rules → exact org-bound acceptance/proof",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Four actual Firestore handler integration scenarios verify proof reservation ownership, exact idempotent receipt, content integrity, active/verified/MFA/limit/renewal; deployed TS/JS match. Swift organization callable transport not replayed independently."
+    },
+    {
+      "id": "E01",
+      "surface": "Owner-only legal confirmations entry and server authority",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Fresh actual emulator owner/admin/org roles/user/blocked/MFA/unverified/guest authority matrix plus source entry policy."
+    },
+    {
+      "id": "E02",
+      "surface": "Account search length, browse/search continuation, query changes",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Held-response immediate query invalidation/auth fence; fixture paging/search."
+    },
+    {
+      "id": "E03",
+      "surface": "Account list loading/empty/network/retry",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Explicit first/loading/empty/error state tests and fixture UI."
+    },
+    {
+      "id": "E04",
+      "surface": "Account list permission/session denial after successful load",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Confirmed access/session/not-found withdrawals clear all private state; late held responses cannot restore."
+    },
+    {
+      "id": "E05",
+      "surface": "Selected account summary and paginated legal/analytics events",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Server chronological merged streams/cursors/dedup and UI account summary/next page."
+    },
+    {
+      "id": "E06",
+      "surface": "History filter, search, empty intermediate page and continuation",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Query-bound generations, empty continuation models; final UK/DE filter row/menu and ordinary filter/paging UI."
+    },
+    {
+      "id": "E07",
+      "surface": "Immutable receipt provenance versus mutable profile fallback",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Server provenance/dedup model/integration cases and explicit profile fallback labeling."
+    },
+    {
+      "id": "E08",
+      "surface": "Recorded document exact version/hash, legacy no-hash, missing/error/retry",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Strict hash/version read, no current substitution; final exact receipt-reader UI and auth-scoped child guards."
+    },
+    {
+      "id": "E09",
+      "surface": "Complete export independent from visible filter, explicit preparation/share",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Full all-page export test/explicit UI preparation, independent of visible filters; denial clears prepared export."
+    },
+    {
+      "id": "E10",
+      "surface": "Owner session/account/role change with outstanding detail/export",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Held request/account/session revision tests for detail/export; physical matrix separately pending."
+    },
+    {
+      "id": "S01",
+      "surface": "Acknowledgement receipt idempotency and integrity validation",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "24 actual legal server tests and actual Swift acknowledgement RPC twice produce one exact receipt; active hash/legacy receipts checked."
+    },
+    {
+      "id": "S02",
+      "surface": "Published document immutability and draft-only deletion",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Nine emulator Rules tests, fresh roles and actual SDK stale-write lifecycle. No production Rules mutation; live hash readback unavailable403."
+    },
+    {
+      "id": "S03",
+      "surface": "Publication notice fanout, paging, retry/dedup/supersession",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Baseline 103-account fanout and source deployment evidence retained; current legal integration suite passes. No fresh physical APNs."
+    },
+    {
+      "id": "S04",
+      "surface": "Production active pointers, stored versions, bilingual public web and bundle",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "All three production stored documents exactly equal pre-fix snapshot; published compatibility hashes valid; bundle validator passes."
+    },
+    {
+      "id": "S05",
+      "surface": "History query indexes and source/runtime deployment compatibility",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Baseline six read-only query shapes plus fresh receipt equality query; two deployed functions verified Ready/100%/TS+JS match."
+    },
+    {
+      "id": "S06",
+      "surface": "Load/read budgets, full history export and long-document rendering",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "Coalesced targeted read budgets, bounded pages and expandable/bounded long translation editor; no measured latency/memory/CPU improvement claimed."
+    },
+    {
+      "id": "V01",
+      "surface": "Ordinary UK/light and DE/dark; maximum accessibility nested variants",
+      "status": "verified_with_explicit_scope_and_limits",
+      "evidenceAndLimits": "UK/light DE/dark normal and maximum text, keyboard/footer/preview/history/evidence/registration fixtures; inspected screenshots/video. See explicit final receipt followup. Final German receipt label uses two fully visible lines in ReceiptLabelFinal; prior truncated snapshots superseded."
+    },
+    {
+      "id": "V02",
+      "surface": "Physical signed app, reduced transparency/contrast, narrow/landscape, VoiceOver",
+      "status": "pending_device_acceptance",
+      "evidenceAndLimits": "Physical phone unavailable: signed app, VoiceOver, increased contrast/reduced transparency, narrow/landscape and real per-role acceptance not claimed."
+    }
+  ]
+}
