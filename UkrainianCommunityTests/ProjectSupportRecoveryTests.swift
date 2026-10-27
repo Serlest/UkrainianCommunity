@@ -135,7 +135,9 @@ extension ProjectSupportRecoveryTests {
         #expect(redacted.metadata["token"] == SystemLogRedactionPolicy.redactedValue)
         #expect(redacted.metadata["other"] == SystemLogRedactionPolicy.redactedValue)
         #expect(ProfileNavigationRoute.donationSettings.hidesRootTabBar)
-        #expect(!ProfileNavigationRoute.notifications.hidesRootTabBar)
+        // Both destinations own their navigation stack; the inbox must not
+        // inherit the root tabs over its bottom content on the actual phone.
+        #expect(ProfileNavigationRoute.notifications.hidesRootTabBar)
     }
 
     @Test func auditRecordsArePrincipalBoundAndDistinctRevisionsAreNotCollapsed() async {
