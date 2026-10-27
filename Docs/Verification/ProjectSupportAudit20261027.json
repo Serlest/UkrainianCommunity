@@ -1,0 +1,262 @@
+{
+  "schemaVersion": 1,
+  "block": 19,
+  "totalBlocks": 19,
+  "name": "Поддержка проекта",
+  "status": "audit_findings_pending_user_implementation_approval",
+  "createdAt": "2026-10-27T15:21:31.302478+00:00",
+  "sourceHead": "0b673dd2d63ca85587ba4fb0b19ada938a2f428b",
+  "inventory": "Docs/Verification/ProjectSupportInventory20261027.json",
+  "findings": [
+    {
+      "id": "S19-F01",
+      "type": "confirmed_defect",
+      "priority": "medium",
+      "title": "Realtime recovery does not recover subscription or clear obsolete load error",
+      "evidence": [
+        "build/audit-support19-20261027/SDKAndProbes.xcresult",
+        "UkrainianCommunity/ViewModels/DonationConfigViewModel.swift:28-42"
+      ],
+      "reproductions": [
+        {
+          "test": "retryMustReattachTerminallyFailedRealtimeListener",
+          "expectedListenerRegistrations": 2,
+          "actual": 1
+        },
+        {
+          "test": "freshAuthoritativeSnapshotMustClearOldLoadFailure",
+          "expectedStatus": null,
+          "actual": "previous load-failed message retained"
+        }
+      ],
+      "proposedFix": "Invalidate failed listener registration, retry explicitly and distinguish load errors from mutation errors; clear only obsolete load error after authoritative recovery. Keep last confirmed public config where safe.",
+      "reference": "https://firebase.google.com/docs/firestore/query-data/listen#handle_listen_errors"
+    },
+    {
+      "id": "S19-F02",
+      "type": "confirmed_visual_usability_defect",
+      "priority": "medium",
+      "title": "Maximum text leaves focused input hidden behind oversized save footer",
+      "evidence": [
+        "build/audit-support19-20261027/maximum-uk-attachments/55F86B32-6C6E-49A8-A44B-18169F2A399D.png",
+        "build/audit-support19-20261027/maximum-uk-attachments/BD75E82A-C971-48EC-81BF-914F60A9751B.png",
+        "build/audit-support19-20261027/maximum-uk-attachments/A4B21522-E391-447B-A8C1-6E6F54588C80.png",
+        "build/audit-support19-20261027/maximum-de-rechecked-attachments/FEB82E57-EA36-467F-BEBD-2FEC2F6DFB81.png",
+        "build/audit-support19-20261027/maximum-de-rechecked-attachments/36406C2D-676C-44B2-935F-3546E00D10CC.png"
+      ],
+      "observed": "UI automation successfully types/saves, but pixels show focused URL/message below visible content while keyboard and three-line save action consume the lower viewport. The long heading also consumes the first screen. Passing input assertions are not visual acceptance.",
+      "proposedFix": "Compact context-specific Save action, deliberate editor tab-bar policy, focus-aware scrolling and shorter heading. Inspect all final frames and native close confirmation at maximum text; do not globally shrink user text."
+    },
+    {
+      "id": "S19-F03",
+      "type": "confirmed_copy_state_defect",
+      "priority": "medium",
+      "title": "Draft preview states that card is already shown to users before saving",
+      "evidence": [
+        "UkrainianCommunity/Views/Profile/DonationSettingsView.swift:113-125",
+        "build/audit-support19-20261027/baseline-attachments/2ED30CE0-0631-4CE1-9A84-8A1A7A1E8F22.png"
+      ],
+      "observed": "Visible/hidden wording uses draft.isEnabled; shared confirmed config remains unchanged until Save. Preview is noninteractive by design, which should remain.",
+      "proposedFix": "Separate confirmed visibility from draft preview, label unsaved edits and say how the card will appear after saving. Put visibility/link controls before an optionally collapsed preview."
+    },
+    {
+      "id": "S19-F04",
+      "type": "source_verified_hardening_gap",
+      "priority": "medium",
+      "title": "Donation editor loading and authorization scope lag behind shared audit standard",
+      "evidence": [
+        "UkrainianCommunity/ViewModels/DonationConfigViewModel.swift:6-14",
+        "UkrainianCommunity/Views/Profile/DonationSettingsView.swift:16-45,66-74,99,231-240"
+      ],
+      "observed": "No explicit not-requested phase: false isLoading/hasLoadedData maps to load-failed UI before the first request in isolation. Child dismissal and post-save success check use UID only rather than authorization revision. Root policy and server Rules do deny revoked roles; no unauthorized write or visible startup flash was demonstrated.",
+      "proposedFix": "Use explicit first-loading state, frozen command/principal/authority scope and post-await revision checks; retain root/server protection. Add held-response same-UID reauthentication and role-change scenarios."
+    },
+    {
+      "id": "S19-F05",
+      "type": "source_verified_observability_gap",
+      "priority": "medium",
+      "title": "Support configuration save/failure has no dedicated actionable system-journal event",
+      "evidence": [
+        "UkrainianCommunity/Repositories/Firebase/FirestoreDonationConfigRepository.swift:49-75",
+        "UkrainianCommunity/ViewModels/DonationConfigViewModel.swift:61-89",
+        "UkrainianCommunity/Features/SystemLogs/Models/SystemLogTargetType.swift:15"
+      ],
+      "observed": "Direct Firestore write/readback and generic inline errors; no donation save/error emission or matching appConfig trigger found. Existing system-log donation target display does not create records. This does not assert that Google Cloud platform logs are absent.",
+      "proposedFix": "Record actor, operation, config revision, confirmed outcome and typed failure stage/code through existing journal pipeline; no invented success after ambiguous writes."
+    },
+    {
+      "id": "S19-F06",
+      "type": "source_verified_ux_gap",
+      "priority": "low",
+      "title": "Link check only launches browser; public launch failure is silent",
+      "evidence": [
+        "UkrainianCommunity/Views/Profile/DonationSettingsView.swift:158-166,390-398",
+        "UkrainianCommunity/Views/Profile/ProfileViews.swift:1426-1449"
+      ],
+      "observed": "Owner link action checks openURL acceptance, not endpoint availability. Public button ignores acceptance callback. Copy describes arbitrary HTTPS target as a secure site. No payment/provider-page availability failure was injected on real iPhone.",
+      "proposedFix": "Name the action Open link, use neutral external-site/domain wording and provide visible launch failure/retry or copy-link fallback; keep HTTPS/host validation. Do not add payment checkout or click tracking."
+    }
+  ],
+  "verification": {
+    "baseline": {
+      "artifact": "build/audit-support19-20261027/Baseline.xcresult",
+      "passed": 11,
+      "failed": 0,
+      "skipped": 1,
+      "scope": "8 model/validation tests and3 ordinary/AccessibilityM owner UI scenarios. The opt-in SDK case skipped here ran explicitly below."
+    },
+    "SDKAndRegressionProbes": {
+      "artifact": "build/audit-support19-20261027/SDKAndProbes.xcresult",
+      "passed": 9,
+      "failed": 2,
+      "skipped": 0,
+      "scope": "Existing9 cases pass including actual Swift SDK transaction/readback/stale conflict/stream. Two new intentionally red probes reproduce F01; not a green regression run. Probe source retained in ignored artifact, removed from source target."
+    },
+    "actualSDKBoundary": "SDK transport uses isolated demo-uac-donation-client with permissive emulator rules and no production auth. Security authorization proven separately with live-matching Rules and16 isolated role contexts; not a combined real-owner SDK E2E claim.",
+    "rules": {
+      "artifact": "build/audit-support19-20261027/donation-rules.log",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "roles": {
+      "artifact": "build/audit-support19-20261027/role-rules-complete.log",
+      "passedVariants": 16,
+      "scope": "Owner/warned/TOTP owner allowed; admin/org owner/admin/editor/user/blocked account/blocked state/MFA-incomplete/unverified/old legal/guest denied. All public reads allowed. Real organization membership document included. Valid passkey MFA allowed; revoked passkey epoch denied."
+    },
+    "translationServer": {
+      "artifact": "build/audit-support19-20261027/translation-server.log",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Actual Firestore handler contracts with injected provider; no real external translation provider/quality claim."
+    },
+    "liveRules": {
+      "ruleset": "projects/ukrainiancommunity-dbd5f/rulesets/8fcc8f19-645a-47d1-b9fd-61972df04ed4",
+      "localMatchesLive": true,
+      "liveSHA256": "f01491921dc1d95c8a6ce7caf124fdb79c6fa549383b59637e0a923284cd2065",
+      "localSHA256": "f01491921dc1d95c8a6ce7caf124fdb79c6fa549383b59637e0a923284cd2065"
+    },
+    "liveTranslation": [
+      {
+        "function": "translateContent",
+        "state": "ACTIVE",
+        "onDeploy": true,
+        "ready": "True",
+        "revision": "translatecontent-00011-kiq",
+        "servingIntended": true,
+        "sourceMatches": {
+          "src/translation/service.ts": true,
+          "lib/translation/service.js": true,
+          "src/translation/legalTranslation.ts": true,
+          "lib/translation/legalTranslation.js": true,
+          "src/auth/context.ts": true,
+          "lib/auth/context.js": true
+        },
+        "eventType": null,
+        "eventFilters": null,
+        "retry": null
+      }
+    ],
+    "maximumUI": [
+      {
+        "language": "uk",
+        "artifact": "build/audit-support19-20261027/MaximumUK.xcresult",
+        "passed": 1,
+        "failed": 0,
+        "scope": "AccessibilityXXXL/light; preview language switch, URL/title/message typing, lower controls, save-and-close and reopened exact title. Pixels demonstrate F02 despite functional success."
+      },
+      {
+        "language": "de",
+        "artifact": "build/audit-support19-20261027/MaximumDERechecked.xcresult",
+        "passed": 1,
+        "failed": 0,
+        "scope": "Corrected driver; AccessibilityXXXL/dark, explicit keyboard dismissal, both-language preview, exact URL/title/message persistence after save-and-close/reopen. Visual footer/confirmation issues remain separately open."
+      }
+    ],
+    "physicalDevice": {
+      "artifact": "build/audit-support19-20261027/devices.json",
+      "status": "unavailable",
+      "name": "Serlest Mobile"
+    },
+    "productionConfig": {
+      "artifact": "build/audit-support19-20261027/production-config.json",
+      "enabled": false,
+      "updatedAt": "2026-09-09T15:44:18.487Z",
+      "scope": "Read-only source config, current hidden public entry is intended."
+    },
+    "callableStartup": {
+      "http": 401,
+      "response": {
+        "error": {
+          "message": "Unauthenticated",
+          "status": "UNAUTHENTICATED"
+        }
+      },
+      "scope": "Anonymous request denied before authenticated provider business path; actual JSON startup/routing only."
+    },
+    "firstDEMaximumAttempt": {
+      "artifact": "build/audit-support19-20261027/MaximumDE.xcresult",
+      "failed": 1,
+      "meaning": "Driver header tap focused another input; keyboard remained. Fixed test to tap real side margin, assert keyboard disappearance and calculate gesture inside current viewport. Not an additional product-defect claim."
+    },
+    "reviewedImages": [
+      "build/audit-support19-20261027/baseline-attachments/D03591B1-169B-43A3-A689-5025DB1B1B06.png",
+      "build/audit-support19-20261027/baseline-attachments/2ED30CE0-0631-4CE1-9A84-8A1A7A1E8F22.png",
+      "build/audit-support19-20261027/maximum-uk-attachments/55F86B32-6C6E-49A8-A44B-18169F2A399D.png",
+      "build/audit-support19-20261027/maximum-uk-attachments/653B09D7-2120-468D-A702-520C6A387281.png",
+      "build/audit-support19-20261027/maximum-uk-attachments/A4B21522-E391-447B-A8C1-6E6F54588C80.png",
+      "build/audit-support19-20261027/maximum-uk-attachments/BD75E82A-C971-48EC-81BF-914F60A9751B.png",
+      "build/audit-support19-20261027/maximum-uk-attachments/43537350-52EF-4B52-84D6-081B11680C6C.png",
+      "build/audit-support19-20261027/maximum-de-rechecked-attachments/FEB82E57-EA36-467F-BEBD-2FEC2F6DFB81.png",
+      "build/audit-support19-20261027/maximum-de-rechecked-attachments/36406C2D-676C-44B2-935F-3546E00D10CC.png",
+      "build/audit-support19-20261027/maximum-de-rechecked-attachments/BF26EE4D-60EE-48E6-A7E3-CB129673921A.png",
+      "build/audit-support19-20261027/close-directions-attachments/39215F7C-E8C2-4AF3-852F-83A65159197D.png",
+      "build/audit-support19-20261027/close-directions-attachments/D831778A-0329-4355-A23F-FFDFE8DFC966.png"
+    ],
+    "closeAndTranslation": {
+      "artifact": "build/audit-support19-20261027/CloseAndDirections.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Normal UK: close cancel preserves URL, confirmed discard/reopen removes unsaved URL, UK→DE overwrite-confirm/apply changes exact target, DE→UK cancel preserves original UK. Injected UI translation provider."
+    },
+    "routeContracts": {
+      "artifact": "build/audit-support19-20261027/RouteContracts.xcresult",
+      "passed": 61,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Fresh entire core contract suite, includes actual profile authority case. Individual method filter in CloseAndDirections was discovered but not executed; only1 UI case is counted there."
+    },
+    "productionUnchanged": {
+      "artifact": "build/audit-support19-20261027/production-config-unchanged.json",
+      "unchanged": true
+    },
+    "preexistingGeneratedFilesPreserved": true,
+    "hostedCI": {
+      "status": "not_yet_recorded_for_audit_commit",
+      "scope": "New hosted validation after source/test documentation commit is separate; no TestFlight gate is claimed passed."
+    }
+  },
+  "performance": {
+    "dataShape": "One small appConfig/donation document, no whole-user/content collection scan or pagination.",
+    "bootstrap": "loadIfNeeded attaches a realtime listener and performs an explicit authoritative fetch: up to two initial document reads; subsequent identity loadIfNeeded uses cached loaded state.",
+    "listenerLifetime": "Single registration held by model; weak callback capture; registration cancellation on deinit. Terminal recovery defect recorded separately.",
+    "limits": "URL2048/title120/message2000/button80; read deadline20seconds; writes not cancelled by read deadline.",
+    "measurementBoundary": "No latency/CPU/memory trace or before/after speedup claimed."
+  },
+  "recommendations": [
+    "Keep one owner settings route and one conditional user support route; no new payment system or duplicate section needed.",
+    "Use compact heading, controls first, optional preview and clear unsaved/saved visibility.",
+    "Preserve independent voluntary support and existing user privacy/analytics choices; do not add unsolicited click tracking."
+  ],
+  "boundaries": [
+    "Audit only: no product fix, production configuration change, Rules deployment, function deployment, actual payment or TestFlight upload.",
+    "No real registration/login, payment recipient edit or external provider translation requested.",
+    "Real signed iPhone, VoiceOver, reduced transparency/increased contrast, narrow/landscape and external-app return are separate pending acceptance.",
+    "Public card component inspected through noninteractive owner preview; enabled public route itself not freshly replayed under a real non-owner account.",
+    "Conflict/reload confirmation UI, true lost-ack transport injection and donation-specific same-UID held save/session switch remain follow-up scenarios, not closed by SDK happy-path or source reading."
+  ],
+  "productionChanged": false,
+  "testFlightChanged": false,
+  "countsMeaning": "34 inventory surfaces reviewed with per-row evidence; verified source/contracts is not proof of every runtime/physical variant. Six finding groups distinguish confirmed defects from source hardening/observability/copy gaps. No product fixes implemented in this audit."
+}

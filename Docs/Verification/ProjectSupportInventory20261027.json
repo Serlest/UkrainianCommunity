@@ -1,0 +1,318 @@
+{
+  "schemaVersion": 1,
+  "block": 19,
+  "totalBlocks": 19,
+  "name": "Поддержка проекта",
+  "stage": "audit_before_implementation",
+  "sourceHead": "0b673dd2d63ca85587ba4fb0b19ada938a2f428b",
+  "createdAt": "2026-10-27T15:17:31.334610+00:00",
+  "surfaces": [
+    {
+      "id": "R01",
+      "surface": "Owner profile → project support settings",
+      "roles": "owner",
+      "dataPath": "ProfileAccessPolicy → DonationSettingsView",
+      "actionsAndStates": "Entry and back; owner route allowed, all others denied",
+      "status": "verified",
+      "evidenceAndLimits": "Baseline3 owner UI scenarios; source route policy and isolated server-role matrix."
+    },
+    {
+      "id": "R02",
+      "surface": "Public support entry visibility",
+      "roles": "admin, organization roles, user; owner/guest excluded",
+      "dataPath": "ProfileViews.isProjectSupportAvailable/canContactSupport",
+      "actionsAndStates": "Enabled and valid URL; owner has settings instead of self-support",
+      "status": "verified",
+      "evidenceAndLimits": "ProfileAccessPolicy/source plus real disabled production config readback. No fresh non-owner public route UI pass."
+    },
+    {
+      "id": "R03",
+      "surface": "Public support screen and external action",
+      "roles": "eligible signed-in users",
+      "dataPath": "ProfileProjectSupportView → shared support card → openURL",
+      "actionsAndStates": "Current config and locale, enabled/disabled changes, external-open failure",
+      "status": "open",
+      "evidenceAndLimits": "Public reader source reviewed; fresh eligible non-owner external-app UI pass remains open. F06 addresses missing public error callback."
+    },
+    {
+      "id": "L01",
+      "surface": "Initial loading, missing configuration, retry",
+      "roles": "owner and public config consumer",
+      "dataPath": "DonationConfigViewModel.loadIfNeeded/load → server getDocument",
+      "actionsAndStates": "Idle vs loading vs failure, defaults only after confirmed missing document",
+      "status": "open",
+      "evidenceAndLimits": "Source checked; no held-initial-response UI injection. F04 explicit first phase recommended."
+    },
+    {
+      "id": "L02",
+      "surface": "Realtime document subscription and lifecycle",
+      "roles": "all config readers",
+      "dataPath": "listenDonationConfig → main actor callback",
+      "actionsAndStates": "Server-only snapshot, pending/cache exclusion, owned registration cleanup",
+      "status": "verified",
+      "evidenceAndLimits": "Actual Swift SDK stream test plus source cache/pending exclusion and registration cleanup."
+    },
+    {
+      "id": "L03",
+      "surface": "Terminal subscription failure and retry",
+      "roles": "all config readers",
+      "dataPath": "onError → startObserving guard",
+      "actionsAndStates": "Reattach after terminal failure; clear obsolete load error",
+      "status": "open",
+      "evidenceAndLimits": "Two red deterministic probes reproduce missing listener reattachment and retained obsolete load error. F01."
+    },
+    {
+      "id": "L04",
+      "surface": "Pending read versus save and streamed changes",
+      "roles": "owner",
+      "dataPath": "viewModel revision/pendingConfig",
+      "actionsAndStates": "Late read cannot overwrite save; deferred listener timestamp ordering",
+      "status": "verified",
+      "evidenceAndLimits": "Existing held-read model regression plus actual SDK stale-save rejection."
+    },
+    {
+      "id": "L05",
+      "surface": "Public disable and removal",
+      "roles": "eligible users",
+      "dataPath": "listener snapshot → config → profile availability/action",
+      "actionsAndStates": "Disabled/missing config removes entry/action; no stale payment mutation",
+      "status": "verified",
+      "evidenceAndLimits": "SDK streamed disable succeeds; public entry/action binding reviewed in source; not a fresh enabled public UI route test."
+    },
+    {
+      "id": "E01",
+      "surface": "Visibility toggle and saved state",
+      "roles": "owner",
+      "dataPath": "draft.isEnabled → normalization → transaction",
+      "actionsAndStates": "Toggle stays local until save; accurate preview versus saved visibility",
+      "status": "verified",
+      "evidenceAndLimits": "Visibility switch/save/reopen baseline UI; misleading unsaved preview wording separately F03."
+    },
+    {
+      "id": "E02",
+      "surface": "HTTPS URL validation and normalization",
+      "roles": "owner",
+      "dataPath": "DonationConfig.normalizedDonationURL/Rules",
+      "actionsAndStates": "Bare domain, scheme, credentials, host, IDN, port, whitespace, length",
+      "status": "verified",
+      "evidenceAndLimits": "Client normalization unit cases and3 actual Rules boundary tests."
+    },
+    {
+      "id": "E03",
+      "surface": "Link preview/open and failure feedback",
+      "roles": "owner/public reader",
+      "dataPath": "DonationSettingsView checkLink/ProfileDonationSupportCard openURL",
+      "actionsAndStates": "Correct destination; no payment submitted; opening is not availability certification",
+      "status": "open",
+      "evidenceAndLimits": "Source launches URL; owner launch failure is shown, public failure ignored; no real payment/browser-return test. F06."
+    },
+    {
+      "id": "E04",
+      "surface": "Independent editing and preview language",
+      "roles": "owner",
+      "dataPath": "editLanguage/previewLanguage → localized draft bindings",
+      "actionsAndStates": "UK/DE independence and preservation when switching",
+      "status": "verified",
+      "evidenceAndLimits": "Baseline translation editor/preview locale independence and maximum fixture switching."
+    },
+    {
+      "id": "E05",
+      "surface": "Title/message/button fields",
+      "roles": "owner",
+      "dataPath": "normalizedForSaving/validationIssue",
+      "actionsAndStates": "Both languages, limits120/2000/80, whitespace, enabled completeness",
+      "status": "verified",
+      "evidenceAndLimits": "Both-language limits/normalization source, client unit and Rules assertions; actual max typing/reopen recorded separately."
+    },
+    {
+      "id": "E06",
+      "surface": "Live card preview",
+      "roles": "owner",
+      "dataPath": "previewConfig → ProfileDonationSupportCard",
+      "actionsAndStates": "Draft-only preview, inactive hit testing, clear visibility semantics",
+      "status": "open",
+      "evidenceAndLimits": "Baseline active preview screenshot before save versus persisted config source proves F03."
+    },
+    {
+      "id": "E07",
+      "surface": "Keyboard and field focus",
+      "roles": "owner",
+      "dataPath": "SwiftUI inputs and pinned save bar",
+      "actionsAndStates": "Typing, dismissal, counters, scroll to lower fields, persistence",
+      "status": "open",
+      "evidenceAndLimits": "Maximum UK screenshots demonstrate focused input obscured by pinned save footer and keyboard. F02."
+    },
+    {
+      "id": "E08",
+      "surface": "Save and independent reopen",
+      "roles": "owner",
+      "dataPath": "view.save → model.save → repository transaction/readback",
+      "actionsAndStates": "Normalize, freeze input while saving, server confirmation, reopen exact fields",
+      "status": "verified",
+      "evidenceAndLimits": "Baseline UI independent reopen plus actual Swift transaction/readback/conflict. No live owner save."
+    },
+    {
+      "id": "E09",
+      "surface": "Unsaved close/cancel/save-and-close/discard",
+      "roles": "owner",
+      "dataPath": "confirmationDialog → save()/dismiss",
+      "actionsAndStates": "Local edits retained by cancel; saved or explicitly discarded",
+      "status": "verified",
+      "evidenceAndLimits": "Normal UI close cancellation and discard/reopen passed in CloseAndDirections; save-and-close/reopen passed at UK and DE maximum text. Oversized max confirmation remains F02."
+    },
+    {
+      "id": "E10",
+      "surface": "Concurrent update conflict and explicit reload",
+      "roles": "owner",
+      "dataPath": "sourceRevision → transaction comparison → needsReload",
+      "actionsAndStates": "No silent overwrite; reload cancellation and local edit retention",
+      "status": "open",
+      "evidenceAndLimits": "Actual SDK stale conflict + model reload flag pass; reload/discard confirmation UI not injected. Explicit follow-up."
+    },
+    {
+      "id": "E11",
+      "surface": "Lost response, unconfirmed result and recovery",
+      "roles": "owner",
+      "dataPath": "repository authoritative match + updatedBy",
+      "actionsAndStates": "No mutation timeout; same-content author readback and mandatory reload when ambiguous",
+      "status": "open",
+      "evidenceAndLimits": "Independent server readback source inspected; no transport-level lost-ack fault injected in this audit."
+    },
+    {
+      "id": "E12",
+      "surface": "Role/principal/session change while editing/saving",
+      "roles": "owner → changed authority",
+      "dataPath": "ProfileAccessIdentity + child UID guard + Rules",
+      "actionsAndStates": "Server denies invalid authority; same-UID authorization revision aftermath",
+      "status": "open",
+      "evidenceAndLimits": "Root role policy/server Rules deny unauthorized writes; child UID-only async scope/first phase hardening F04. No actual bypass shown."
+    },
+    {
+      "id": "T01",
+      "surface": "Translation UK→DE and DE→UK",
+      "roles": "owner",
+      "dataPath": "ContentTranslationButton(kind:donation) → translateContent",
+      "actionsAndStates": "Each field length, routing, source/target snapshot",
+      "status": "verified",
+      "evidenceAndLimits": "Baseline DE→UK apply/save/reopen plus CloseAndDirections UK→DE exact apply and DE→UK cancel; actual handler routing with injected provider."
+    },
+    {
+      "id": "T02",
+      "surface": "Translation preview/apply/cancel/overwrite",
+      "roles": "owner",
+      "dataPath": "ContentTranslationReview → bound fields",
+      "actionsAndStates": "No write before save; cancel preserves existing targets",
+      "status": "verified",
+      "evidenceAndLimits": "CloseAndDirections overwrite disabled until confirmation, apply and reverse cancel/preserved original target; baseline persisted translation."
+    },
+    {
+      "id": "T03",
+      "surface": "Stale translation and language/session switch",
+      "roles": "owner",
+      "dataPath": "ContentTranslationPreview scope + sourceLanguage revision",
+      "actionsAndStates": "Reject changed source/target/session/direction",
+      "status": "verified",
+      "evidenceAndLimits": "Unchanged shared ContentTranslation scope/direction guard from block18; successful prior FullRegressionFinal/ContentTranslationTests retained, source rechecked. No new held-response donation UI injection."
+    },
+    {
+      "id": "T04",
+      "surface": "Translation errors/quota/provider boundary",
+      "roles": "owner/others denied",
+      "dataPath": "translateContent handler → quotas → provider",
+      "actionsAndStates": "Injected-provider contracts; actual external quality separate",
+      "status": "verified",
+      "evidenceAndLimits": "Three translation server contract tests with actual Firestore and injected provider; source limits/owner denial. No real provider quality call."
+    },
+    {
+      "id": "S01",
+      "surface": "Actual Swift Firestore save/read/conflict/stream",
+      "roles": "isolated transport fixture",
+      "dataPath": "FirestoreDonationConfigRepository",
+      "actionsAndStates": "Demo SDK transaction, independent readback, stale rejection, stream; separate from Rules auth proof",
+      "status": "verified",
+      "evidenceAndLimits": "SDKAndProbes actual SDK lifecycle passes; permissive demo transport Rules, separate actual-rule authorization proof."
+    },
+    {
+      "id": "S02",
+      "surface": "Full Rules role/state authority matrix",
+      "roles": "16 role/auth-state variants",
+      "dataPath": "live-matching Firestore Rules",
+      "actionsAndStates": "Allowed owner/warned/TOTP; denied admin/org roles/user/blocked/MFA/unverified/old legal/guest",
+      "status": "verified",
+      "evidenceAndLimits": "Sixteen final isolated role/auth-state variants including valid/revoked passkey plus3 existing boundary tests against exact live Rules source."
+    },
+    {
+      "id": "S03",
+      "surface": "Production Rules exact readback",
+      "roles": "operator",
+      "dataPath": "Firebase Rules release → immutable ruleset",
+      "actionsAndStates": "Exact active full source hash equality",
+      "status": "verified",
+      "evidenceAndLimits": "Active production Rules source readback matches full local hash exactly."
+    },
+    {
+      "id": "S04",
+      "surface": "Production support configuration and compatibility",
+      "roles": "operator",
+      "dataPath": "appConfig/donation read-only REST",
+      "actionsAndStates": "Existing disabled state and schema; no configuration/payment change",
+      "status": "verified",
+      "evidenceAndLimits": "Read-only production-config.json: support disabled, URL/config schema retained; no live mutation."
+    },
+    {
+      "id": "S05",
+      "surface": "Actual deployed translation source/runtime",
+      "roles": "operator",
+      "dataPath": "Cloud Functions source archive + Cloud Run Ready/traffic",
+      "actionsAndStates": "Actual TS+JS match; no deployment this audit",
+      "status": "verified",
+      "evidenceAndLimits": "CloudRun Ready/intended100% traffic/onDeploy retained; six actual deployed TS/JS files match; anonymous JSON401 confirms startup only."
+    },
+    {
+      "id": "S06",
+      "surface": "Operation journal coverage",
+      "roles": "owner/operator",
+      "dataPath": "donation save/errors → system log path",
+      "actionsAndStates": "Check whether save and error have actionable diagnostic entries",
+      "status": "open",
+      "evidenceAndLimits": "Source search finds donation target formatting but no save/error event emission or appConfig trigger. F05."
+    },
+    {
+      "id": "P01",
+      "surface": "Read count, listener lifetime, loading costs",
+      "roles": "all readers",
+      "dataPath": "profile task + listener + explicit fetch",
+      "actionsAndStates": "One public document; duplicate bootstrap read, no pagination or large collection scan",
+      "status": "verified",
+      "evidenceAndLimits": "Source read-budget and lifecycle review: one small document, up to two bootstrap reads, no large-collection scans; no measured speedup."
+    },
+    {
+      "id": "V01",
+      "surface": "Ordinary UK light and DE dark layouts",
+      "roles": "shared owner/public card layout",
+      "dataPath": "Simulator fixture screenshots",
+      "actionsAndStates": "Preview, labels, fields, translation and save; distinct public route separately qualified",
+      "status": "verified",
+      "evidenceAndLimits": "Baseline ordinary UK/light and DE/dark AccessibilityM screenshots inspected; active preview card is shared public visual component."
+    },
+    {
+      "id": "V02",
+      "surface": "Maximum text, keyboard, lower controls and dialogs",
+      "roles": "owner",
+      "dataPath": "AccessibilityXXXL UK/light DE/dark",
+      "actionsAndStates": "Actual pixels and input; existing AccessibilityM baseline is not maximum",
+      "status": "open",
+      "evidenceAndLimits": "Maximum UK/light and corrected-driver DE/dark input/save/reopen scenarios pass functionally; inspected pixels show oversized footer, keyboard viewport and confirmation issues. F02 remains open."
+    },
+    {
+      "id": "V03",
+      "surface": "Physical device/VoiceOver/contrast/transparency",
+      "roles": "applicable roles",
+      "dataPath": "Signed real iPhone",
+      "actionsAndStates": "Unavailable phone; no device acceptance claim",
+      "status": "blocked_by_concrete_dependency",
+      "evidenceAndLimits": "Serlest Mobile unavailable; physical acceptance pending."
+    }
+  ],
+  "scope": "App-wide project support, not organization-specific donation links or feedback/support inbox already audited in block12. No actual financial transaction, live support configuration mutation or real external translation provider call."
+}

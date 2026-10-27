@@ -577,8 +577,19 @@
     {
       "number": 19,
       "name": "Поддержка проекта",
-      "status": "pending",
-      "openChecks": []
+      "status": "audit_findings_pending_user_implementation_approval",
+      "openChecks": [
+        "Implement approved support findings and repeat failing probes/visual scenarios.",
+        "Combined authenticated owner Swift SDK + live-matching Rules, public enabled route and conflict/reload/lost-ack/session UI variants remain explicit follow-up evidence.",
+        "Physical signed iPhone and external-site return acceptance; Serlest Mobile unavailable."
+      ],
+      "authorizedByUser": "2026-10-27: Тогда переходи к следующему этапу",
+      "inventory": "Docs/Verification/ProjectSupportInventory20261027.json",
+      "report": "Docs/Verification/ProjectSupportAudit20261027.json",
+      "findingGroups": 6,
+      "reviewedSurfaces": 34,
+      "productionChanged": false,
+      "testFlightChanged": false
     }
   ],
   "block1": {
@@ -680,11 +691,11 @@
   "schemaVersion": 2,
   "blocksWithImplementedFixes": 18,
   "blocksReopenedForCompletion": 0,
-  "notStartedBlocks": 1,
-  "nextNewBlock": 19,
+  "notStartedBlocks": 0,
+  "nextNewBlock": null,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "Block18 fixes implemented and server deployed; device acceptance and new TestFlight remain separate. Block19 is unstarted and requires the next instruction.",
+  "nextAction": "All19 blocks have reached audit; block19 findings await implementation approval. Implemented fixes remain18; physical acceptance and TestFlight gates remain separate.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,
@@ -756,5 +767,5 @@
     },
     "physicalBoundary": "User acceptance of signed TestFlight129 on real iPhone remains pending."
   },
-  "currentBlock": 18
+  "currentBlock": 19
 }
