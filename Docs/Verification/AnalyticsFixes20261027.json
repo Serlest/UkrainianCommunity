@@ -7,7 +7,7 @@
   "auditBaseline": "bae2f018",
   "sourceReport": "Docs/Verification/AnalyticsAudit20261026.json",
   "productionChanges": false,
-  "testFlightChanged": false,
+  "testFlightChanged": true,
   "fixes": {
     "A15-F01": "Shared SwiftUI period buttons with explicit selected state and keyboard dismissal; same full search/clear/search/clear/period/detail journey passed, with return preserving period.",
     "A15-F02": "Analytics empty cards use unrestricted description wrapping; nontechnical localized period-empty copy in a named uk/de catalog.",
@@ -101,7 +101,7 @@
   "boundaries": [
     "All UI automation uses isolated fixture data; production aggregate readback and exact deployed sources are in the baseline report.",
     "No production data, Functions or Rules changed. Active Rules API remains403; source Rules emulator proof is separate.",
-    "No current physical iPhone review or new TestFlight delivery is claimed."
+    "TestFlight129delivered; physical iPhone user acceptance remains pending."
   ],
   "artifactBase": "build/audit-analytics15-20261026",
   "evidenceNotes": [
@@ -147,5 +147,11 @@
   "preservedUncommittedFiles": [
     "UkrainianCommunity.xcodeproj/project.pbxproj (pre-existing ordering changes)",
     "UkrainianCommunity/Localization/Localizable.xcstrings (pre-existing/generated extraction metadata; translated values not edited)"
-  ]
+  ],
+  "deliveryFollowup": {
+    "build": "1.2.1 (129)",
+    "report": "Docs/Verification/TestFlight12920261027.json",
+    "state": "VALID / IN_BETA_TESTING",
+    "userAcceptance": "pending"
+  }
 }

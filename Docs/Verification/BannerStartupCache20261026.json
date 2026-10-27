@@ -2,7 +2,7 @@
   "date": "2026-10-26",
   "block": 14,
   "request": "Persist banner data and artwork so a full relaunch does not wait for network.",
-  "status": "verified_source_pending_hosted_CI_and_new_binary",
+  "status": "delivered_in_TestFlight129_pending_physical_acceptance",
   "artifactBase": "build/banner-startup-20261026",
   "causes": [
     "Public banner list was cached only in process memory.",
@@ -124,5 +124,7 @@
     "localizationRecheck": "3410entries passed",
     "sameColdStartupUIRecheck": "FullUnitsFreshPeriodAndStartup.xcresult passed",
     "hostedStatus": "pending after audit/fix push"
-  }
+  },
+  "previousStatus": "verified_source_pending_hosted_CI_and_new_binary",
+  "deliveryReport": "Docs/Verification/TestFlight12920261027.json"
 }

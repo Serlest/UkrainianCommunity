@@ -297,7 +297,7 @@
       ],
       "inventory": "Docs/Verification/AnalyticsInventory20261026.json",
       "report": "Docs/Verification/AnalyticsAudit20261026.json",
-      "testFlightChanged": false,
+      "testFlightChanged": true,
       "serverFunctionsChanged": false,
       "resolutionReport": "Docs/Verification/AnalyticsFixes20261027.json",
       "localValidation": {
@@ -312,7 +312,9 @@
         "runId": 40422769651,
         "head": "149623c38d92e5c7e8175b25f0d1473775ee494c",
         "conclusion": "success"
-      }
+      },
+      "deliveryReport": "Docs/Verification/TestFlight12920261027.json",
+      "deliveredBuild": "1.2.1 (129)"
     },
     {
       "number": 16,
@@ -324,7 +326,7 @@
       "inventory": "Docs/Verification/PublicationControlInventory20261027.json",
       "report": "Docs/Verification/PublicationControlAudit20261027.json",
       "productionChanged": true,
-      "testFlightChanged": false,
+      "testFlightChanged": true,
       "resolutionReport": "Docs/Verification/PublicationControlFixes20261027.json",
       "implementedFindings": [
         "P16-F01",
@@ -385,7 +387,9 @@
           }
         ]
       },
-      "serverFunctionsChanged": true
+      "serverFunctionsChanged": true,
+      "deliveryReport": "Docs/Verification/TestFlight12920261027.json",
+      "deliveredBuild": "1.2.1 (129)"
     },
     {
       "number": 17,
@@ -522,8 +526,8 @@
     "block11VerifiedScenarios": 44
   },
   "latestTestFlightDelivery": {
-    "build": "1.2.1 (128)",
-    "report": "Docs/Verification/TestFlight12820261026.json",
+    "build": "1.2.1 (129)",
+    "report": "Docs/Verification/TestFlight12920261027.json",
     "includedImplementedBlocks": [
       1,
       2,
@@ -538,42 +542,48 @@
       11,
       12,
       13,
-      14
+      14,
+      15,
+      16
     ],
     "userAcceptance": "pending",
-    "block11PhysicalReadback": "pending user acceptance",
-    "block12PhysicalReadback": "pending user acceptance",
-    "block13PhysicalReadback": "pending user acceptance and actual APNs delivery",
-    "block14PhysicalReadback": "pending user acceptance of128 including seconds, separate text colors and no title/subtitle panel",
+    "processingState": "VALID",
+    "internalBuildState": "IN_BETA_TESTING",
+    "group": "Beta Tester",
     "sourceCI": {
-      "runId": 40402079132,
-      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40402079132",
-      "conclusion": "",
+      "headSha": "f903944edd77e81036da5475ef295e000c5abc38",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40477007915",
       "jobs": [
         {
-          "conclusion": "success",
           "name": "Change classification and static checks",
-          "status": "completed"
+          "status": "completed",
+          "conclusion": "success"
         },
         {
-          "conclusion": "",
           "name": "iOS build and unit checks",
-          "status": "in_progress"
+          "status": "completed",
+          "conclusion": "success"
         },
         {
-          "conclusion": "success",
-          "name": "Firebase affected checks",
-          "status": "completed"
-        },
-        {
-          "conclusion": "success",
           "name": "Firebase and rules",
-          "status": "completed"
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Firebase affected checks",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "iOS build and unit tests",
+          "status": "completed",
+          "conclusion": "success"
         }
-      ],
-      "status": "in_progress",
-      "boundary": "Hosted validation of exact product source, build127 settings. Build128 changes only build number. Running is not passed."
-    }
+      ]
+    },
+    "physicalBoundary": "User acceptance of signed TestFlight129 on real iPhone remains pending."
   },
   "currentBlock": 16
 }

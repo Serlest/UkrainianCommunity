@@ -1,0 +1,178 @@
+{
+  "version": "1.2.1",
+  "build": "129",
+  "date": "2026-10-27",
+  "requestedByUser": "Тогда делай билд",
+  "sourceCommit": "f903944edd77e81036da5475ef295e000c5abc38",
+  "productSourceCommit": "9d91ce542d6f3a0301ea29bb09dd401470e6d14a",
+  "audience": "internal TestFlight",
+  "publicRelease": false,
+  "archive": "build/UAC-129.xcarchive",
+  "archiveResult": "ARCHIVE SUCCEEDED",
+  "exportResult": "Uploaded package is processing; Upload succeeded; EXPORT SUCCEEDED",
+  "uploadMethod": "Existing signed-in Xcode account; prior API cloud-signing limitation retained.",
+  "exportOptions": "build/ExportOptions-TestFlight-Internal.plist",
+  "serverCompatibility": "validate_release_configuration.py --verify-deployed-analytics passed before archive",
+  "archiveInfo": {
+    "CFBundleIdentifier": "at.serlest.UkrainianCommunity",
+    "CFBundleShortVersionString": "1.2.1",
+    "CFBundleVersion": "129",
+    "ITSAppUsesNonExemptEncryption": false,
+    "MinimumOSVersion": "17.0"
+  },
+  "archiveSignature": "codesign --verify --deep --strict passed",
+  "testFlightAvailable": true,
+  "processingState": "VALID",
+  "internalBuildState": "IN_BETA_TESTING",
+  "assignedGroups": [
+    {
+      "name": "Beta Tester",
+      "internal": true,
+      "containsBuild": true
+    }
+  ],
+  "appleUploadState": [
+    {
+      "errors": [],
+      "warnings": [],
+      "infos": [],
+      "state": "COMPLETE"
+    }
+  ],
+  "testNotes": {
+    "published": true,
+    "readBackExactly": true,
+    "locales": [
+      "en-US",
+      "de-DE",
+      "uk"
+    ],
+    "source": "build/testflight-129/notes.json"
+  },
+  "readback": "build/testflight-129/asc-final.json",
+  "implementedBlocksIncluded": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+  ],
+  "additionalFixes": [
+    "Banner public catalog/artwork cache and nonblocking startup work after128.",
+    "Block15 analytics period/search/chart/details, truthful counters, bounded session cache and late-response isolation.",
+    "Block16 publication summaries, actual pages/regions, precise retry and revised-history cursors, calendar/large-text layouts and legacy session fences.",
+    "Block16 background report revision/credential renewal fixes deployed independently; no test publication created."
+  ],
+  "verificationReports": [
+    "Docs/Verification/BannerStartupCache20261026.json",
+    "Docs/Verification/AnalyticsFixes20261027.json",
+    "Docs/Verification/PublicationControlFixes20261027.json"
+  ],
+  "sourceCI": {
+    "headSha": "f903944edd77e81036da5475ef295e000c5abc38",
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40477007915",
+    "jobs": [
+      {
+        "name": "Change classification and static checks",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "iOS build and unit checks",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Firebase and rules",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Firebase affected checks",
+        "status": "completed",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "iOS build and unit tests",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "productSourceCI": {
+    "headSha": "9d91ce542d6f3a0301ea29bb09dd401470e6d14a",
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40471309299",
+    "jobs": [
+      {
+        "name": "Change classification and static checks",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "iOS build and unit checks",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Firebase affected checks",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Firebase and rules",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "iOS build and unit tests",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "symbols": {
+    "appSymbolsMatch": true,
+    "uuid": [
+      "647DB721-5C85-37AC-B445-3D82B595424D"
+    ],
+    "externalSDKMissingSymbols": [
+      "FirebaseFirestoreInternal.framework",
+      "absl.framework",
+      "grpc.framework",
+      "grpcpp.framework",
+      "openssl_grpc.framework"
+    ]
+  },
+  "warningBoundary": "Same5vendor framework dSYM warnings as128. App dSYM matches. Apple upload COMPLETE without package errors/warnings.",
+  "physicalVerification": "Pending user acceptance of129 on actual iPhone. TestFlight delivery and simulator/source tests are separate from physical acceptance.",
+  "preservedWork": {
+    "projectOrdering": "pre-existing ordering kept unstaged; semantic settings equal committed source except129build number",
+    "localization": "pre-existing extraction metadata and untranslated unused format key difference preserved; translated values match committed source"
+  },
+  "boundaries": [
+    "Internal TestFlight only. No public App Store submission/release.",
+    "No seasonal theme, live test campaigns or changes to other users business content.",
+    "Exact build129revision completed Debug, Release and unit checks in GitHub. Product source9d91ce54 had already passed full validation."
+  ],
+  "manualCheckRU": [
+    "Повторный холодный запуск и загрузка баннеров после первого открытия.",
+    "Аналітика: 7/30дней, поиск/очистка, график, регионы и возврат из деталей.",
+    "Контроль публікацій: середина кнопки даты, отмена/подтверждение,4вкладки, регион, открытие новости/события и возврат.",
+    "Большой шрифт, светлая/тёмная тема, украинский/немецкий; повтор после потери сети."
+  ]
+}

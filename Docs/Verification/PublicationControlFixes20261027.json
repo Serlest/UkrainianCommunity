@@ -9,7 +9,7 @@
   "baselineAudit": "Docs/Verification/PublicationControlAudit20261027.json",
   "artifactBase": "build/fix-publication16-20261027",
   "implementationAuthorized": true,
-  "testFlightChanged": false,
+  "testFlightChanged": true,
   "publicReleaseChanged": false,
   "fixes": [
     {
@@ -743,7 +743,7 @@
     }
   },
   "remainingAcceptance": [
-    "Signed physical iPhone read/filters/date/detail/back and unchanged legacy compatibility modals; device currently unavailable."
+    "User acceptance of signed TestFlight129 on physical iPhone, including date/filter/detail/back and legacy compatibility windows."
   ],
   "sourceFileHashes": {
     "UkrainianCommunity/ViewModels/PublicationControlStore.swift": "7dd6f558e9ff12202403321c6080f82f604ffdb309f0566c8ea33ba2fe760c0b",
@@ -760,8 +760,9 @@
     "credentialAndLoading": "9d91ce542d6f3a0301ea29bb09dd401470e6d14a"
   },
   "delivery": {
-    "newTestFlight": "not requested",
+    "newTestFlight": "1.2.1 (129), VALID / IN_BETA_TESTING",
+    "report": "Docs/Verification/TestFlight12920261027.json",
     "publicRelease": "unchanged",
-    "lastDeliveredBuild": "1.2.1 (128), predates blocks15/16"
+    "lastDeliveredBuild": "1.2.1 (129)"
   }
 }
