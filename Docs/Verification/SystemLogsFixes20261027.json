@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "block": 17,
   "totalBlocks": 19,
-  "status": "implemented_pending_final_regression_and_device_acceptance",
-  "updatedAt": "2026-10-27T11:12:04.570772+00:00",
+  "status": "implemented_locally_verified_and_deployed_pending_device_acceptance",
+  "updatedAt": "2026-10-27T11:32:07.918536+00:00",
   "audit": "Docs/Verification/SystemLogsAudit20261027.json",
   "inventory": "Docs/Verification/SystemLogsInventory20261027.json",
   "findings": [
@@ -114,7 +114,13 @@
       "skipped": 0,
       "artifact": "build/fix-system17-20261027/rules-tests.log"
     },
-    "serverUnit": "517passed/171opt-in skipped before added index script; final rerun pending",
+    "serverUnit": {
+      "passed": 518,
+      "failed": 0,
+      "skipped": 171,
+      "skipScope": "Opt-in integrations, not counted as passes",
+      "artifact": "build/fix-system17-20261027/server-unit-final.log"
+    },
     "schedulerContracts": {
       "passed": 3,
       "failed": 0,
@@ -124,9 +130,73 @@
       "passed": 1,
       "failed": 0
     },
-    "fullIOSRegression": "pending",
-    "releaseBuild": "pending",
-    "hostedCI": "pending"
+    "fullIOSRegression": {
+      "passed": 950,
+      "failed": 0,
+      "skipped": 40,
+      "total": 990,
+      "result": "Passed",
+      "artifact": "build/fix-system17-20261027/FullRegression.xcresult",
+      "summary": "build/fix-system17-20261027/full-regression-summary.json",
+      "scope": "Unique XCResult test count; includes whole unit suite and journal UI scenario families. Parameterized test invocations are not added to the unique count.",
+      "skips": "Opt-in emulator/physical/SDK suites; actual journal server and rules suites ran separately."
+    },
+    "releaseBuild": {
+      "result": "passed",
+      "artifact": "build/fix-system17-20261027/release-build.log",
+      "scope": "Generic unsigned iOS Release; no upload",
+      "knownWarning": "Pre-existing DirectoryEditorAccessStore.swift:50 Decodable actor isolation warning remains."
+    },
+    "hostedCI": {
+      "headSha": "e8ef1c29a131577760d00ab431ed79c9b15354eb",
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40494379701",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Change classification and static checks",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Firebase affected checks",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "iOS build and unit checks",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Firebase and rules",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "iOS build and unit tests",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "recordedAt": "2026-10-27T11:32:07.918536+00:00"
+    },
+    "visual": {
+      "artifact": "build/fix-system17-20261027/final-attachments/manifest.json",
+      "observed": [
+        "uk/light and de/dark ordinary detail, filters, technical disclosure and copy feedback",
+        "uk/light and de/dark maximum accessibility dashboard, rows, detail and advanced filters",
+        "Admin limited journal excludes owner entry; reviewed state persists on exact reread",
+        "Owner destructive confirmation cancellation retains fixture data"
+      ],
+      "manualSearch": "German/dark simulator: typed zzzz using onscreen keyboard, submitted search, keyboard dismissed, filtered empty state, reset restored two fixture rows.",
+      "video": "build/fix-system17-20261027/journal-search-flow.mp4",
+      "limits": [
+        "Fixture UI, not authenticated live production UI",
+        "Reduced transparency / increased contrast and narrow-landscape matrix not re-exercised this turn",
+        "Native UI snapshot returned no targets; manual search used Device Hub fallback. Driver keyboard-layout/clipboard mismatch was excluded from app results."
+      ]
+    }
   },
   "production": {
     "changedHandlers": [
@@ -160,7 +230,7 @@
     "noNewsEventsOrganizationsUsersChanged": true
   },
   "acceptance": {
-    "implementation": "complete for recorded finding groups; final broad regression pending",
+    "implementation": "All recorded finding groups implemented; full local regression, Release, server tests and exact-source hosted CI passed. Physical acceptance remains separate.",
     "simulator": "documented fixture/contract coverage, not physical proof",
     "physicalIPhone": "unavailable via Mac on current readback; pending",
     "newAPNsOnPhysicalPhone": "pending; prior real accepted receipts and controlled sender contracts are separate",
@@ -172,8 +242,146 @@
     "UkrainianCommunity/Localization/Localizable.xcstrings: existing extraction metadata; localized values unchanged"
   ],
   "remainingLedger": [
-    "Final source broad unit/Release and hostedCI",
-    "All final unique windows under ordinary/max type; role-specific positive/negative UI limits recorded separately",
-    "Physical signed-copy and fresh APNs acceptance"
+    "Physical signed-copy journal reads and fresh APNs lock-screen/tap acceptance; phone unavailable",
+    "Reduced transparency / increased contrast and full physical role/device matrix",
+    "New TestFlight delivery only when requested; build129 does not include block17"
+  ],
+  "sourceCommit": "e8ef1c29a131577760d00ab431ed79c9b15354eb",
+  "surfaceFollowup": [
+    {
+      "id": "entry_owner",
+      "scope": "Source and focused regression; not every dynamic menu value or physical transition independently exercised",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "entry_admin",
+      "scope": "Final simulator fixture UI plus contract/source",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "entry_denied",
+      "scope": "Final automated contract/source, not full role-specific pixels",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "root",
+      "scope": "Final simulator fixture UI plus contract/source",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "search",
+      "scope": "Final simulator fixture UI plus contract/source",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "metrics",
+      "scope": "Final simulator fixture UI plus contract/source",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "sections",
+      "scope": "Source and focused regression; not every dynamic menu value or physical transition independently exercised",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "quick",
+      "scope": "Source and focused regression; not every dynamic menu value or physical transition independently exercised",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "sort",
+      "scope": "Final automated contract/source, not full role-specific pixels",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "advanced",
+      "scope": "Final simulator fixture UI plus contract/source",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "pagination",
+      "scope": "Final automated contract/source, not full role-specific pixels",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "actions",
+      "scope": "Source and focused regression; not every dynamic menu value or physical transition independently exercised",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "row",
+      "scope": "Final simulator fixture UI plus contract/source",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "detail",
+      "scope": "Final simulator fixture UI plus contract/source",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "actor",
+      "scope": "Source and focused regression; not every dynamic menu value or physical transition independently exercised",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "technical",
+      "scope": "Final simulator fixture UI plus contract/source",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "copy",
+      "scope": "Final simulator fixture UI plus contract/source",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "review",
+      "scope": "Final simulator fixture UI plus contract/source",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "delete",
+      "scope": "Final simulator fixture UI plus contract/source",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "push_route",
+      "scope": "Source and focused regression; not every dynamic menu value or physical transition independently exercised",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "ingest",
+      "scope": "Final automated contract/source, not full role-specific pixels",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "outbox",
+      "scope": "Final automated contract/source, not full role-specific pixels",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "index",
+      "scope": "Final automated contract/source, not full role-specific pixels",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "retention",
+      "scope": "Production configuration/readback plus source; no induced destructive run or synthetic incident",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "alerts",
+      "scope": "Final automated contract/source, not full role-specific pixels",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "cloud",
+      "scope": "Production configuration/readback plus source; no induced destructive run or synthetic incident",
+      "physicalAcceptance": "pending"
+    },
+    {
+      "id": "observer",
+      "scope": "Production configuration/readback plus source; no induced destructive run or synthetic incident",
+      "physicalAcceptance": "pending"
+    }
   ]
 }

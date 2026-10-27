@@ -394,11 +394,11 @@
     {
       "number": 17,
       "name": "Журнал системы и серверные процессы",
-      "status": "implemented_locally_verified_and_deployed_pending_final_regression",
+      "status": "implemented_locally_verified_and_deployed_pending_device_acceptance",
       "openChecks": [
-        "Final broad regression and exact-source hostedCI",
-        "Physical iPhone acceptance and fresh APNs; device unavailable",
-        "New TestFlight delivery only when requested"
+        "Physical signed-copy journal reads and fresh APNs lock-screen/tap acceptance; phone unavailable",
+        "Reduced transparency / increased contrast and full physical role/device matrix",
+        "New TestFlight delivery only when requested; build129 does not include block17"
       ],
       "inventory": "Docs/Verification/SystemLogsInventory20261027.json",
       "report": "Docs/Verification/SystemLogsAudit20261027.json",
@@ -416,7 +416,81 @@
         "P17-F08",
         "P17-F09",
         "P17-F10"
-      ]
+      ],
+      "sourceCommit": "e8ef1c29a131577760d00ab431ed79c9b15354eb",
+      "localValidation": {
+        "fullIOSRegression": {
+          "passed": 950,
+          "failed": 0,
+          "skipped": 40,
+          "total": 990,
+          "result": "Passed",
+          "artifact": "build/fix-system17-20261027/FullRegression.xcresult",
+          "summary": "build/fix-system17-20261027/full-regression-summary.json",
+          "scope": "Unique XCResult test count; includes whole unit suite and journal UI scenario families. Parameterized test invocations are not added to the unique count.",
+          "skips": "Opt-in emulator/physical/SDK suites; actual journal server and rules suites ran separately."
+        },
+        "serverHandlers": {
+          "passed": 20,
+          "failed": 0,
+          "skipped": 0,
+          "artifact": "build/fix-system17-20261027/server-tests-final.log",
+          "scope": "Auth+Firestore emulator; actual list callable owner/admin/user/blocked/MFA, pagination, idempotency and1200-row selective fixture"
+        },
+        "serverRules": {
+          "passed": 19,
+          "failed": 0,
+          "skipped": 0,
+          "artifact": "build/fix-system17-20261027/rules-tests.log"
+        },
+        "serverUnit": {
+          "passed": 518,
+          "failed": 0,
+          "skipped": 171,
+          "skipScope": "Opt-in integrations, not counted as passes",
+          "artifact": "build/fix-system17-20261027/server-unit-final.log"
+        },
+        "releaseBuild": {
+          "result": "passed",
+          "artifact": "build/fix-system17-20261027/release-build.log",
+          "scope": "Generic unsigned iOS Release; no upload",
+          "knownWarning": "Pre-existing DirectoryEditorAccessStore.swift:50 Decodable actor isolation warning remains."
+        }
+      },
+      "sourceCI": {
+        "headSha": "e8ef1c29a131577760d00ab431ed79c9b15354eb",
+        "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40494379701",
+        "status": "completed",
+        "conclusion": "success",
+        "jobs": [
+          {
+            "name": "Change classification and static checks",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Firebase affected checks",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "iOS build and unit checks",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Firebase and rules",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "iOS build and unit tests",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ],
+        "recordedAt": "2026-10-27T11:32:07.918536+00:00"
+      }
     },
     {
       "number": 18,
@@ -534,7 +608,7 @@
   "nextNewBlock": 18,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "Finish final block17 regression/CI, then user acceptance and separate requested delivery. Blocks18–19 remain unstarted.",
+  "nextAction": "Block17 implementation, local verification, deployed readback and exact-source CI complete. Physical acceptance and requested TestFlight delivery remain separate; await user instruction for block18.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,
