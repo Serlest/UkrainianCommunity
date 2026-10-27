@@ -1,5 +1,6 @@
 import PhotosUI
 import SwiftUI
+import UIKit
 
 private let profileRootScrollTopID = "profileRootScrollTop"
 
@@ -50,7 +51,7 @@ enum ProfileNavigationRoute: Hashable {
     var hidesRootTabBar: Bool {
         switch self {
         case .accountSecurity, .directoryEditors, .userManagement, .contentPlanning(draftID: nil),
-             .legalDocumentManagement, .legalEvidence, .legal: true
+             .legalDocumentManagement, .legalEvidence, .legal, .donationSettings: true
         default: false
         }
     }
@@ -627,6 +628,7 @@ struct ProfileView: View {
                 config: donationConfigViewModel.config,
                 language: appLanguage
             )
+            .modifier(ProjectSupportURLTesting())
         case .blockedUsers:
             BlockedUsersView(coordinator: userBlockingCoordinator)
         case .blockedOrganizations:
@@ -733,6 +735,7 @@ struct ProfileView: View {
             }
         case .donationSettings:
             DonationSettingsView(viewModel: donationConfigViewModel)
+                .modifier(ProjectSupportURLTesting())
         case .feedbackInbox:
             FeedbackInboxView(
                 repository: feedbackRepository,
@@ -1024,6 +1027,7 @@ struct ProfileView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("profile.supportProject")
                 }
             }
         }
@@ -1383,6 +1387,8 @@ struct ProfileDonationSupportCard: View {
     let config: DonationConfig
     let language: AppLanguage
     @Environment(\.openURL) private var openURL
+    @State private var linkFailed = false
+    @State private var linkRequestID = UUID()
 
     private var title: String {
         config.title(for: language)
@@ -1428,7 +1434,16 @@ struct ProfileDonationSupportCard: View {
                     title: buttonTitle,
                     systemImage: "arrow.up.right.square"
                 ) {
-                    openURL(donationURL)
+                    let request = UUID(); linkRequestID = request
+                    openURL(donationURL) { accepted in if request == linkRequestID { linkFailed = !accepted } }
+                }
+                .accessibilityIdentifier("donation.public.openLink")
+
+                if linkFailed {
+                    InlineMessageCard(style: .error, message: DonationEditorText.linkFailed)
+                        .accessibilityIdentifier("donation.public.linkFailure")
+                    Button(ProjectSupportText.copyLink) { UIPasteboard.general.string = donationURL.absoluteString }
+                        .accessibilityIdentifier("donation.public.copyLink")
                 }
 
                 Label {
@@ -1452,6 +1467,7 @@ struct ProfileDonationSupportCard: View {
                 .strokeBorder(AppTheme.accentSupport.opacity(0.16), lineWidth: 1)
         )
         .accessibilityElement(children: .contain)
+        .onChange(of: donationURL) { _, _ in linkFailed = false; linkRequestID = UUID() }
     }
 }
 

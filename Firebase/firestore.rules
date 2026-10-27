@@ -2548,8 +2548,28 @@ service cloud.firestore {
       }
 
       function canCreateAuditLog(logId) {
-        return isOwnerOrAppAdmin()
-          && isSafeAuditCreate(logId);
+        return request.resource.data.eventType == 'configurationUpdated'
+          ? (isAppOwner()
+            && validSystemLogCreateBase(logId)
+            && requestActorMatchesAuth()
+            && request.resource.data.actorRole == 'owner'
+            && request.resource.data.category == 'audit'
+            && request.resource.data.retentionPolicy == 'normalAudit'
+            && request.resource.data.eventType == 'configurationUpdated'
+            && request.resource.data.targetType == 'donationConfig'
+            && request.resource.data.targetId == 'donation'
+            && request.resource.data.moduleName == 'ProjectSupport'
+            && request.resource.data.operationName == 'saveDonationConfig'
+            && request.resource.data.severity == 'info'
+            && request.resource.data.outcome == 'success'
+            && request.resource.data.metadata.keys().hasOnly(['resultRevision', 'isEnabled', 'confirmation', 'occurredAt'])
+            && request.resource.data.metadata.resultRevision is string
+            && request.resource.data.metadata.resultRevision.matches('^[a-f0-9]{8}( [a-f0-9]{8}){7}$')
+            && request.resource.data.metadata.isEnabled in ['true', 'false']
+            && request.resource.data.metadata.confirmation == 'serverReadback'
+            && !('technicalMessage' in request.resource.data)
+            && !('errorCode' in request.resource.data))
+          : (isOwnerOrAppAdmin() && isSafeAuditCreate(logId));
       }
 
       function canCreateModerationLog(logId) {

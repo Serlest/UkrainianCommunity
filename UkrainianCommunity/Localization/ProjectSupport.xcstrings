@@ -1,0 +1,438 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "project_support.title": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Підтримка проєкту"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Projektunterstützung"
+          }
+        }
+      }
+    },
+    "project_support.savedVisible": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Збережено: підтримку ввімкнено"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gespeichert: Unterstützung aktiviert"
+          }
+        }
+      }
+    },
+    "project_support.savedHidden": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Збережено: підтримку вимкнено"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gespeichert: Unterstützung deaktiviert"
+          }
+        }
+      }
+    },
+    "project_support.unsaved": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Є незбережені зміни"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ungespeicherte Änderungen"
+          }
+        }
+      }
+    },
+    "project_support.willVisible": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Після збереження картка буде доступна користувачам."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach dem Speichern ist die Karte für Nutzer sichtbar."
+          }
+        }
+      }
+    },
+    "project_support.willHidden": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Після збереження картка буде прихована."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach dem Speichern ist die Karte ausgeblendet."
+          }
+        }
+      }
+    },
+    "project_support.save": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зберегти"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speichern"
+          }
+        }
+      }
+    },
+    "project_support.saving": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Збереження…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird gespeichert…"
+          }
+        }
+      }
+    },
+    "project_support.openLink": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Відкрити посилання"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link öffnen"
+          }
+        }
+      }
+    },
+    "project_support.copyLink": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скопіювати посилання"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link kopieren"
+          }
+        }
+      }
+    },
+    "project_support.closeTitle": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зберегти зміни?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Änderungen speichern?"
+          }
+        }
+      }
+    },
+    "project_support.closeMessage": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зміни ще не збережено."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Änderungen sind noch nicht gespeichert."
+          }
+        }
+      }
+    },
+    "project_support.leave": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вийти без збереження"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ohne Speichern schließen"
+          }
+        }
+      }
+    },
+    "project_support.reloadTitle": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оновити налаштування?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einstellungen neu laden?"
+          }
+        }
+      }
+    },
+    "project_support.reloadMessage": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Локальні правки буде замінено останньою підтвердженою версією із сервера."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lokale Änderungen werden durch die letzte bestätigte Serverversion ersetzt."
+          }
+        }
+      }
+    },
+    "project_support.reload": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оновити"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neu laden"
+          }
+        }
+      }
+    },
+    "project_support.journalAction": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Збереження налаштувань підтримки проєкту"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einstellungen zur Projektunterstützung speichern"
+          }
+        }
+      }
+    },
+    "project_support.journalSaved": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Налаштування підтримки проєкту збережено"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einstellungen zur Projektunterstützung gespeichert"
+          }
+        }
+      }
+    },
+    "project_support.conflictTitle": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Налаштування вже змінено"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einstellungen wurden inzwischen geändert"
+          }
+        }
+      }
+    },
+    "project_support.conflictCause": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сервер має іншу версію налаштувань. Застарілі правки не перезаписали її."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf dem Server liegt eine andere Version vor. Veraltete Änderungen haben sie nicht überschrieben."
+          }
+        }
+      }
+    },
+    "project_support.unconfirmedTitle": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Результат збереження не підтверджено"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speicherergebnis nicht bestätigt"
+          }
+        }
+      }
+    },
+    "project_support.unconfirmedCause": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не отримано підтвердження саме цих змін. Це не доводить, що запис на сервері не відбувся."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für genau diese Änderungen liegt keine Bestätigung vor. Das beweist nicht, dass auf dem Server nicht gespeichert wurde."
+          }
+        }
+      }
+    },
+    "project_support.journalNext": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оновіть налаштування та перевірте збережений стан перед повторною зміною."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laden Sie die Einstellungen neu und prüfen Sie den gespeicherten Stand vor einer weiteren Änderung."
+          }
+        }
+      }
+    },
+    "project_support.writeStage": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запис налаштувань"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einstellungen schreiben"
+          }
+        }
+      }
+    },
+    "project_support.confirmStage": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перевірка збереженого стану"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gespeicherten Stand bestätigen"
+          }
+        }
+      }
+    },
+    "project_support.previewExpanded": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Розгорнуто"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausgeklappt"
+          }
+        }
+      }
+    },
+    "project_support.previewCollapsed": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Згорнуто"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eingeklappt"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

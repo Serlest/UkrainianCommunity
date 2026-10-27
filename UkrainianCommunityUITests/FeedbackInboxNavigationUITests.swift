@@ -1018,9 +1018,11 @@ extension OwnerProfileAuditUITests {
         reveal(apply, in: app); XCTAssertTrue(apply.isEnabled); apply.tap()
         reveal(language, in: app); language.buttons.element(boundBy: 0).tap()
         XCTAssertEqual(app.textFields["donation.edit.title.uk"].value as? String, "UK: Projekt Test")
+        let previewToggle = app.buttons["donation.preview.toggle"]; reveal(previewToggle, in: app); previewToggle.tap()
         let preview = app.segmentedControls["donation.preview.language"]
         reveal(preview, in: app); preview.buttons.element(boundBy: 1).tap()
-        XCTAssertTrue(app.staticTexts["Показується користувачам"].exists)
+        XCTAssertTrue(app.staticTexts["Після збереження картка буде доступна користувачам."].exists)
+        XCTAssertTrue(app.staticTexts["Збережено: підтримку вимкнено"].exists)
         capture(app, "donation-live-preview-uk")
         let save = app.buttons["donation.edit.save"]
         XCTAssertTrue(save.isHittable); XCTAssertTrue(save.isEnabled); save.tap()
@@ -1034,6 +1036,7 @@ extension OwnerProfileAuditUITests {
         let app = launch(language: "de", darkLarge: true)
         let entry = app.buttons["profile.owner.donationSettings"]
         reveal(entry, in: app); entry.tap()
+        let previewToggle = app.buttons["donation.preview.toggle"]; reveal(previewToggle, in: app); previewToggle.tap()
         XCTAssertTrue(app.segmentedControls["donation.preview.language"].waitForExistence(timeout: 8))
         capture(app, "donation-de-dark-large")
         XCTAssertTrue(app.buttons["donation.edit.save"].isHittable)

@@ -17,9 +17,11 @@ struct FirestoreDonationConfigRepository: DonationConfigRepository {
     }
 
     private let document: DocumentReference
+    private let diagnostics: DonationConfigDiagnostics
 
-    init(database: Firestore = Firestore.firestore()) {
+    init(database: Firestore = Firestore.firestore(), diagnostics: DonationConfigDiagnostics = .live) {
         document = database.collection(DonationConfig.collectionPath).document(DonationConfig.documentID)
+        self.diagnostics = diagnostics
     }
 
     func fetchDonationConfig() async throws -> DonationConfig? {
@@ -60,15 +62,39 @@ struct FirestoreDonationConfigRepository: DonationConfigRepository {
                 return nil
             }
         } catch {
-            if (error as NSError).domain == "DonationConfigConflict" { throw DonationConfigSaveError.conflict }
+            if (error as NSError).domain == "DonationConfigConflict" {
+                await diagnostics.failed(DonationConfigSaveError.conflict, userID, "writeConfiguration", config.sourceRevision)
+                throw DonationConfigSaveError.conflict
+            }
             // A write error can be a lost acknowledgement. Only an authoritative match proves success.
-            if let saved = try? await RefreshRequest.run(operation: { try await fetchDonationConfig() }),
-               saved.updatedBy == userID, saved.hasSameContent(as: normalized) { return saved }
+            if Self.mayHaveCommitted(error),
+               let saved = try? await RefreshRequest.run(operation: { try await fetchDonationConfig() }),
+               Self.confirmsWrite(saved, input: normalized, userID: userID) {
+                await diagnostics.confirmed(saved, userID)
+                return saved
+            }
+            await diagnostics.failed(error, userID, "writeConfiguration", config.sourceRevision)
             throw appError(from: error)
         }
         guard let saved = try? await RefreshRequest.run(operation: { try await fetchDonationConfig() }),
-              saved.updatedBy == userID, saved.hasSameContent(as: normalized) else { throw DonationConfigSaveError.unconfirmed }
+              Self.confirmsWrite(saved, input: normalized, userID: userID) else {
+            await diagnostics.failed(DonationConfigSaveError.unconfirmed, userID, "confirmConfiguration", config.sourceRevision)
+            throw DonationConfigSaveError.unconfirmed
+        }
+        await diagnostics.confirmed(saved, userID)
         return saved
+    }
+
+    static func confirmsWrite(_ saved: DonationConfig, input: DonationConfig, userID: String) -> Bool {
+        saved.sourceRevision != nil && saved.sourceRevision != input.sourceRevision
+            && saved.updatedBy == userID && saved.hasSameContent(as: input)
+    }
+
+    static func mayHaveCommitted(_ error: Error) -> Bool {
+        let error = error as NSError
+        guard error.domain == FirestoreErrorDomain,
+              let code = FirestoreErrorCode.Code(rawValue: error.code) else { return false }
+        return [.unavailable, .deadlineExceeded, .unknown, .internal, .aborted].contains(code)
     }
 
     static func revision(_ data: [String: Any]) -> String {

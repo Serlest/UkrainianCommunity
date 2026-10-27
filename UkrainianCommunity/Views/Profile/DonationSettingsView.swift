@@ -1,4 +1,12 @@
+import Combine
 import SwiftUI
+import UIKit
+
+private enum DonationField: Hashable { case url, title, message, button }
+private enum DonationPresentation: Identifiable {
+    case close(DonationEditorCommand), reload(DonationEditorScope)
+    var id: String { switch self { case .close: "close"; case .reload: "reload" } }
+}
 
 struct DonationSettingsView: View {
     @EnvironmentObject private var authState: AuthState
@@ -7,169 +15,124 @@ struct DonationSettingsView: View {
     @Environment(\.openURL) private var openURL
     @ObservedObject var viewModel: DonationConfigViewModel
     @State private var draft: DonationConfig = .defaults
-    @State private var showsDiscardConfirmation = false
-    @State private var showsReloadConfirmation = false
+    @State private var hasDraft = false
+    @State private var isPreparing = true
+    @State private var presentation: DonationPresentation?
     @State private var editLanguage: AppLanguage = .ukrainian
     @State private var previewLanguage: AppLanguage = .ukrainian
+    @State private var previewExpanded = false
     @State private var linkFailed = false
+    @State private var linkRequestID = UUID()
+    @FocusState private var focusedField: DonationField?
 
-    var body: some View {
-        PushedScreenShell(
-            title: DonationLocalization.settingsTitle(for: language),
-            subtitle: DonationLocalization.settingsSubtitle(for: language),
-            backAction: attemptDismiss
-        ) {
-            AppGroupedContentPlane(spacing: AppTheme.feedRowSpacing) {
-                if !PermissionService.isAppOwner(user: authState.user) {
-                    ErrorStateCard(
-                        systemImage: "lock.fill",
-                        title: DonationLocalization.ownerOnlyTitle(for: language),
-                        message: DonationLocalization.ownerOnlyMessage(for: language)
-                    )
-                } else if viewModel.isLoading && !viewModel.hasLoadedData {
-                    LoadingStateCard(title: nil)
-                        .frame(maxWidth: .infinity, minHeight: 120)
-                } else if !viewModel.hasLoadedData {
-                    ErrorStateCard(
-                        systemImage: "heart.slash",
-                        title: DonationLocalization.settingsTitle(for: language),
-                        message: DonationLocalization.loadFailed(for: language),
-                        retryTitle: AppStrings.Action.retry
-                    ) {
-                        Task {
-                            await viewModel.load()
-                            if viewModel.hasLoadedData {
-                                draft = viewModel.config
-                            }
-                        }
-                    }
-                } else {
-                    content
-                }
-            }
-        }
-        .safeAreaInset(edge: .bottom) {
-            if viewModel.hasLoadedData && PermissionService.isAppOwner(user: authState.user) {
-                VStack(spacing: 6) {
-                    if let message = validationError(for: draft.normalizedForSaving()) {
-                        Text(message).font(.caption).foregroundStyle(AppTheme.accentDestructiveForeground)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    PrimaryActionButton(title: DonationLocalization.saveButton(for: language),
-                    loadingTitle: DonationLocalization.savingButton(for: language), isEnabled: canSave,
-                    isLoading: viewModel.isSaving, systemImage: "checkmark") { Task { await save() } }
-                    .accessibilityIdentifier("donation.edit.save")
-                }
-                    .padding(.horizontal, AppTheme.pageHorizontal).padding(.vertical, 10)
-                    .background(.ultraThinMaterial)
-            }
-        }
-        .task {
-            guard PermissionService.isAppOwner(user: authState.user) else { return }
-            let initialDraft = draft
-            await viewModel.loadIfNeeded()
-            if draft.hasSameContent(as: initialDraft) { draft = viewModel.config }
-            editLanguage = language; previewLanguage = language
-        }
-        .appRefreshable {
-            await viewModel.load()
-        }
-        .onChange(of: viewModel.config) { previousConfig, newConfig in
-            if !viewModel.isSaving && draft.hasSameContent(as: previousConfig) { draft = newConfig }
-        }
-        .confirmationDialog(
-            DonationLocalization.discardTitle(for: language),
-            isPresented: $showsDiscardConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(DonationEditorText.saveAndClose) { Task { if await save() { dismiss() } } }.disabled(!canSave)
-            Button(DonationLocalization.discardAction(for: language), role: .destructive) {
-                dismiss()
-            }
-            Button(AppStrings.Common.cancel, role: .cancel) {}
-        } message: {
-            Text(DonationLocalization.discardMessage(for: language))
-        }
-        .confirmationDialog(DonationEditorText.reloadTitle, isPresented: $showsReloadConfirmation) {
-            Button(DonationEditorText.reload, role: .destructive) { Task { await reloadDraft() } }
-            Button(AppStrings.Common.cancel, role: .cancel) {}
-        }
-        .onChange(of: authState.user?.id) { _, _ in dismiss() }
-
+    private var scope: DonationEditorScope { DonationEditorScope(authState) }
+    private var language: AppLanguage { DonationLocalization.language(from: locale) }
+    private var hasChanges: Bool { !draft.hasSameContent(as: viewModel.config) }
+    private var hasRemoteConflict: Bool { draft.sourceRevision != viewModel.config.sourceRevision && hasChanges }
+    private var canSave: Bool {
+        scope.allowsOwner && hasChanges && draft.normalizedForSaving().validationIssue == nil
+            && !viewModel.isSaving && !viewModel.isLoading && !hasRemoteConflict && !viewModel.needsReload
     }
 
-    private var language: AppLanguage {
-        DonationLocalization.language(from: locale)
+    var body: some View {
+        ScrollViewReader { proxy in
+            PushedScreenShell(title: ProjectSupportText.title, tabBarHidden: true, backAction: attemptDismiss) {
+                AppGroupedContentPlane(spacing: AppTheme.feedRowSpacing) {
+                    if !scope.allowsOwner {
+                        ErrorStateCard(systemImage: "lock.fill", title: DonationLocalization.ownerOnlyTitle(for: language),
+                                       message: DonationLocalization.ownerOnlyMessage(for: language))
+                    } else if !hasDraft && (isPreparing || viewModel.isLoading) {
+                        LoadingStateCard(title: nil).frame(maxWidth: .infinity, minHeight: 120)
+                    } else if !hasDraft {
+                        ErrorStateCard(systemImage: "heart.slash", title: ProjectSupportText.title,
+                                       message: DonationLocalization.loadFailed(for: language), retryTitle: AppStrings.Action.retry) {
+                            Task { await loadDraft() }
+                        }
+                    } else { content }
+                }
+            }
+            .clipped()
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if hasDraft && scope.allowsOwner {
+                    PrimaryActionButton(title: ProjectSupportText.save, loadingTitle: ProjectSupportText.saving,
+                                        isEnabled: canSave && presentation == nil, isLoading: viewModel.isSaving, systemImage: "checkmark") {
+                        let command = DonationEditorCommand(config: draft.normalizedForSaving(), scope: scope)
+                        focusedField = nil
+                        Task { _ = await save(command) }
+                    }
+                    .accessibilityIdentifier("donation.edit.save")
+                    .padding(.horizontal, AppTheme.pageHorizontal).padding(.vertical, 8)
+                    .background(.ultraThinMaterial)
+                }
+            }
+            .onChange(of: focusedField) { _, _ in revealFocus(with: proxy) }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in revealFocus(with: proxy) }
+        }
+        .task {
+            let original = scope
+            guard original.allowsOwner else { return }
+            editLanguage = language; previewLanguage = language
+            await loadDraft()
+        }
+        .appRefreshable { await loadDraft() }
+        .onChange(of: viewModel.config) { old, new in
+            if !viewModel.isSaving && draft.hasSameContent(as: old) { draft = new }
+        }
+        .onChange(of: scope) { _, _ in
+            viewModel.invalidateEditor(); presentation = nil; focusedField = nil; dismiss()
+        }
+        .onChange(of: editLanguage) { _, _ in focusedField = nil }
+        .onChange(of: draft.donationURL) { _, _ in linkFailed = false; linkRequestID = UUID() }
+        .sheet(item: $presentation) { confirmation($0) }
     }
 
     private var content: some View {
         VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {
-            if let statusMessage = viewModel.statusMessage {
-                InlineMessageCard(style: viewModel.statusStyle, message: statusMessage)
-            }
-
+            if let status = viewModel.statusMessage { InlineMessageCard(style: viewModel.statusStyle, message: status) }
             if hasRemoteConflict || viewModel.needsReload {
-                InlineMessageCard(style: .error, message: DonationEditorText.conflict)
-                Button(DonationEditorText.reload) { showsReloadConfirmation = true }
+                if viewModel.statusMessage == nil { InlineMessageCard(style: .error, message: DonationEditorText.conflict) }
+                Button(DonationEditorText.reload) { focusedField = nil; presentation = .reload(scope) }
                     .accessibilityIdentifier("donation.edit.reload")
             }
             AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                    SectionHeaderBlock(
-                        title: DonationLocalization.previewTitle(for: language),
-                        subtitle: DonationLocalization.previewSubtitle(for: language)
-                    )
-
-                    Label(draft.isEnabled && draft.normalizedForSaving().validationIssue == nil ? DonationEditorText.visible : DonationEditorText.hidden,
-                        systemImage: draft.isEnabled && draft.normalizedForSaving().validationIssue == nil ? "eye" : "eye.slash")
+                    Text(viewModel.config.isEnabled && viewModel.config.validDonationURL != nil ? ProjectSupportText.savedVisible : ProjectSupportText.savedHidden)
                         .font(.subheadline.weight(.semibold)).foregroundStyle(AppTheme.textSecondary)
-                    languagePicker(DonationEditorText.previewLanguage, selection: $previewLanguage)
-                    ProfileDonationSupportCard(config: previewConfig, language: previewLanguage)
-                        .allowsHitTesting(false)
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(previewConfig.title(for: previewLanguage) + ". " + previewConfig.message(for: previewLanguage))
-                }
-            }
-
-            AppEditorSectionCard {
-                VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                    SectionHeaderBlock(
-                        title: DonationLocalization.visibilityTitle(for: language),
-                        subtitle: DonationLocalization.visibilitySubtitle(for: language)
-                    )
-
+                        .fixedSize(horizontal: false, vertical: true).accessibilityIdentifier("donation.saved.visibility")
+                    if hasChanges {
+                        Text(ProjectSupportText.unsaved).font(.subheadline.weight(.semibold))
+                            .foregroundStyle(AppTheme.accentPrimaryForeground).fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("donation.unsaved")
+                    }
                     Toggle(DonationLocalization.enableToggle(for: language), isOn: $draft.isEnabled)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
+                        .font(.subheadline.weight(.semibold)).foregroundStyle(AppTheme.textPrimary)
                         .accessibilityIdentifier("donation.edit.enabled")
-
                     AppEditorField(title: DonationLocalization.urlPlaceholder(for: language)) {
                         TextField(DonationLocalization.urlPlaceholder(for: language), text: $draft.donationURL)
+                            .focused($focusedField, equals: .url).id(DonationField.url)
                             .accessibilityIdentifier("donation.edit.url")
-                            .textInputAutocapitalization(.never)
-                            .keyboardType(.URL)
-                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never).keyboardType(.URL).autocorrectionDisabled()
                             .appEditorInputStyle(minHeight: 52)
                     }
                     if let urlError { InlineMessageCard(style: .error, message: urlError) }
                     if draft.validDonationURL != nil {
-                        Button(DonationEditorText.checkLink) {
+                        Button(ProjectSupportText.openLink) {
                             guard let url = draft.validDonationURL else { return }
-                            openURL(url) { accepted in linkFailed = !accepted }
+                            let access = scope
+                            let request = UUID(); linkRequestID = request
+                            focusedField = nil
+                            openURL(url) { accepted in if access == scope && request == linkRequestID { linkFailed = !accepted } }
                         }.accessibilityIdentifier("donation.edit.checkLink")
                     }
-                    if linkFailed { InlineMessageCard(style: .error, message: DonationEditorText.linkFailed) }
+                    if linkFailed {
+                        InlineMessageCard(style: .error, message: DonationEditorText.linkFailed)
+                        Button(ProjectSupportText.copyLink) { UIPasteboard.general.string = draft.normalizedDonationURLString }
+                    }
                 }
             }
-
-            languagePicker(DonationEditorText.editLanguage, selection: $editLanguage)
-            localizedTextSection(
-                title: editLanguage == .ukrainian ? DonationLocalization.ukrainianTextSection(for: language) : DonationLocalization.germanTextSection(for: language),
-                titleText: editLanguage == .ukrainian ? $draft.titleUK : $draft.titleDE,
-                messageText: editLanguage == .ukrainian ? $draft.messageUK : $draft.messageDE,
-                buttonText: editLanguage == .ukrainian ? $draft.buttonTitleUK : $draft.buttonTitleDE,
-                identifier: editLanguage.rawValue
-            )
+            languagePicker(DonationEditorText.editLanguage, selection: $editLanguage, id: "donation.edit.language")
+            localizedTextSection
+            if let error = validationError { InlineMessageCard(style: .error, message: error) }
             AppEditorSectionCard {
                 ContentTranslationButton(kind: "donation", fields: [
                     .init("title", DonationLocalization.titlePlaceholder(for: language), source: editLanguage == .ukrainian ? draft.titleUK : draft.titleDE,
@@ -180,95 +143,73 @@ struct DonationSettingsView: View {
                           target: editLanguage == .ukrainian ? $draft.buttonTitleDE : $draft.buttonTitleUK, limit: 80)
                 ], sourceLanguage: editLanguage)
             }
-
-        }.disabled(viewModel.isSaving).padding(.bottom, 16)
+            AppEditorSectionCard {
+                Button { previewExpanded.toggle() } label: {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(DonationLocalization.previewTitle(for: language)).font(.headline)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 12)
+                        Image(systemName: previewExpanded ? "chevron.up" : "chevron.down")
+                            .accessibilityHidden(true)
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                }.buttonStyle(.plain).foregroundStyle(AppTheme.accentPrimaryForeground)
+                    .accessibilityIdentifier("donation.preview.toggle")
+                    .accessibilityValue(ProjectSupportText.text(previewExpanded ? "previewExpanded" : "previewCollapsed"))
+                if previewExpanded {
+                    Text(draft.isEnabled && draft.normalizedForSaving().validationIssue == nil ? ProjectSupportText.willVisible : ProjectSupportText.willHidden)
+                        .font(.subheadline).foregroundStyle(AppTheme.textSecondary).fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("donation.preview.visibility")
+                    languagePicker(DonationEditorText.previewLanguage, selection: $previewLanguage, id: "donation.preview.language")
+                    ProfileDonationSupportCard(config: draft.normalizedForSaving(), language: previewLanguage)
+                        .allowsHitTesting(false).accessibilityElement(children: .ignore)
+                        .accessibilityLabel(draft.title(for: previewLanguage) + ". " + draft.message(for: previewLanguage))
+                }
+            }
+        }.disabled(viewModel.isSaving || presentation != nil || !scope.allowsOwner)
     }
 
-    private var canSave: Bool {
-        !draft.hasSameContent(as: viewModel.config)
-            && validationError(for: draft.normalizedForSaving()) == nil
-            && !viewModel.isSaving && !viewModel.isLoading && !hasRemoteConflict && !viewModel.needsReload
-    }
-
-    private func localizedTextSection(
-        title: String,
-        titleText: Binding<String>,
-        messageText: Binding<String>,
-        buttonText: Binding<String>,
-        identifier: String
-    ) -> some View {
-        AppEditorSectionCard {
+    private var localizedTextSection: some View {
+        let isUK = editLanguage == .ukrainian
+        let title = isUK ? $draft.titleUK : $draft.titleDE
+        let message = isUK ? $draft.messageUK : $draft.messageDE
+        let button = isUK ? $draft.buttonTitleUK : $draft.buttonTitleDE
+        return AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                SectionHeaderBlock(
-                    title: title,
-                    subtitle: DonationLocalization.localizedTextSubtitle(for: language)
-                )
-
+                AppEditorSectionTitle(title: isUK ? DonationLocalization.ukrainianTextSection(for: language) : DonationLocalization.germanTextSection(for: language))
                 AppEditorField(title: DonationLocalization.titlePlaceholder(for: language)) {
-                    TextField(DonationLocalization.titlePlaceholder(for: language), text: titleText)
-                        .accessibilityIdentifier("donation.edit.title.\(identifier)")
-                        .appEditorInputStyle(minHeight: 52)
-                    fieldFeedback(titleText.wrappedValue, limit: 120)
+                    TextField(DonationLocalization.titlePlaceholder(for: language), text: title, axis: .vertical)
+                        .lineLimit(1...3).focused($focusedField, equals: .title).id(DonationField.title)
+                        .accessibilityIdentifier("donation.edit.title.\(editLanguage.rawValue)").appEditorInputStyle(minHeight: 52)
+                    fieldFeedback(title.wrappedValue, limit: 120)
                 }
-
                 AppEditorField(title: DonationLocalization.messagePlaceholder(for: language)) {
-                    TextField(DonationLocalization.messagePlaceholder(for: language), text: messageText, axis: .vertical)
-                        .lineLimit(3...6)
-                        .accessibilityIdentifier("donation.edit.message.\(identifier)")
-                        .appEditorInputStyle(minHeight: 112)
-                    fieldFeedback(messageText.wrappedValue, limit: 2000)
+                    TextEditor(text: message).focused($focusedField, equals: .message).id(DonationField.message)
+                        .frame(height: 180).scrollContentBackground(.hidden)
+                        .accessibilityIdentifier("donation.edit.message.\(editLanguage.rawValue)").appEditorInputStyle(minHeight: 180)
+                    fieldFeedback(message.wrappedValue, limit: 2000)
                 }
-
                 AppEditorField(title: DonationLocalization.buttonTextPlaceholder(for: language)) {
-                    TextField(DonationLocalization.buttonTextPlaceholder(for: language), text: buttonText)
-                        .accessibilityIdentifier("donation.edit.button.\(identifier)")
-                        .appEditorInputStyle(minHeight: 52)
-                    fieldFeedback(buttonText.wrappedValue, limit: 80)
+                    TextField(DonationLocalization.buttonTextPlaceholder(for: language), text: button, axis: .vertical)
+                        .lineLimit(1...3).focused($focusedField, equals: .button).id(DonationField.button)
+                        .accessibilityIdentifier("donation.edit.button.\(editLanguage.rawValue)").appEditorInputStyle(minHeight: 52)
+                    fieldFeedback(button.wrappedValue, limit: 80)
                 }
             }
         }
     }
 
-    private func save() async -> Bool {
-        let normalizedDraft = draft.normalizedForSaving()
-        guard canSave, PermissionService.isAppOwner(user: authState.user), validationError(for: normalizedDraft) == nil else { return false }
-        let userID = authState.user?.id
-        draft = normalizedDraft
-        if await viewModel.save(normalizedDraft, updatedBy: authState.user?.id) {
-            guard authState.user?.id == userID else { return false }
-            draft = viewModel.config
-            return true
-        }
-        return false
-    }
-
-    private func attemptDismiss() {
-        guard !viewModel.isSaving else { return }
-        if draft.hasSameContent(as: viewModel.config) {
-            dismiss()
-        } else {
-            showsDiscardConfirmation = true
+    private func revealFocus(with proxy: ScrollViewProxy) {
+        Task { @MainActor in
+            await Task.yield()
+            guard let focusedField, scope.allowsOwner else { return }
+            withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(focusedField, anchor: UnitPoint(x: 0.5, y: 0.2)) }
         }
     }
-
-    private var hasRemoteConflict: Bool { draft.sourceRevision != viewModel.config.sourceRevision && !draft.hasSameContent(as: viewModel.config) }
-    private var previewConfig: DonationConfig {
-        var config = draft
-        config.isEnabled = config.validDonationURL != nil
-        return config
-    }
-    private var urlError: String? {
-        let config = draft.normalizedForSaving()
-        if config.isEnabled && config.donationURL.isEmpty { return DonationLocalization.urlRequired(for: language) }
-        if !config.donationURL.isEmpty && config.validDonationURL == nil { return DonationLocalization.invalidURL(for: language) }
-        return nil
-    }
-    private func languagePicker(_ label: String, selection: Binding<AppLanguage>) -> some View {
+    private func languagePicker(_ label: String, selection: Binding<AppLanguage>, id: String) -> some View {
         Picker(label, selection: selection) {
             Text(AppStrings.Settings.ukrainian).tag(AppLanguage.ukrainian)
             Text(AppStrings.Settings.german).tag(AppLanguage.german)
-        }.pickerStyle(.segmented)
-        .accessibilityIdentifier(label == DonationEditorText.editLanguage ? "donation.edit.language" : "donation.preview.language")
+        }.pickerStyle(.segmented).accessibilityIdentifier(id)
     }
     @ViewBuilder private func fieldFeedback(_ value: String, limit: Int) -> some View {
         Text("\(value.utf16.count)/\(limit)").font(.caption).foregroundStyle(AppTheme.textSecondary)
@@ -277,17 +218,70 @@ struct DonationSettingsView: View {
             Text(DonationEditorText.fieldRequired).font(.caption).foregroundStyle(AppTheme.accentDestructiveForeground)
         }
     }
-    private func reloadDraft() async {
-        await viewModel.load()
-        if !viewModel.needsReload && viewModel.statusMessage == nil { draft = viewModel.config }
+    private var urlError: String? {
+        let config = draft.normalizedForSaving()
+        if config.isEnabled && config.donationURL.isEmpty { return DonationLocalization.urlRequired(for: language) }
+        if !config.donationURL.isEmpty && config.validDonationURL == nil { return DonationLocalization.invalidURL(for: language) }
+        return nil
     }
-    private func validationError(for config: DonationConfig) -> String? {
-        switch config.validationIssue {
+    private var validationError: String? {
+        switch draft.normalizedForSaving().validationIssue {
         case .urlRequired: DonationLocalization.urlRequired(for: language)
         case .invalidURL: DonationLocalization.invalidURL(for: language)
         case .tooLong: DonationEditorText.limits
         case .missingText: DonationEditorText.missingText
         case nil: nil
+        }
+    }
+    private func loadDraft(discard: Bool = false) async {
+        let access = scope, before = draft
+        guard access.allowsOwner else { return }
+        if !hasDraft { isPreparing = true }
+        defer { isPreparing = false }
+        await viewModel.load()
+        guard scope == access, viewModel.hasLoadedData, !viewModel.needsReload,
+              viewModel.statusMessage == nil else { return }
+        if !hasDraft || discard || draft.hasSameContent(as: before) && !hasChanges { draft = viewModel.config; hasDraft = true }
+        // First entry has no local draft yet; never replace actual edits during a refresh.
+    }
+    private func save(_ command: DonationEditorCommand) async -> Bool {
+        guard command.scope == scope, scope.allowsOwner, command.config.validationIssue == nil,
+              let userID = command.scope.identity.userID else { return false }
+        let auth = authState
+        let saved = await viewModel.save(command.config, updatedBy: userID,
+                                         isCurrent: { command.scope == DonationEditorScope(auth) })
+        guard saved, command.scope == scope else { return false }
+        draft = viewModel.config
+        return true
+    }
+    private func attemptDismiss() {
+        guard !viewModel.isSaving else { return }
+        focusedField = nil
+        if hasChanges { presentation = .close(DonationEditorCommand(config: draft.normalizedForSaving(), scope: scope)) }
+        else { dismiss() }
+    }
+    @ViewBuilder private func confirmation(_ route: DonationPresentation) -> some View {
+        switch route {
+        case .close(let command):
+            NotificationConfirmationSheet(title: ProjectSupportText.closeTitle, message: ProjectSupportText.closeMessage,
+                                          cancel: { presentation = nil }) {
+                NotificationConfirmationAction(title: DonationEditorText.saveAndClose, id: "donation.confirm.save") {
+                    presentation = nil
+                    Task { if await save(command) { dismiss() } }
+                }.disabled(command.scope != scope || command.config.validationIssue != nil || viewModel.needsReload || hasRemoteConflict)
+                NotificationConfirmationAction(title: ProjectSupportText.leave, id: "donation.confirm.discard", role: .destructive) {
+                    guard command.scope == scope else { presentation = nil; return }
+                    presentation = nil; dismiss()
+                }
+            }
+        case .reload(let access):
+            NotificationConfirmationSheet(title: ProjectSupportText.reloadTitle, message: ProjectSupportText.reloadMessage,
+                                          cancel: { presentation = nil }) {
+                NotificationConfirmationAction(title: ProjectSupportText.reload, id: "donation.confirm.reload", role: .destructive) {
+                    presentation = nil
+                    Task { if access == scope { await loadDraft(discard: true) } }
+                }
+            }
         }
     }
 }
@@ -391,8 +385,8 @@ enum DonationLocalization {
 
     static func externalSiteNotice(host: String, language: AppLanguage = LocalizationStore.language) -> String {
         localized(
-            uk: "Внесок відкриється на захищеному зовнішньому сайті: \(host)",
-            de: "Die Unterstützung wird auf einer sicheren externen Website geöffnet: \(host)",
+            uk: "Ви перейдете на зовнішній сайт: \(host)",
+            de: "Sie öffnen eine externe Website: \(host)",
             language: language
         )
     }

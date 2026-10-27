@@ -4,7 +4,8 @@ import Foundation
 enum SystemLogExplanation {
     static func operationAliases(matching query: String) -> [String] {
         guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return [] }
-        return defaults.keys.filter { $0.hasPrefix("action.") && LocalSearchMatcher.matches(query: query, values: [text($0)]) }
+        let supportMatches = LocalSearchMatcher.matches(query: query, values: [ProjectSupportText.journalAction]) ? ["saveDonationConfig"] : []
+        return supportMatches + defaults.keys.filter { $0.hasPrefix("action.") && LocalSearchMatcher.matches(query: query, values: [text($0)]) }
             .map { String($0.dropFirst("action.".count)) }.sorted()
     }
 
@@ -36,19 +37,25 @@ enum SystemLogExplanation {
     }
 
     nonisolated static func title(_ log: SystemLogEntry) -> String {
+        if log.errorCode == "configuration.conflict" { return ProjectSupportText.conflictTitle }
+        if log.errorCode == "configuration.unconfirmed" { return ProjectSupportText.unconfirmedTitle }
+        if log.operationName == "saveDonationConfig", !isFailure(log) { return ProjectSupportText.journalSaved }
         if isFailure(log), log.operationName == "decodeOwnerBanner" { return text("bannerDecode.title") }
         if isFailure(log), log.moduleName == "Analytics", log.operationName == "deliverAggregate" { return text("background.title") }
         return isFailure(log) ? text(kind(log) + ".title") : SystemLogDisplayFormatting.summaryTitle(log.summary)
     }
 
     nonisolated static func cause(_ log: SystemLogEntry) -> String {
+        if log.errorCode == "configuration.conflict" { return ProjectSupportText.conflictCause }
+        if log.errorCode == "configuration.unconfirmed" { return ProjectSupportText.unconfirmedCause }
         if log.operationName == "decodeOwnerBanner", log.metadata["invalidField"] != nil { return text("bannerDecode.cause") }
         if let reason = log.metadata["diagnosticReason"], defaults["reason." + reason] != nil { return text("reason." + reason) }
         return text(kind(log) + ".cause")
     }
 
     nonisolated static func nextStep(_ log: SystemLogEntry) -> String {
-        switch kind(log) {
+        if log.errorCode?.hasPrefix("configuration.") == true { return ProjectSupportText.journalNext }
+        return switch kind(log) {
         case "connection", "offline", "timeout", "unavailable": text("network.next")
         case "permission": text("permission.next")
         case "auth": text("auth.next")
@@ -58,6 +65,7 @@ enum SystemLogExplanation {
     }
 
     nonisolated static func action(_ log: SystemLogEntry) -> String {
+        if log.operationName == "saveDonationConfig" { return ProjectSupportText.journalAction }
         if let operation = log.operationName, defaults["action." + operation] != nil {
             return text("action." + operation)
         }
@@ -80,6 +88,8 @@ enum SystemLogExplanation {
 
     nonisolated static func contextValue(_ value: String?, prefix: String) -> String? {
         guard let value, !value.isEmpty else { return nil }
+        if prefix == "stage", value == "writeConfiguration" { return ProjectSupportText.writeStage }
+        if prefix == "stage", value == "confirmConfiguration" { return ProjectSupportText.confirmStage }
         let key = prefix + "." + value
         return defaults[key] == nil ? value : text(key)
     }

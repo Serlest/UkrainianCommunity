@@ -162,7 +162,7 @@ extension DonationConfigTests {
         settings.isSSLEnabled = false
         database.settings = settings
         try await database.collection(DonationConfig.collectionPath).document(DonationConfig.documentID).delete()
-        let repository = FirestoreDonationConfigRepository(database: database)
+        let repository = FirestoreDonationConfigRepository(database: database, diagnostics: .none)
         let first = try await repository.saveDonationConfig(configuredDonation(), updatedBy: "owner")
         var newer = first; newer.titleUK = "З іншого пристрою"
         let second = try await repository.saveDonationConfig(newer, updatedBy: "owner")

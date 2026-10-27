@@ -12,6 +12,8 @@ struct SystemAuditLogContext {
     let organizationId: String?
     let organizationName: String?
     let summary: String
+    let expectedPrincipalID: String?
+    let metadata: [String: String]
 
     init(
         moduleName: String,
@@ -22,7 +24,9 @@ struct SystemAuditLogContext {
         targetTitle: String? = nil,
         organizationId: String? = nil,
         organizationName: String? = nil,
-        summary: String
+        summary: String,
+        expectedPrincipalID: String? = nil,
+        metadata: [String: String] = [:]
     ) {
         self.moduleName = moduleName
         self.operationName = operationName
@@ -33,6 +37,8 @@ struct SystemAuditLogContext {
         self.organizationId = organizationId
         self.organizationName = organizationName
         self.summary = summary
+        self.expectedPrincipalID = expectedPrincipalID
+        self.metadata = metadata
     }
 }
 
@@ -55,12 +61,14 @@ final class SystemAuditLoggingService {
 
     func logSuccess(_ context: SystemAuditLogContext) async {
         guard let actor = await actorResolver.resolveOwnerOrAdminActor() else { return }
+        guard context.expectedPrincipalID == nil || actor.userId == context.expectedPrincipalID else { return }
         let dedupeKey = [
             actor.userId,
             context.moduleName,
             context.operationName,
             context.targetType.rawValue,
-            context.targetId ?? "none"
+            context.targetId ?? "none",
+            context.metadata["resultRevision"] ?? ""
         ].joined(separator: "|")
 
         guard await deduplicator.shouldLog(key: dedupeKey) else { return }
@@ -76,7 +84,8 @@ final class SystemAuditLoggingService {
             targetTitle: context.targetTitle,
             organizationId: context.organizationId,
             organizationName: context.organizationName,
-            outcome: .success
+            outcome: .success,
+            metadata: context.metadata
         )
         draft.moduleName = context.moduleName
         draft.operationName = context.operationName

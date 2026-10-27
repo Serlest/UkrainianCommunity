@@ -16,6 +16,14 @@ enum SystemTechnicalErrorClassifier {
         _ error: Error,
         context: SystemTechnicalErrorContext
     ) -> SystemTechnicalErrorClassification {
+        if let failure = error as? DonationConfigSaveError {
+            let conflict: Bool
+            switch failure { case .conflict: conflict = true; case .unconfirmed: conflict = false }
+            return .init(severity: conflict ? .warning : .error,
+                         errorCode: conflict ? "configuration.conflict" : "configuration.unconfirmed",
+                         technicalMessage: conflict ? "Configuration revision changed; stale write rejected." : "Configuration write result not confirmed by server readback.",
+                         metadata: context.metadata)
+        }
         if let issue = error as? FeaturedBannerDataIssue {
             var metadata = context.metadata
             metadata["invalidField"] = issue.field
