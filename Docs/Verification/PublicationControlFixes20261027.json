@@ -77,6 +77,18 @@
       "status": "implemented",
       "change": "Date button uses a rectangular content shape over the full44point row; its middle whitespace now responds.",
       "evidence": "New calendar interaction acceptance failed before the fix, then passed selection/cancel/confirm/reopen on the actual native picker."
+    },
+    {
+      "id": "P16-F12",
+      "status": "implemented",
+      "change": "History pagination detects an anchor report revised between pages rather than silently skipping rows; keeps legacy-client cursor compatibility.",
+      "evidence": "Desired rejection failed before the cursor fix and passed afterward; scoped, deleted, changed and legacy anchors tested."
+    },
+    {
+      "id": "P16-F13",
+      "status": "implemented",
+      "change": "Long-lived credential cache obeys actual absolute expiry and returns remaining lifetime. Periodic observer checks run directly rather than being postponable by debouncing. Unfetched lists use loading, not empty-result presentation.",
+      "evidence": "Real401after07:37UTC reproduced in observer logs; expiry mock expected600butreturned3600 before fix.22credential/observer cases pass; observer restarted and repeated one-minute checks succeed again."
     }
   ],
   "checks": {
@@ -109,19 +121,19 @@
     },
     "lastVisualDetails": {
       "longestRegionMaxAX": "passed, FinalVisualDetails.xcresult/testLargestRegionLabelKeepsItsFullText",
-      "calendarInteraction": "passed, CalendarInteractionFixed.xcresult; center hit target, cancel without change, select earlier date, Done and reopen",
+      "calendarInteraction": "passed, CalendarInteractionFixed.xcresult; entire button center responds, Cancel preserves date, Done selects26October and reopen retains it; screenshot inspected.",
       "preFixFailure": "FinalVisualDetails.xcresult reproduced normal-size empty-center date hit failure; fixed rather than skipped."
     },
     "serverUnit": {
-      "passed": 515,
+      "passed": 517,
       "skipped": 169,
       "failed": 0,
-      "artifact": "build/fix-publication16-20261027/server-unit.log"
+      "artifact": "build/fix-publication16-20261027/server-unit-final.log"
     },
     "serverIntegration": {
       "passed": 5,
       "skipped": 0,
-      "artifact": "build/fix-publication16-20261027/server-and-roles.log"
+      "artifact": "build/fix-publication16-20261027/history-final-integration.log"
     },
     "accessCases": {
       "passed": 12,
@@ -133,8 +145,8 @@
       "artifact": "build/fix-publication16-20261027/observer-tests-final.log"
     },
     "releaseBuild": {
-      "result": "running final one-line hit-target follow-up; previous complete source Release passed",
-      "artifact": "build/fix-publication16-20261027/release-final-ui-shape.log",
+      "result": "passed",
+      "artifact": "build/fix-publication16-20261027/release-final-loading-source.log",
       "signed": false,
       "boundary": "Unsigned generic iOS Release compile, not an installed iPhone or TestFlight binary.",
       "existingWarnings": [
@@ -146,12 +158,47 @@
     "static": [
       "localizations.log",
       "index-validation.log",
-      "release-config.log"
+      "release-config.log",
+      "repository-validation.log",
+      "property-validation.log"
     ],
     "legacyServerIntegration": {
       "passed": 3,
       "skipped": 0,
       "artifact": "build/fix-publication16-20261027/legacy-server-integration.log"
+    },
+    "historyRevisionRace": {
+      "before": "history-revision-reproduction.log: expected rejection missing; an updated anchor silently skipped remaining rows.",
+      "after": "history-cursor-fixed.log:5integration families and12access variants pass. Added old-ID compatibility and foreign-regionv2 checks in final repeat.",
+      "change": "Version2 opaque cursor binds document ID, exact seconds/nanoseconds and selected region. Changed or deleted anchors trigger aborted/refresh. Legacy40hex cursors remain accepted."
+    },
+    "credentialAndObserver": {
+      "passed": 22,
+      "failed": 0,
+      "artifact": "build/fix-publication16-20261027/credential-and-observer-fixed.log",
+      "reproduction": "build/fix-publication16-20261027/credential-expiry-reproduction.log",
+      "regression": "An already cached600second remaining token was incorrectly treated as a fresh3600second token. Absolute expires_at now limits lifetime; cached returns carry their remaining lifetime; expired absolute deadlines fail closed."
+    },
+    "loadingStateFollowup": {
+      "passed": 11,
+      "failed": 0,
+      "artifact": "build/fix-publication16-20261027/LoadingStatesFinal.xcresult",
+      "scope": "Targeted store regressions plus uk/de standard UI. Unfetched/error pages cannot render a confirmed-empty state."
+    },
+    "liveAggregationAndPages": {
+      "result": "passed",
+      "evidence": "build/fix-publication16-20261027/live-pages-and-counts.json",
+      "counts": [
+        "57total",
+        "3Vienna",
+        "25news",
+        "1Vienna news"
+      ],
+      "history": "80+80 rows,160 distinct IDs; IAM Firestore query readback, not authenticated iPhone UI."
+    },
+    "correctedPublicationIDs": {
+      "result": "all11referenced IDs in the7reports with changed published counts independently indexed",
+      "evidence": "build/fix-publication16-20261027/corrected-publications-readback.json"
     }
   },
   "production": {
@@ -162,18 +209,18 @@
         "onDeployUpdatePolicy": true,
         "ready": true,
         "traffic100": true,
-        "revision": "getpublicationcontrol-00004-pih",
+        "revision": "getpublicationcontrol-00005-voh",
         "sourceMatches": true,
         "files": [
           {
             "file": "src/publicationControl/publicationControl.ts",
             "matches": true,
-            "sha256": "f2f54f514e2915161611e5e88ae7a134f6204e0934967627884ef9691811b3fb"
+            "sha256": "1061d5bd56a568017c3d3370b459a6c66300b9a4b634ad21721a7bace7700583"
           },
           {
             "file": "lib/publicationControl/publicationControl.js",
             "matches": true,
-            "sha256": "a04a085d7edca4eb955e937f503fc05458a239bea68b45c47368178b10e0f732"
+            "sha256": "61c8a75cf4c525e7fea6c2e109a0c04858d20c2330509b69e7a5e30a1e8def85"
           },
           {
             "file": "src/auth/context.ts",
@@ -203,18 +250,18 @@
         "onDeployUpdatePolicy": true,
         "ready": true,
         "traffic100": true,
-        "revision": "maintainpublicationcontrolnews-00004-fef",
+        "revision": "maintainpublicationcontrolnews-00005-joy",
         "sourceMatches": true,
         "files": [
           {
             "file": "src/publicationControl/publicationControl.ts",
             "matches": true,
-            "sha256": "f2f54f514e2915161611e5e88ae7a134f6204e0934967627884ef9691811b3fb"
+            "sha256": "1061d5bd56a568017c3d3370b459a6c66300b9a4b634ad21721a7bace7700583"
           },
           {
             "file": "lib/publicationControl/publicationControl.js",
             "matches": true,
-            "sha256": "a04a085d7edca4eb955e937f503fc05458a239bea68b45c47368178b10e0f732"
+            "sha256": "61c8a75cf4c525e7fea6c2e109a0c04858d20c2330509b69e7a5e30a1e8def85"
           },
           {
             "file": "src/auth/context.ts",
@@ -244,18 +291,18 @@
         "onDeployUpdatePolicy": true,
         "ready": true,
         "traffic100": true,
-        "revision": "maintainpublicationcontrolevents-00004-loq",
+        "revision": "maintainpublicationcontrolevents-00005-qur",
         "sourceMatches": true,
         "files": [
           {
             "file": "src/publicationControl/publicationControl.ts",
             "matches": true,
-            "sha256": "f2f54f514e2915161611e5e88ae7a134f6204e0934967627884ef9691811b3fb"
+            "sha256": "1061d5bd56a568017c3d3370b459a6c66300b9a4b634ad21721a7bace7700583"
           },
           {
             "file": "lib/publicationControl/publicationControl.js",
             "matches": true,
-            "sha256": "a04a085d7edca4eb955e937f503fc05458a239bea68b45c47368178b10e0f732"
+            "sha256": "61c8a75cf4c525e7fea6c2e109a0c04858d20c2330509b69e7a5e30a1e8def85"
           },
           {
             "file": "src/auth/context.ts",
@@ -281,6 +328,7 @@
       }
     ],
     "runtime": {
+      "at": "2026-10-27T07:44:44.614307+00:00",
       "callableWithoutCredentials": {
         "status": 401,
         "body": {
@@ -326,10 +374,6 @@
           "eventTrigger": {
             "eventFilters": [
               {
-                "attribute": "database",
-                "value": "(default)"
-              },
-              {
                 "attribute": "namespace",
                 "value": "(default)"
               },
@@ -337,6 +381,10 @@
                 "attribute": "document",
                 "operator": "match-path-pattern",
                 "value": "events/{contentId}"
+              },
+              {
+                "attribute": "database",
+                "value": "(default)"
               }
             ],
             "eventType": "google.cloud.firestore.document.v1.written",
@@ -348,7 +396,7 @@
           }
         }
       ],
-      "boundary": "Startup/unauthenticated rejection and deployed Eventarc configuration; no synthetic public event mutation."
+      "boundary": "Final deployment startup/unauthenticated rejection and deployed Eventarc configuration; no synthetic public content mutation."
     },
     "eventarc": {
       "artifact": "build/fix-publication16-20261027/eventarc-readback.json",
@@ -566,7 +614,37 @@
         "build/fix-publication16-20261027/sync-after-validation.json",
         "build/fix-publication16-20261027/production-readback.json",
         "build/publication-control-observer/observer.log"
-      ]
+      ],
+      "credentialExpiryFollowup": "After the first successful repair, long-lived observation exposed incorrect inherited token expiry. Fixed and restarted; pre-fix401logs retained. Subsequent minute checks succeed.",
+      "afterExpiryFix": {
+        "meta": {
+          "id": "importer",
+          "schemaVersion": 2,
+          "mode": "localReportObserver",
+          "imported": 0,
+          "lastSuccessfulCheckAt": "2026-10-27T08:28:41.072Z",
+          "syncedAt": "2026-10-27T08:28:41.072Z",
+          "issues": [],
+          "lastAttemptAt": "2026-10-27T08:28:41.072Z",
+          "errors": 0,
+          "lastImportedAt": "2026-10-27T08:27:16.511Z"
+        },
+        "automaticImports": [
+          {
+            "at": "2026-10-27T08:21:08.525Z",
+            "imported": 1,
+            "errors": 0,
+            "skipped": 723
+          },
+          {
+            "at": "2026-10-27T08:27:16.625Z",
+            "imported": 1,
+            "errors": 0,
+            "skipped": 724
+          }
+        ],
+        "boundary": "Natural report changes imported by the already running watcher; no production publication was created for the test."
+      }
     },
     "coverageBoundary": "Latest19 source checks remain partial where their underlying coverage is incomplete. Sync repair is not evidence of complete editorial source coverage.",
     "compatibility": "Original callable fields and cursor format retained; optional added fields. Existing news/events/index data not edited by the repair."
@@ -575,11 +653,13 @@
     "build/fix-publication16-20261027/AdaptiveCaptures/C030FE46-86FA-492B-8AD4-2A60D1BE4D92.png",
     "build/fix-publication16-20261027/AdaptiveCaptures/54C82854-285C-4373-93CB-B04EB59608EB.png",
     "build/fix-publication16-20261027/AdaptiveCaptures/E8E15804-8F0F-43FA-ABC0-856712169A25.png",
-    "build/fix-publication16-20261027/AdaptiveCaptures/905F8DC6-0ED0-4990-99FF-DF99C3872906.png"
+    "build/fix-publication16-20261027/AdaptiveCaptures/905F8DC6-0ED0-4990-99FF-DF99C3872906.png",
+    "build/fix-publication16-20261027/VisualDetailCaptures/9BDC455F-002B-43A9-B976-A6958C6EF757.png",
+    "build/fix-publication16-20261027/CalendarFixedCaptures/EBC68C55-2305-4C58-8FB1-8DE812027C5C.png"
   ],
   "physicalDevice": {
     "status": "unavailable",
-    "evidence": "build/fix-publication16-20261027/devices.json",
+    "evidence": "build/fix-publication16-20261027/devices-final.json",
     "remaining": [
       "Signed owner-session overview/history on real server",
       "Date and region filtering, news/event detail and return",
@@ -589,19 +669,99 @@
   },
   "legacyBoundary": "Existing legacy publication state machine verified separately in demo Firestore; no publish/archive/delete exercise on live business data. Changed client generation guards covered in isolated VM tests.",
   "sourceCI": {
-    "status": "pending push and exact revision run; not claimed passed"
+    "latest": {
+      "headSha": "9d91ce542d6f3a0301ea29bb09dd401470e6d14a",
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40471309299",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Change classification and static checks",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "iOS build and unit checks",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Firebase affected checks",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Firebase and rules",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "iOS build and unit tests",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "previousClient": {
+      "headSha": "9a7207e060c1b7b65cf4ab44fe3af1033183a24d",
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40467566715",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Change classification and static checks",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "iOS build and unit checks",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Firebase affected checks",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Firebase and rules",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "iOS build and unit tests",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "cursorServer": {
+      "head": "31126234ae90e26c0e7751677df00a6ca8703eb2",
+      "runID": 40468224296,
+      "conclusion": "success",
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40468224296"
+    }
   },
   "remainingAcceptance": [
-    "Physical iPhone acceptance with installed signed copy; currently device unavailable.",
-    "Exact-revision hosted CI terminal result.",
-    "No new TestFlight upload requested."
+    "Signed physical iPhone read/filters/date/detail/back and unchanged legacy compatibility modals; device currently unavailable."
   ],
   "sourceFileHashes": {
-    "UkrainianCommunity/ViewModels/PublicationControlStore.swift": "11594d6f324ec9e0b9e791d270060e2fe4df4bafd6c8572618a4015981c8d3b6",
-    "UkrainianCommunity/Views/Profile/PublicationControlView.swift": "b8de434cc23fe15d00db186723c5e2dd75e26774882b995e33a0fa245120855e",
+    "UkrainianCommunity/ViewModels/PublicationControlStore.swift": "7dd6f558e9ff12202403321c6080f82f604ffdb309f0566c8ea33ba2fe760c0b",
+    "UkrainianCommunity/Views/Profile/PublicationControlView.swift": "364523d868d317bdb4c48f0eb82d00674d9fbbd0ee82a3812ea49c420d04ffd4",
     "UkrainianCommunity/ViewModels/OwnerContentPlanningViewModel.swift": "6ab6de44dfef915aa282152a5e2144de8ab4aacf83d964771f9d3f1451876b36",
     "UkrainianCommunity/Views/Profile/OwnerContentPlanningView.swift": "043669c8c0f22ea3d8e3a059614bd2cf7c54502286a24042668c5379c48f469a",
-    "functions/src/publicationControl/publicationControl.ts": "f2f54f514e2915161611e5e88ae7a134f6204e0934967627884ef9691811b3fb",
-    "functions/scripts/publicationControlSync.mjs": "45b455ff1e1c333d3a4b44648be441c05cd18f8930256281cd9eb522525610ae"
+    "functions/src/publicationControl/publicationControl.ts": "1061d5bd56a568017c3d3370b459a6c66300b9a4b634ad21721a7bace7700583",
+    "functions/scripts/publicationControlSync.mjs": "fa426a114930e089c98b013b11ff3f4bcbb58c44f98495e81bca482ebb92fd06",
+    "functions/scripts/firebaseCliCredential.mjs": "d7a21221994d2674103337c221af3211e422a213f028ffe1d80f35b1da2a7f5d"
+  },
+  "codeCommits": {
+    "initial": "9a7207e060c1b7b65cf4ab44fe3af1033183a24d",
+    "revisionCursor": "31126234ae90e26c0e7751677df00a6ca8703eb2",
+    "credentialAndLoading": "9d91ce542d6f3a0301ea29bb09dd401470e6d14a"
+  },
+  "delivery": {
+    "newTestFlight": "not requested",
+    "publicRelease": "unchanged",
+    "lastDeliveredBuild": "1.2.1 (128), predates blocks15/16"
   }
 }

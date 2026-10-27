@@ -3,87 +3,103 @@
   "totalBlocks": 19,
   "name": "Контроль публікацій та автоматичних проходів",
   "status": "implemented_locally_verified_and_deployed_pending_device_acceptance",
-  "sourceHead": "149623c38d92e5c7e8175b25f0d1473775ee494c",
+  "sourceHead": "9d91ce542d6f3a0301ea29bb09dd401470e6d14a",
   "groups": [
     {
       "id": "P16-01",
       "scope": "Owner profile entry, direct destinations, backend UID/role/MFA/legal gates",
-      "coverage": "source +6 nonowner fixture profiles +12 emulator handler cases"
+      "coverage": "Unchanged profile role entry plus12 actual emulator handler role/session/legal cases repeated after server changes; late access rejection clears retained data.",
+      "baselineCoverage": "source +6 nonowner fixture profiles +12 emulator handler cases"
     },
     {
       "id": "P16-02",
       "scope": "Selected publication day, unique counts, region partition, first-publication history",
-      "coverage": "production 57 index rows (25 news/32 events), source and simulator"
+      "coverage": "30 transactional daily summaries and1063 unchanged index rows; live aggregate filters match57/3/25/1.",
+      "baselineCoverage": "production 57 index rows (25 news/32 events), source and simulator"
     },
     {
       "id": "P16-03",
       "scope": "30-day UI calendar, Vienna day key, displayed timestamps, stale-clock policy",
-      "coverage": "source-reviewed; controlled picker/DST runtime follow-up remains"
+      "coverage": "Strict real-date checks, Vienna midnight/DST unit cases, actual native-calendar cancel/select/Done/reopen and full-center hit-target regression.",
+      "baselineCoverage": "source-reviewed; controlled picker/DST runtime follow-up remains"
     },
     {
       "id": "P16-04",
       "scope": "Initial30, further pages, retry, known rows, region changes",
-      "coverage": "baseline4 unit tests + failing third-page retry reproduction"
+      "coverage": "Formerly failing page3 retries now pass at exact failed cursor, with retained pages; late account/region responses and load/error/empty phases tested.",
+      "baselineCoverage": "baseline4 unit tests + failing third-page retry reproduction"
     },
     {
       "id": "P16-05",
       "scope": "Actual news ID through profile destination to detail",
-      "coverage": "fixture UI positive detail transition"
+      "coverage": "uk/de fixture UI opens the actual news ID; signed live-iPhone readback remains separate.",
+      "baselineCoverage": "fixture UI positive detail transition"
     },
     {
       "id": "P16-06",
       "scope": "Actual event ID through profile destination to detail",
-      "coverage": "source route review; no event-row fixture exists in the baseline UI repository"
+      "coverage": "New event-row fixture opens actual event-1 destination; removed material remains disabled.",
+      "baselineCoverage": "source route review; no event-row fixture exists in the baseline UI repository"
     },
     {
       "id": "P16-07",
       "scope": "Counts, national bucket counted once, source statuses, quick link to region publications",
-      "coverage": "server integration +normal region-filter fixture UI"
+      "coverage": "Actual indexed queries, summary counts, normal and maximum text; region navigation and filtered item request passed.",
+      "baselineCoverage": "server integration +normal region-filter fixture UI"
     },
     {
       "id": "P16-08",
       "scope": "Latest results, missing19-scope report slots, grouped reason disclosures, raw details",
-      "coverage": "source + normal/medium/maxAX fixture frames + production latest19 sources"
+      "coverage": "Latest-source context separate from selected publication day; localized grouped reason/remedy and preserved technical disclosures; actual captures inspected.",
+      "baselineCoverage": "source + normal/medium/maxAX fixture frames + production latest19 sources"
     },
     {
       "id": "P16-09",
       "scope": "80-row pages, region filter, details, counts, partial/publication-only reports",
-      "coverage": "server integration, fixture UI, failing third-page retry reproduction"
+      "coverage": "Actual server80+2 scoped pages, foreign/deleted/revised anchor rejection, backward-compatible old cursors; live80+80 pages have160 distinct IDs.",
+      "baselineCoverage": "server integration, fixture UI, failing third-page retry reproduction"
     },
     {
       "id": "P16-10",
       "scope": "History region with no matching runs despite other regions present",
-      "coverage": "observed fixture empty area and AX tree"
+      "coverage": "Explicit filtered-empty history inspected in uk/light and de/dark at maximum accessibility size.",
+      "baselineCoverage": "observed fixture empty area and AX tree"
     },
     {
       "id": "P16-11",
       "scope": "Local observer, immutable run history, latest-source pointer, heartbeat, retries",
-      "coverage": "read-only launchd/logs +719 recent local files + production comparison"
+      "coverage": "22 corrected versions and originals read back;711matching current reports; real cached-token expiry failure corrected;22credential/observer tests plus repeated healthy minute checks and a natural new report import.",
+      "baselineCoverage": "read-only launchd/logs +719 recent local files + production comparison"
     },
     {
       "id": "P16-12",
       "scope": "Old notification draftID route to drafts/scheduled/attention/history; editor, source inspection, missing-event-date sheet, receipt, archive/delete confirmations",
-      "coverage": "source compatibility review +12 existing unit cases; full modal/session runtime recheck remains"
+      "coverage": "Notification->legacy destination->four stable tabs;7delayed operation/ABA cases and existing editor contracts;3actual legacy state-machine emulator tests. Physical nested modal acceptance remains outstanding.",
+      "baselineCoverage": "source compatibility review +12 existing unit cases; full modal/session runtime recheck remains"
     },
     {
       "id": "P16-13",
       "scope": "uk/de, light/dark, normal and maxAX, keyboard-free filters/long headings/warnings",
-      "coverage": "normal/medium and maxAX runtime captures viewed; maxAX clipping confirmed"
+      "coverage": "Normal, medium and maximum uk/de light/dark captures; last large region label wraps, date center and calendar interaction pass. Physical phone remains unavailable.",
+      "baselineCoverage": "normal/medium and maxAX runtime captures viewed; maxAX clipping confirmed"
     },
     {
       "id": "P16-14",
       "scope": "Daily collection scans, server/viewport pagination, repeated permanent import failures",
-      "coverage": "source-confirmed complexity; Mac REST read latency0.28–0.52s, no iPhone callable timing or Time Profiler trace"
+      "coverage": "Five additiveREADYindexes, compact summary, aggregate count queries, bounded lazy pages/cache; permanent failures cached and periodic checks bounded. No physical Time Profiler claim.",
+      "baselineCoverage": "source-confirmed complexity; Mac REST read latency0.28–0.52s, no iPhone callable timing or Time Profiler trace"
     },
     {
       "id": "P16-15",
       "scope": "Three Functions TS+JS/auth/permissions source and Cloud Run traffic",
-      "coverage": "exact deployed bytes match, Ready100%, onDeployUpdatePolicy preserved; no deployment"
+      "coverage": "Final three functions exactTS+compiledJS/auth/permissions, Ready100%, onDeploy policy; actual applicationJSON401 and Eventarc configuration readback. No induced public write.",
+      "baselineCoverage": "exact deployed bytes match, Ready100%, onDeployUpdatePolicy preserved; no deployment"
     },
     {
       "id": "P16-16",
       "scope": "Existing binary and production safety boundaries",
-      "coverage": "No new TestFlight binary or production writes in this audit"
+      "coverage": "Backend protocol kept compatible; no new TestFlight or public release; pre-existing project/catalog metadata work preserved.",
+      "baselineCoverage": "No new TestFlight binary or production writes in this audit"
     }
   ],
   "roles": [
@@ -100,9 +116,8 @@
   ],
   "implementationAuthorized": true,
   "remainingAcceptance": [
-    "Physical iPhone acceptance with installed signed copy; currently device unavailable.",
-    "Exact-revision hosted CI terminal result.",
-    "No new TestFlight upload requested."
+    "Signed physical iPhone read/filters/date/detail/back and unchanged legacy compatibility modals; device currently unavailable."
   ],
-  "resolutionReport": "Docs/Verification/PublicationControlFixes20261027.json"
+  "resolutionReport": "Docs/Verification/PublicationControlFixes20261027.json",
+  "baselineSourceHead": "149623c38d92e5c7e8175b25f0d1473775ee494c"
 }

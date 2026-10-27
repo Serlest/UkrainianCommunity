@@ -319,9 +319,7 @@
       "name": "Контроль публикаций и автоматических проходов",
       "status": "implemented_locally_verified_and_deployed_pending_device_acceptance",
       "openChecks": [
-        "Physical iPhone acceptance with installed signed copy; currently device unavailable.",
-        "Exact-revision hosted CI terminal result.",
-        "No new TestFlight upload requested."
+        "Signed physical iPhone read/filters/date/detail/back and unchanged legacy compatibility modals; device currently unavailable."
       ],
       "inventory": "Docs/Verification/PublicationControlInventory20261027.json",
       "report": "Docs/Verification/PublicationControlAudit20261027.json",
@@ -339,18 +337,55 @@
         "P16-F08",
         "P16-F09",
         "P16-F10",
-        "P16-F11"
+        "P16-F11",
+        "P16-F12",
+        "P16-F13"
       ],
       "localValidation": {
         "result": "Passed",
         "passedTests": 928,
         "failedTests": 0,
         "skippedTests": 40,
-        "totalTestCount": 968
+        "totalTestCount": 968,
+        "finalLoadingStateFollowup": {
+          "passed": 11,
+          "artifact": "build/fix-publication16-20261027/LoadingStatesFinal.xcresult"
+        }
       },
       "sourceCI": {
-        "status": "pending push and exact revision run; not claimed passed"
-      }
+        "headSha": "9d91ce542d6f3a0301ea29bb09dd401470e6d14a",
+        "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40471309299",
+        "status": "completed",
+        "conclusion": "success",
+        "jobs": [
+          {
+            "name": "Change classification and static checks",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "iOS build and unit checks",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Firebase affected checks",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Firebase and rules",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "iOS build and unit tests",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      },
+      "serverFunctionsChanged": true
     },
     {
       "number": 17,
