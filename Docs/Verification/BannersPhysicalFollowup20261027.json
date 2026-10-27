@@ -1,0 +1,299 @@
+{
+  "block": 14,
+  "date": "2026-10-27",
+  "status": "physical_checks_passed_pending_final_source_CI",
+  "device": "Physical Serlest Mobile / iPhone 16 Pro Max / iOS 27.2",
+  "phoneAccount": "Controlled platform owner Serlest",
+  "scope": "Outstanding signed physical read/layout acceptance; retain prior unit, role, emulator and simulator evidence separately. No production banner save, duplicate, delete, activation change or ad click.",
+  "artifactBase": "build/physical-acceptance11-19-20261027",
+  "observedDefect": {
+    "surface": "Banner editor opened from profile banner management",
+    "symptom": "Root tab bar overlays editor fields despite EditorScreenShell requesting hidden tabs.",
+    "cause": "Owning ProfileNavigationRoute.featuredBannerManagement returned false for hidesRootTabBar.",
+    "fix": "Apply hidden root-tab policy to this management stack and its nested editor/statistics.",
+    "localRegression": {
+      "result": "BannerStackAndSupportRegression.xcresult",
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0
+    },
+    "installedPhysicalVerification": {
+      "installation": "install-p14-owning-stack-fix.json",
+      "result": "P14NativeReadinessAndVisualBaseline.xcresult",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Main installed countdown/colors/discard/statistics scenario passed, as did native-cancel recovery, orientation driver and original-settings read. Pixel acceptance is separate."
+    },
+    "fixCommit": "20d49e16"
+  },
+  "serverReadback": {
+    "before": "p14-banners-before.json",
+    "after": "p14-banners-after-draft-cancel.json",
+    "result": "All six complete documents and update revisions exactly unchanged after local countdown/color changes and discard.",
+    "final": "p14-banners-final-visual-matrix.json"
+  },
+  "observedBeforeFix": [
+    "Actual public carousel portrait and swipe",
+    "Exact KFZ management search",
+    "Original editor preview and native color picker",
+    "Native photo picker opened and cancelled without choosing a personal photo",
+    "Native countdown date",
+    "Local countdown with days/hours/minutes/seconds and changing seconds",
+    "Independent heading/subtitle color presets",
+    "Same preview height with and without countdown (within1pt)",
+    "Keep editing, discard, reopen: original countdown remains disabled",
+    "Actual protected KFZ report loaded with101 impressions,1click and0.99percent CTR at observed report revision"
+  ],
+  "visualEvidenceActuallyViewed": [
+    "p14-draft-before-fix-attachments/98106097-7663-476D-B352-C5AE212775AA.png",
+    "p14-draft-before-fix-attachments/670A5C9C-D96E-4C5D-BFA3-F12FE1C25DEB.png",
+    "Device Hub actual editor/report screenshots; root tabs visibly overlay content",
+    "p14-focused-final-attachments/DD726A56-18F9-4505-907C-32EF811E61AC.png",
+    "p14-focused-final-attachments/32C3FF59-EA1A-47FB-BB85-5F6BC64160EB.png",
+    "p14-focused-final-attachments/E5894A6C-B2B9-4823-B6D3-F47C1972E18F.png"
+  ],
+  "attemptBoundaries": [
+    {
+      "result": "P14BannerDraftAndStatistics.xcresult",
+      "status": "failed_driver_orientation_predicate",
+      "acceptedAsComplete": false
+    },
+    {
+      "result": "P14BannerDraftAndStatisticsRenderedOrientation.xcresult",
+      "status": "failed_driver_orientation_size_probe",
+      "acceptedAsComplete": false
+    },
+    {
+      "result": "P14DraftAndOrientationSeparated.xcresult",
+      "passed": 1,
+      "failed": 1,
+      "acceptedAsComplete": false,
+      "reason": "Functional driver awaited an uninstantiated offscreen lazy row instead of using management search. Orientation method captured rotation-in-progress frames; automatic pass is not accepted visual proof."
+    },
+    {
+      "result": "P14ExactSearchDraftAndNativeWindows.xcresult",
+      "passed": 0,
+      "failed": 1,
+      "acceptedAsComplete": false,
+      "reason": "Scenario reached actual loaded report but awaited ownerAnalytics.updatedAt identifier, which belongs to a different screen. Replace wait with bannerReport.regionFilter, rendered only after confirmed report."
+    },
+    {
+      "result": "P14InstalledStackFixAndSettledOrientation.xcresult",
+      "acceptedAsComplete": false,
+      "reason": "Native photo cancellation did not finish before scrolling; subsequent orientation setup inherited the still-open picker."
+    },
+    {
+      "result": "P14InstalledDraftOrientationAndVisualBaseline.xcresult",
+      "acceptedAsComplete": false,
+      "reason": "Picker Cancel exists before it is hittable; immediate assertion failed. Subsequent cases inherited that modal. Wait for actual readiness and observe cancellation."
+    },
+    {
+      "result": "P14NativeReadinessAndVisualBaseline.xcresult",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "acceptedAsComplete": false,
+      "reason": "Functional checks passed, but app-element landscape screenshot retained portrait cropping and the preview-reveal helper left countdown above the viewport. Repeat pixels with full-screen captures and full-preview bounds; real chart-label overlap also needs correction."
+    }
+  ],
+  "remaining": [
+    "Hosted validation for final context-height source and opt-in physical drivers",
+    "Blocks15–19 are separate outstanding physical acceptance work"
+  ],
+  "additionalObservedDefect": {
+    "surface": "30-day banner statistics chart",
+    "symptom": "Daily categorical X-axis labels overlap on the actual phone.",
+    "evidence": "p14-accepted-attachments/2011A7DA-D4D7-498D-9107-6CF48FABAFB7.png",
+    "fix": "Use UTC Date-valued bars and a sparse automatic date axis, with fewer ticks and more chart height at accessibility sizes. Daily counts remain intact.",
+    "status": "installed_and_visually_verified_normal_text",
+    "fixCommit": "4be063cf",
+    "verification": {
+      "localUnitResult": "BannerDateAxisAndStackRegression.xcresult",
+      "passed": 28,
+      "failed": 0,
+      "physicalResult": "P14FocusedFullPreviewDateAxisAndOrientation.xcresult",
+      "passedPhysicalCases": 3,
+      "failedPhysicalCases": 0,
+      "inspectedChart": "p14-focused-final-attachments/E5894A6C-B2B9-4823-B6D3-F47C1972E18F.png"
+    }
+  },
+  "visualSettingsBaseline": {
+    "permission": "User explicitly approved temporary language/theme/text size/reduce transparency changes and exact restoration.",
+    "uacLanguage": "uk",
+    "uacAppearance": "system",
+    "reduceTransparency": false,
+    "largerDynamicType": false,
+    "textSizeSliderPercent": 50,
+    "mutationStatus": "restored_after_first_maximum_round",
+    "source": "physical-original-uac-visual-preferences and physical-original-accessibility-visual-preferences attachments in accepted functional bundle"
+  },
+  "additionalTextAreaDefect": {
+    "surface": "Banner editor multiline description at maximum text size",
+    "evidence": "Device Hub actual iPhone observation during P14GermanLightMaximumOpaque; subtitle area fits only about one line while labels and text scale.",
+    "cause": "Shared EditorTextArea had an unscaled92pt default minimum.",
+    "fix": "Use a subheadline-scaled92pt baseline while preserving larger caller-specified minimums.",
+    "status": "installed_and_visually_verified_light_and_dark_maximum_text",
+    "localRegression": {
+      "result": "EditorTextAreaAndBannerRegression.xcresult",
+      "passed": 18,
+      "failed": 0,
+      "nativeLayoutContract": "Actual UITextView retains text/editability/scrolling and at least three complete lines at default and maximum text sizes."
+    }
+  },
+  "visualSettingsRestore": {
+    "nativeResult": "P14RestoreNativeAfterFirstMaximum.xcresult",
+    "appResult": "P14RestoreAppAfterFirstMaximum.xcresult",
+    "bothPassed": true,
+    "restored": {
+      "language": "uk",
+      "appearance": "system",
+      "textPercent": 50,
+      "largerDynamicType": false,
+      "reduceTransparency": false
+    },
+    "finalAppResult": "P14FinalRestoreOriginalAppPreferences.xcresult",
+    "finalReadOnlyResult": "P14FinalRestoredSettingsAndOrientation.xcresult",
+    "readback": "uk/system; Larger0; text50percent; transparency0",
+    "finalNativeResult": "P14ContextRestoreNativeBeforeRotation.xcresult",
+    "originalValuesRechecked": "P14FinalRestoredSettingsAndOrientation.xcresult actual uk/system, text50percent, larger0, transparency0; later only authorized native text/transparency round changed, both restored again."
+  },
+  "normalPhysicalRepeat": {
+    "result": "P14FocusedFullPreviewDateAxisAndOrientation.xcresult",
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0,
+    "acceptedScope": "Installed normal-text editor/countdown/full-preview/statistics/date-axis flow and settled full-screen landscape/portrait. Native photo cancellation proof retained separately from P14NativeReadinessAndVisualBaseline."
+  },
+  "additionalAccessibilityReportDefects": {
+    "status": "installed_and_visually_verified_light_and_dark_maximum_and_normal_text",
+    "observed": [
+      "CTR breaks across narrow metric columns at maximum Dynamic Type",
+      "Native filter titles clip into adjacent controls",
+      "Large native legend leaves too little plot height and vertical tick labels overlap"
+    ],
+    "fixes": [
+      "Single metric column from xxLarge; normal minimum width160",
+      "Wrapping SwiftUI filter labels with native options and explicit accessibility context/value",
+      "Legend outside fixed plot; sparse vertical ticks and caption2 axis labels"
+    ],
+    "previousPhysicalEvidence": [
+      "p14-de-light-max-attachments/01DF2875-038F-48B2-9E28-8EC95D82BDB6.png",
+      "p14-de-light-max-attachments/FD059DB3-E8EA-4859-8D0A-7AD4ED8A18F8.png"
+    ],
+    "physicalResult": "P14FocusedGermanLightMaximumReport.xcresult:1passed,0failed",
+    "inspectedScreenshots": [
+      "F5DA769B-DAA3-4308-96E9-F314D7DD8834.png",
+      "DFC49667-A6A8-40EA-8F62-998F8892B2DD.png",
+      "5C376ACA-2B34-49F2-8969-FAA898D9F5C8.png",
+      "6F36A715-E0A1-4159-AD21-EC3A6FD347DE.png",
+      "5A2BA4EB-77A9-4039-B907-3BDB883D3B75.png",
+      "7118B68A-E8AC-4436-A8B5-5A8E6B9F8EA6.png",
+      "9D176CFB-1103-465F-AC37-AF4C64113253.png"
+    ]
+  },
+  "queryTransitionFix": {
+    "status": "unit_verified_pending_installed_repeat",
+    "finding": "Before the async load begins, a changed period/banner selection could briefly expose or export the previously confirmed query counters.",
+    "fix": "visibleReport requires matching confirmed period and effective banner identity; local region/section filters remain immediate.",
+    "regression": "changedQueryCannotExposeOrExportPreviousCountersBeforeLoadingStarts",
+    "fixCommit": "0d3cd851"
+  },
+  "latestLocalRegression": {
+    "result": "FinalBannerQueryAndLayoutRegression.xcresult",
+    "passed": 19,
+    "failed": 0,
+    "scope": "Unit/native text-area hosting checks; not phone pixel acceptance"
+  },
+  "hostedBaseline": {
+    "sha": "4be063cfb1ba28430cb3f59f1ba053307069b759",
+    "run": 40580025304,
+    "conclusion": "success",
+    "scope": "Committed Date-axis source only; newer dirty accessibility/query changes not covered"
+  },
+  "driverFollowups": [
+    {
+      "result": "P14FinalGermanLightMaximum.xcresult",
+      "acceptedAsComplete": false,
+      "reason": "Centre gesture was consumed by the now-taller multiline field; no app data saved."
+    },
+    {
+      "result": "P14GutterGermanLightMaximum.xcresult",
+      "acceptedAsComplete": false,
+      "acceptedScope": "Observed preview/discard and reopen only; report not accepted in this bundle.",
+      "reason": "Missing lazy metric was incorrectly assumed above the report intro. Separate focused report repeat scrolls below intro and waits for confirmed filters first."
+    },
+    {
+      "result": "P14FinalGermanDarkNormal.xcresult",
+      "acceptedAsComplete": false,
+      "reason": "Normal preview alignment driver left the top above fixed header. Focused current-preview repeat passed with full bounds assertions."
+    },
+    {
+      "result": "P14FinalUkrainianLightNormal.xcresult",
+      "acceptedAsComplete": false,
+      "reason": "Same preview alignment driver stopped before full capture. Focused current-preview repeat passed with full bounds assertions."
+    },
+    {
+      "result": "P14ContextMaximumCarouselSwipe.xcresult",
+      "acceptedAsComplete": false,
+      "reason": "Native tab AX hit testing reported false after text-size change; repeat used bounded native-tab tap and required actual selected state."
+    },
+    {
+      "result": "P14ContextCorrectedPortraitLandscape.xcresult",
+      "acceptedAsComplete": false,
+      "reason": "Enumerating changing lazy card indices during rotation invalidated snapshot; repeat observes stable carousel height and inspects pixels."
+    }
+  ],
+  "landscapeHeightFollowup": {
+    "status": "installed_and_visually_verified",
+    "evidence": "p14-final-restored-attachments/89D04105-DA5A-4FBE-A786-3BE2E0315BEC.png",
+    "actualHierarchy": "carousel800x826 after restoring normal text; former offscreen accessibility heights retained by bannerID",
+    "fix": "Measurements include width, Dynamic Type and compact size class; ignore nonmatching/deleted cards and top-align lazy slides. Preserve one bounded measurement per banner.",
+    "reasonForReopening": "XCTest window rotation passed but pixels revealed excess whitespace. Not accepted as a successful final landscape check.",
+    "localRegression": {
+      "result": "BannerContextHeightIsolationRegression.xcresult",
+      "passed": 20,
+      "failed": 0,
+      "scope": "Context mismatch, deleted cached cards, original artwork, report identity and native text-area layout"
+    },
+    "compileFollowup": "First build rejected implicitly MainActor-isolated Equatable in onGeometryChange; immutable measurement is explicitly nonisolated and Sendable. Corrected build succeeded; failed attempts retained.",
+    "physicalResult": "P14ContextCorrectedStablePortraitLandscape.xcresult:1passed,0failed",
+    "maximumTextSwipe": "P14ContextMaximumCarouselSwipeVerifiedTab.xcresult:1passed,0failed",
+    "nativeRestore": "P14ContextRestoreNativeBeforeRotation.xcresult:1passed,0failed",
+    "oldActualFrame": "800x826",
+    "correctedActualFrame": "800x280",
+    "inspectedLandscape": "p14-context-corrected-orientation-attachments/0B995007-0823-41A2-8520-3D0EEFD7E468.png",
+    "inspectedRestoredPortrait": "p14-context-corrected-orientation-attachments/67AC7FB5-8FC0-4286-8F2E-E588F3539EC4.png"
+  },
+  "visualMatrixResults": [
+    {
+      "variant": "de/light/maximum/reducedTransparency",
+      "editor": "P14GutterGermanLightMaximum.xcresult partial; viewed countdown/description/discard screenshots only",
+      "report": "P14FocusedGermanLightMaximumReport.xcresult:1passed,0failed"
+    },
+    {
+      "variant": "de/dark/maximum/reducedTransparency",
+      "result": "P14FinalGermanDarkMaximum.xcresult:1passed,0failed; nine named screenshots inspected"
+    },
+    {
+      "variant": "de/dark/originalText/originalTransparency",
+      "result": "P14FocusedGermanDarkNormalPreviewAndReport.xcresult:1passed,0failed"
+    },
+    {
+      "variant": "uk/light/originalText/originalTransparency",
+      "result": "P14FocusedUkrainianLightNormalPreviewAndReport.xcresult:1passed,0failed"
+    }
+  ],
+  "hostedAccessibilityFixes": {
+    "sha": "4b977f84ee623bfd651d27188d40ae5be41e106b",
+    "run": 40590713231,
+    "conclusion": "success",
+    "boundary": "Covers earlier report/textarea fixes; context-height follow-up requires its own hosted run."
+  },
+  "boundaries": [
+    "Actual physical acceptance is on the connected iPhone16ProMax/iOS27.2 under owner Serlest. Earlier simulator390pt and source/emulator role evidence retained; no smaller physical phone or all-role physical matrix claimed.",
+    "No banner saved/deleted/duplicated/activated; six complete documents and update revisions unchanged.",
+    "No new TestFlight or public release. Installed locally signed Release1.2.1(129) differs from delivered TestFlight129.",
+    "UI driver failures remain named; only corrected repeats and actually inspected partial captures accepted."
+  ]
+}

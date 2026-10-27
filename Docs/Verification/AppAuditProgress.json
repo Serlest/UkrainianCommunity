@@ -284,7 +284,9 @@
         "report": "Docs/Verification/BannerStartupCache20261026.json",
         "status": "verified_source_pending_hosted_CI_and_new_binary",
         "includedInTestFlight128": false
-      }
+      },
+      "physicalFollowupReport": "Docs/Verification/BannersPhysicalFollowup20261027.json",
+      "physicalFollowupStatus": "physical_checks_passed_pending_final_source_CI"
     },
     {
       "number": 15,
@@ -698,7 +700,7 @@
   "nextNewBlock": null,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "Continue actual iPhone banner dimensions, carousel, editor/countdown and orientation checks; Mac remains peer only.",
+  "nextAction": "Verify hosted CI for final banner context-height fix; outstanding physical analytics and blocks16–19 remain queued.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,

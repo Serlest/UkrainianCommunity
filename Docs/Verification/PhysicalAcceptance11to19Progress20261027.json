@@ -1,14 +1,15 @@
 {
   "schemaVersion": 1,
   "status": "in_progress",
-  "updatedAt": "2026-10-27T19:30:22.554829+00:00",
+  "updatedAt": "2026-10-27T20:08:08.455039+00:00",
   "scope": "Only outstanding physical checks from blocks11–19; retain existing source/emulator/simulator evidence. Each remaining scenario is observed step by step.",
   "userConstraints": [
     "Primary iPhone is the visual/interaction acceptance device.",
     "Mac Serlest Gmail is only the controlled second actor/recipient; its pixels do not count as iPhone visual proof.",
     "Keep Serlest signed in on iPhone; do not replace its session merely for recipient checks.",
     "Role-specific iPhone views cannot be claimed from Mac observations. If another iPhone login is indispensable, request that concrete step rather than silently skipping it.",
-    "Do not repeat declined real registration; do not create credentials or accept legal terms for the user."
+    "Do not repeat declined real registration; do not create credentials or accept legal terms for the user.",
+    "User explicitly authorized temporary UAC language/theme and iPhone text size/reduce transparency changes, with exact restoration. Read original values before mutation."
   ],
   "devices": {
     "iPhone": {
@@ -55,12 +56,14 @@
     {
       "block": 14,
       "name": "Баннеры",
-      "status": "in_progress",
+      "status": "physical_checks_passed_pending_final_source_CI",
       "remainingBeforeThisRun": [
         "B14-72-DEVICE-MATRIX",
         "B14-79"
       ],
-      "existingEvidence": "Docs/Verification/BannersAudit20261026.json"
+      "existingEvidence": "Docs/Verification/BannersAudit20261026.json",
+      "followupReport": "Docs/Verification/BannersPhysicalFollowup20261027.json",
+      "physicalScope": "Connected owner iPhone; native windows, cancellation/reopen, loaded protected statistics, uk/de light/dark, normal/maximum text, reduce-transparency and post-text-change landscape. Earlier390pt simulator and role evidence retained separately."
     },
     {
       "block": 15,
@@ -261,7 +264,7 @@
     "Use only controlled test records for messages/status changes. Keep real user content, permissions and production publication unchanged."
   ],
   "notCompleted": [
-    "Blocks14–19 remain open. Outstanding conditions for blocks11–13 recorded individually above.",
+    "Block14 physical checks passed on connected iPhone; final hosted follow-up CI pending. Blocks15–19 remain open.",
     "Full physical role/OS accessibility matrix remains open until individually observed.",
     "No claim that all tests or all19 blocks are physically complete."
   ],
@@ -291,12 +294,30 @@
     "result": "With iOS permission OFF, existing in-app push preference remains ON and explicit system-denied warning plus Open iPhone Settings button appeared. That button opened exact UAC system notification settings. Restored Allow Notifications ON; original three alert destinations, sounds, badges, Watch forwarding, temporary banner and Never previews retained. Returned via system UAC breadcrumb; warning disappeared without app restart."
   },
   "sourceCI": {
-    "headSha": "e6145ce68e229c436f3b232a8c0ba8fbd3562fa3",
-    "runID": 40566011225,
-    "status": "in_progress",
+    "headSha": "20d49e16f558856fd283d485bb710fbf603c5562",
+    "runID": 40574879365,
+    "status": "pending",
     "conclusion": null,
-    "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40566011225",
-    "boundary": "Hosted validation is pending, not passed. Local route/access unit tests passed2; signed physical regression passed1 and native push tap was observed separately."
+    "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40574879365",
+    "previousFailure": {
+      "runID": 40566011225,
+      "failedTest": "ProjectSupportRecoveryTests.checksumSurvivesJournalRedactionWithoutOpeningCredentialBypass",
+      "reason": "One stale assertion expected root tabs on notifications; intended new owning-stack policy hides them, confirmed on installed phone. 968 other tests passed.",
+      "fixCommit": "47264d81",
+      "localRegression": {
+        "result": "RouteAndSupportRegression.xcresult",
+        "passed": 11,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "precedingCorrectedTestRun": {
+      "headSha": "47264d81a1dd72933314fb1b3cab39e80f624035",
+      "runID": 40570953176,
+      "status": "in_progress",
+      "conclusion": null
+    },
+    "boundary": "Pending hosted validation of the new banner tab-bar source fix; local regression16passed. No hosted pass claimed."
   },
   "notificationPhysicalAcceptance": {
     "status": "passed_remaining_N13-57_conditions",
@@ -331,5 +352,6 @@
     },
     "permissions": "System denial, exact Settings link, restoration and warning clearance observed as recorded in notificationPermissionCheck.",
     "scopeBoundary": "Retains earlier56 source/emulator/simulator scenario groups. Does not claim new physical execution for each role. No first-ever prompt reset or new registration; existing authorized device plus denied/restored settings used with explicit user approval. No broadcast campaign sent."
-  }
+  },
+  "bannerPhysicalFollowup": "Docs/Verification/BannersPhysicalFollowup20261027.json"
 }

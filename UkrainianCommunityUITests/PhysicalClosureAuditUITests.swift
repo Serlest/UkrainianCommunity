@@ -14,6 +14,13 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         #endif
     }
 
+    override func tearDown() {
+        // XCTest's stop-on-first-failure can bypass a Swift defer. Restore
+        // the physical device even when an orientation assertion fails.
+        if name.contains("testP14") { XCUIDevice.shared.orientation = .portrait }
+        super.tearDown()
+    }
+
     func testUserManagementProductionReadOnlyWithRealSession() {
         let app = XCUIApplication(); openProfile(app)
         let owner = app.staticTexts["Serlest"].firstMatch
@@ -503,15 +510,34 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         returnFromPushedScreens(app)
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))
         let profile = app.tabBars.buttons["tab.profile"].firstMatch
-        XCTAssertTrue(profile.isHittable, "Return from a tab-bar-hidden screen before selecting Profile")
-        profile.tap()
+        XCTAssertTrue(profile.exists, "Return from a tab-bar-hidden screen before selecting Profile")
+        if profile.isHittable { profile.tap() }
+        else {
+            // Native tab AX hit testing can lag an on-device text-size change.
+            // Only use the actual visible tab's bounds and verify selection.
+            let frame = profile.frame.intersection(app.windows.firstMatch.frame)
+            XCTAssertGreaterThan(frame.width, 20)
+            XCTAssertGreaterThan(frame.height, 20)
+            let diagnostic = XCTAttachment(string: profile.debugDescription)
+            diagnostic.name = "physical-native-profile-tab-hit-test"; diagnostic.lifetime = .keepAlways; add(diagnostic)
+            profile.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: 0.5)).tap()
+        }
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == true"), object: profile)], timeout: 10), .completed)
         returnFromPushedScreens(app)
     }
 
     private func returnFromPushedScreens(_ app: XCUIApplication) {
         for _ in 0..<8 {
             let identified = app.buttons["navigation.back"].firstMatch
-            if identified.exists && identified.isHittable { identified.tap(); continue }
+            if identified.exists {
+                if !identified.isHittable { reveal(identified, app, towardTop: true) }
+                if identified.isHittable { identified.tap(); continue }
+            }
+            let close = app.buttons["editor.close"].firstMatch
+            if close.exists {
+                reveal(close, app, towardTop: true)
+                if close.isHittable { close.tap(); continue }
+            }
             // A screen-level accessibility identifier can override the shared back ID.
             let candidates = app.buttons.matching(NSPredicate(format: "label IN %@", ["Назад", "Zurück", "Back"]))
                 .allElementsBoundByIndex
@@ -543,14 +569,16 @@ final class PhysicalClosureAuditUITests: XCTestCase {
     }
 
     private func reveal(_ element: XCUIElement, _ app: XCUIApplication, towardTop: Bool = false) {
-        for _ in 0..<16 {
+        for _ in 0..<24 {
             if element.exists && element.isHittable && element.frame.midY > 80 && element.frame.midY < app.frame.height - 100 { return }
             let down = element.exists ? element.frame.midY < 80 : towardTop
             let keyboard = app.keyboards.firstMatch.exists
             let lower = keyboard ? 0.43 : 0.65
             let upper = keyboard ? 0.25 : 0.35
-            app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: down ? upper : lower))
-                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: down ? lower : upper)))
+            // Stay in the form gutter. At accessibility sizes the multiline
+            // field covers the centre and would consume gestures internally.
+            app.coordinate(withNormalizedOffset: .init(dx: 0.97, dy: down ? upper : lower))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: .init(dx: 0.97, dy: down ? lower : upper)))
         }
         XCTAssertTrue(element.exists && element.isHittable)
     }
@@ -564,12 +592,259 @@ final class PhysicalClosureAuditUITests: XCTestCase {
     }
 
     private func capture(_ app: XCUIApplication, _ name: String) {
-        let attachment = XCTAttachment(screenshot: app.screenshot())
+        // The physical app's AX root can keep portrait cropping bounds after
+        // rotation. Capture the whole screen; callers guard the foreground app.
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
     }
 }
 
 extension PhysicalClosureAuditUITests {
+    func testP14AuthorizedVisualPreferencesCommand() throws {
+        guard ProcessInfo.processInfo.environment["UACPhysicalVisualPreferencesApproved"] == "2026-10-27",
+              let mode = ProcessInfo.processInfo.environment["UACPhysicalVisualCommand"] else {
+            throw XCTSkip("Exact user-approved visual command required")
+        }
+        let app = XCUIApplication()
+        if mode == "maximumOpaque" || mode == "restoreNative" {
+            let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences"); settings.activate()
+            openNativeDisplaySettings(settings)
+            let transparency = settings.switches["Transparenz reduzieren"].firstMatch
+            reveal(transparency, settings)
+            if mode == "maximumOpaque" { XCTAssertEqual(transparency.value as? String, "0") }
+            setNativeVisualSwitch(transparency, enabled: mode == "maximumOpaque")
+            let larger = settings.staticTexts["Größerer Text"].firstMatch
+            reveal(larger, settings, towardTop: true); larger.tap()
+            let toggle = settings.switches["LARGER_DYNAMIC_TYPE_SWITCH"].firstMatch
+            XCTAssertTrue(toggle.waitForExistence(timeout: 10))
+            let slider = settings.sliders.firstMatch
+            XCTAssertTrue(slider.waitForExistence(timeout: 10))
+            if mode == "maximumOpaque" {
+                XCTAssertEqual(toggle.value as? String, "0")
+                XCTAssertEqual(sliderPercent(slider), 50, "Recheck the recorded baseline before mutation")
+            }
+            setNativeVisualSwitch(toggle, enabled: mode == "maximumOpaque")
+            slider.adjust(toNormalizedSliderPosition: mode == "maximumOpaque" ? 1 : 0.5)
+            XCTAssertEqual(sliderPercent(slider), mode == "maximumOpaque" ? 100 : 50)
+            captureForeground(settings, "physical-visual-settings-" + mode)
+            app.activate()
+            return
+        }
+        let variants: [String: (String, [String])] = [
+            "germanLight": ("de", ["Світлий", "Hell"]),
+            "germanDark": ("de", ["Темний", "Dunkel"]),
+            "ukrainianLight": ("uk", ["Світлий", "Hell"]),
+            "restoreApp": ("uk", ["Системний", "System"])
+        ]
+        guard let variant = variants[mode] else { XCTFail("Unknown visual command"); return }
+        openProfile(app)
+        let entry = app.buttons["profile.settings.open"].firstMatch
+        reveal(entry, app); entry.tap()
+        let language = app.buttons["profile.settings.language"].firstMatch
+        reveal(language, app, towardTop: true); language.tap()
+        let languageOption = app.buttons["profile.settings.language." + variant.0].firstMatch
+        XCTAssertTrue(languageOption.waitForExistence(timeout: 10)); languageOption.tap()
+        let appearance = app.buttons["profile.settings.appearance"].firstMatch
+        reveal(appearance, app); appearance.tap()
+        let option = app.buttons.matching(NSPredicate(format: "label IN %@", variant.1)).firstMatch
+        XCTAssertTrue(option.waitForExistence(timeout: 10)); option.tap()
+        XCTAssertTrue(variant.1.contains { appearance.label.contains($0) })
+        let expectedLanguage = variant.0 == "uk" ? ["Українська", "Ukrainisch"] : ["Німецька", "Deutsch"]
+        XCTAssertTrue(expectedLanguage.contains { language.label.contains($0) })
+        captureForeground(app, "physical-visual-settings-" + mode)
+        returnFromPushedScreens(app)
+    }
+
+    private func sliderPercent(_ slider: XCUIElement) -> Int? {
+        Int((slider.value as? String ?? "").filter(\.isNumber))
+    }
+
+    private func setNativeVisualSwitch(_ row: XCUIElement, enabled: Bool) {
+        let expected = enabled ? "1" : "0"
+        guard row.value as? String != expected else { return }
+        let inner = row.switches.firstMatch
+        if inner.exists {
+            inner.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: 0.5)).tap()
+        } else {
+            row.coordinate(withNormalizedOffset: .init(dx: 0.9, dy: 0.5)).tap()
+        }
+        XCTAssertTrue(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", expected), object: row)], timeout: 10) == .completed)
+    }
+
+    private func openNativeDisplaySettings(_ settings: XCUIApplication) {
+        if settings.navigationBars["Anzeige & Textgröße"].exists { return }
+        for _ in 0..<8 {
+            let back = settings.navigationBars.buttons.matching(NSPredicate(format: "label IN %@",
+                ["Zurück", "Einstellungen", "Apps", "Mitteilungen", "UAC", "UkrainianCommunity", "Anzeige & Textgröße", "Bedienungshilfen"])).firstMatch
+            guard back.exists && back.isHittable else { break }
+            back.tap()
+            if settings.navigationBars["Anzeige & Textgröße"].exists { return }
+        }
+        let accessibility = settings.staticTexts["Bedienungshilfen"].firstMatch
+        reveal(accessibility, settings); accessibility.tap()
+        let display = settings.staticTexts["Anzeige & Textgröße"].firstMatch
+        XCTAssertTrue(display.waitForExistence(timeout: 10)); reveal(display, settings); display.tap()
+    }
+
+    func testP14VisualBannerSurfacesAtActualPreferences() throws {
+        guard ProcessInfo.processInfo.environment["UACPhysicalVisualPreferencesApproved"] == "2026-10-27",
+              let marker = ProcessInfo.processInfo.environment["UACPhysicalVisualLabel"],
+              ["de-light-maximum-opaque", "de-dark-maximum-opaque", "de-dark-normal", "uk-light-normal"].contains(marker) else {
+            throw XCTSkip("Named real-device visual variant required")
+        }
+        let app = XCUIApplication(); openProfile(app)
+        XCTAssertTrue(app.staticTexts["Serlest"].firstMatch.exists)
+        app.tabBars.buttons["tab.home"].tap()
+        let carousel = app.descendants(matching: .any)["featuredBanner.carousel"].firstMatch
+        reveal(carousel, app, towardTop: true)
+        captureForeground(app, "physical-p14-" + marker + "-public")
+        openProfile(app)
+        let entry = app.buttons["profile.featuredBanners"].firstMatch
+        reveal(entry, app); entry.tap()
+        let search = app.textFields["featured.management.search"].firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 20)); reveal(search, app)
+        search.tap(); search.typeText("KFZ"); dismissKeyboard(app)
+        let edit = app.buttons["bannerManagement.edit.kfz-profi-service-tirol-20260910"].firstMatch
+        reveal(edit, app); edit.tap()
+        let description = app.textViews.matching(NSPredicate(format: "value CONTAINS %@", "Ремонт і сервіс")).firstMatch
+        reveal(description, app)
+        captureForeground(app, "physical-p14-" + marker + "-multiline-description")
+        let toggle = app.switches["bannerEditor.countdown.enabled"].firstMatch
+        reveal(toggle, app); XCTAssertEqual(toggle.value as? String, "0"); toggle.tap()
+        let label = app.textFields["bannerEditor.countdown.label"].firstMatch
+        reveal(label, app); label.tap(); label.typeText("UAC TEST"); dismissKeyboard(app)
+        let preview = app.descendants(matching: .any)["bannerEditor.preview"].firstMatch
+        if marker.contains("maximum") {
+            for _ in 0..<32 {
+                if !preview.exists {
+                    app.swipeDown()
+                    continue
+                }
+                let frame = preview.frame
+                if preview.exists && frame.minY >= 80 && frame.minY < 230 { break }
+                let down = frame.minY < 80
+                let farAway = abs(frame.minY - 150) > 350
+                app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: down ? 0.40 : 0.65))
+                    .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: down ? (farAway ? 0.75 : 0.52) : (farAway ? 0.30 : 0.53))))
+            }
+            let timer = app.descendants(matching: .any)["featuredBanner.countdown"].firstMatch
+            XCTAssertGreaterThanOrEqual(timer.frame.minY, 70)
+            XCTAssertLessThan(timer.frame.maxY, app.frame.height - 30)
+        } else { revealWholeBannerPreview(preview, app) }
+        XCTAssertTrue(app.descendants(matching: .any)["featuredBanner.countdown"].firstMatch.exists)
+        XCTAssertFalse(app.tabBars.firstMatch.exists)
+        captureForeground(app, "physical-p14-" + marker + "-countdown-preview-top")
+        if marker.contains("maximum") { app.swipeUp(); captureForeground(app, "physical-p14-" + marker + "-preview-text") }
+        let close = app.buttons["editor.close"].firstMatch
+        reveal(close, app, towardTop: true); close.tap()
+        let discard = app.buttons["bannerEditor.discard"].firstMatch
+        XCTAssertTrue(discard.waitForExistence(timeout: 10)); reveal(discard, app)
+        captureForeground(app, "physical-p14-" + marker + "-discard"); discard.tap()
+        reveal(edit, app); edit.tap()
+        let statistics = app.buttons["bannerEditor.statistics"].firstMatch
+        reveal(statistics, app, towardTop: true); statistics.tap()
+        let metric = app.descendants(matching: .any)["ownerAnalytics.metric.eye"].firstMatch
+        XCTAssertTrue(app.buttons["bannerReport.regionFilter"].firstMatch.waitForExistence(timeout: 25))
+        reveal(metric, app)
+        captureForeground(app, "physical-p14-" + marker + "-metrics")
+        app.swipeUp()
+        captureForeground(app, "physical-p14-" + marker + "-metrics-continuation")
+        let regions = app.buttons["bannerReport.regionFilter"].firstMatch
+        reveal(regions, app)
+        captureForeground(app, "physical-p14-" + marker + "-confirmed-report")
+        app.swipeUp()
+        captureForeground(app, "physical-p14-" + marker + "-chart-and-regions")
+        returnFromPushedScreens(app)
+        XCTAssertTrue(app.tabBars.buttons["tab.profile"].waitForExistence(timeout: 15))
+        // Only discarded local preview changes. Settings are restored by the
+        // separately named, explicitly approved restore commands after this matrix.
+    }
+
+    func testP14FinishCurrentControlledPreviewAndReadReport() throws {
+        guard ProcessInfo.processInfo.environment["UACPhysicalVisualPreferencesApproved"] == "2026-10-27",
+              let marker = ProcessInfo.processInfo.environment["UACPhysicalVisualLabel"] else {
+            throw XCTSkip("Exact approved controlled local preview required")
+        }
+        let app = XCUIApplication(); app.activate()
+        let label = app.textFields["bannerEditor.countdown.label"].firstMatch
+        XCTAssertTrue(label.exists)
+        XCTAssertEqual(label.value as? String, "UAC TEST", "Only our unsaved preview may be discarded")
+        let preview = app.descendants(matching: .any)["bannerEditor.preview"].firstMatch
+        revealWholeBannerPreview(preview, app)
+        captureForeground(app, "physical-p14-" + marker + "-complete-preview")
+        let close = app.buttons["editor.close"].firstMatch
+        reveal(close, app, towardTop: true); close.tap()
+        let discard = app.buttons["bannerEditor.discard"].firstMatch
+        XCTAssertTrue(discard.waitForExistence(timeout: 10)); reveal(discard, app)
+        captureForeground(app, "physical-p14-" + marker + "-discard"); discard.tap()
+        let edit = app.buttons["bannerManagement.edit.kfz-profi-service-tirol-20260910"].firstMatch
+        reveal(edit, app); edit.tap()
+        let statistics = app.buttons["bannerEditor.statistics"].firstMatch
+        reveal(statistics, app, towardTop: true); statistics.tap()
+        try testP14ReadCurrentConfirmedBannerReportAtActualPreferences()
+    }
+
+    func testP14ReadCurrentConfirmedBannerReportAtActualPreferences() throws {
+        guard ProcessInfo.processInfo.environment["UACPhysicalVisualPreferencesApproved"] == "2026-10-27",
+              let marker = ProcessInfo.processInfo.environment["UACPhysicalVisualLabel"] else {
+            throw XCTSkip("Approved visual variant and already open banner report required")
+        }
+        let app = XCUIApplication(); app.activate()
+        XCTAssertTrue(app.buttons["bannerReport.period"].firstMatch.waitForExistence(timeout: 20))
+        let regions = app.buttons["bannerReport.regionFilter"].firstMatch
+        XCTAssertTrue(regions.waitForExistence(timeout: 25))
+        let metric = app.descendants(matching: .any)["ownerAnalytics.metric.eye"].firstMatch
+        // Lazy metric cards are below the long accessibility intro. Scroll down
+        // until instantiated, rather than assuming a missing card is above us.
+        reveal(metric, app)
+        let total = metric.value as? String
+        XCTAssertNotNil(total)
+        captureForeground(app, "physical-p14-" + marker + "-report-metrics")
+        let rate = app.descendants(matching: .any)["ownerAnalytics.metric.percent"].firstMatch
+        reveal(rate, app)
+        captureForeground(app, "physical-p14-" + marker + "-report-rate")
+        reveal(regions, app); regions.tap()
+        captureForeground(app, "physical-p14-" + marker + "-region-options")
+        let allRegions = app.buttons.matching(NSPredicate(format: "label IN %@", ["Усі регіони показу", "Alle Anzeigeregionen"])).firstMatch
+        XCTAssertTrue(allRegions.waitForExistence(timeout: 10)); allRegions.tap()
+        let sections = app.buttons["bannerReport.sectionFilter"].firstMatch
+        reveal(sections, app); sections.tap()
+        let home = app.buttons.matching(NSPredicate(format: "label IN %@", ["Новини", "Nachrichten"])).firstMatch
+        XCTAssertTrue(home.waitForExistence(timeout: 10)); home.tap()
+        XCTAssertTrue(["Новини", "Nachrichten"].contains(sections.value as? String ?? ""))
+        captureForeground(app, "physical-p14-" + marker + "-section-filter")
+        sections.tap()
+        let allSections = app.buttons.matching(NSPredicate(format: "label IN %@", ["Усі розділи", "Alle Bereiche"])).firstMatch
+        XCTAssertTrue(allSections.waitForExistence(timeout: 10)); allSections.tap()
+        captureForeground(app, "physical-p14-" + marker + "-wrapping-filters")
+        app.swipeUp()
+        captureForeground(app, "physical-p14-" + marker + "-chart")
+        app.swipeUp()
+        captureForeground(app, "physical-p14-" + marker + "-regions")
+        reveal(metric, app, towardTop: true)
+        XCTAssertEqual(metric.value as? String, total, "Resetting local filters restores the same confirmed totals")
+        returnFromPushedScreens(app)
+        XCTAssertTrue(app.tabBars.buttons["tab.profile"].waitForExistence(timeout: 15))
+    }
+
+    func testP14AResolveSystemPhotoPickerCancellation() {
+        let app = XCUIApplication(); app.activate()
+        let cancel = app.buttons["Cancel"].firstMatch
+        XCTAssertTrue(cancel.waitForExistence(timeout: 10), "Only the currently open native photo picker is in scope")
+        let diagnostic = XCTAttachment(string: cancel.debugDescription)
+        diagnostic.name = "physical-photo-cancel-target"; diagnostic.lifetime = .keepAlways; add(diagnostic)
+        XCTAssertTrue(cancel.isHittable)
+        cancel.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: 0.5)).tap()
+        XCTAssertTrue(cancel.waitForNonExistence(timeout: 10), "Do not scroll or navigate until native picker cancellation actually completes")
+        let close = app.buttons["editor.close"].firstMatch
+        XCTAssertTrue(close.waitForExistence(timeout: 10)); close.tap()
+        XCTAssertFalse(app.buttons["bannerEditor.discard"].exists, "No banner fields were edited before this cancelled photo selection")
+        let search = app.textFields["featured.management.search"].firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 10))
+        captureForeground(app, "physical-p14-photo-cancel-returned-to-unchanged-management")
+        returnFromPushedScreens(app)
+    }
+
     private func controlledFeedbackContext() throws -> (id: String, notice: String, marker: String) {
         let env = ProcessInfo.processInfo.environment
         guard let id = env["UACPhysicalFeedbackID"], UUID(uuidString: id) != nil,
@@ -646,6 +921,205 @@ extension PhysicalClosureAuditUITests {
 }
 
 extension PhysicalClosureAuditUITests {
+    func testP14ReadOriginalVisualPreferences() throws {
+        guard ProcessInfo.processInfo.environment["UACPhysicalVisualPreferencesApproved"] == "2026-10-27" else {
+            throw XCTSkip("User-approved temporary visual settings check required")
+        }
+        let app = XCUIApplication(); openProfile(app)
+        let settingsEntry = app.buttons["profile.settings.open"].firstMatch
+        reveal(settingsEntry, app); settingsEntry.tap()
+        let language = app.buttons["profile.settings.language"].firstMatch
+        let appearance = app.buttons["profile.settings.appearance"].firstMatch
+        XCTAssertTrue(language.waitForExistence(timeout: 15)); reveal(language, app, towardTop: true)
+        let preferences = XCTAttachment(string: "language=\(language.value ?? "nil") / \(language.label)\nappearance=\(appearance.value ?? "nil") / \(appearance.label)")
+        preferences.name = "physical-original-uac-visual-preferences"
+        preferences.lifetime = .keepAlways; add(preferences)
+        captureForeground(app, "physical-original-language-and-theme")
+        let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
+        settings.activate()
+        defer { app.activate() }
+        for _ in 0..<8 {
+            let back = settings.navigationBars.buttons.matching(NSPredicate(format: "label IN %@",
+                ["Zurück", "Einstellungen", "Apps", "Mitteilungen", "UAC", "UkrainianCommunity", "Anzeige & Textgröße", "Bedienungshilfen"])).firstMatch
+            guard back.exists && back.isHittable else { break }
+            back.tap()
+        }
+        let accessibility = settings.staticTexts["Bedienungshilfen"].firstMatch
+        reveal(accessibility, settings); accessibility.tap()
+        let display = settings.staticTexts["Anzeige & Textgröße"].firstMatch
+        XCTAssertTrue(display.waitForExistence(timeout: 10)); reveal(display, settings); display.tap()
+        let transparency = settings.switches["Transparenz reduzieren"].firstMatch
+        reveal(transparency, settings)
+        let originalTransparency = transparency.value as? String ?? "unknown"
+        captureForeground(settings, "physical-original-reduce-transparency")
+        let larger = settings.staticTexts["Größerer Text"].firstMatch
+        reveal(larger, settings, towardTop: true); larger.tap()
+        let slider = settings.sliders.firstMatch
+        XCTAssertTrue(slider.waitForExistence(timeout: 10))
+        let original = XCTAttachment(string: "reduceTransparency=\(originalTransparency)\n" + settings.debugDescription)
+        original.name = "physical-original-accessibility-visual-preferences"
+        original.lifetime = .keepAlways; add(original)
+        captureForeground(settings, "physical-original-larger-text")
+        // Read only. Capture the actual baseline before any approved mutation.
+    }
+
+    func testP14CurrentPublicCarouselReadAndSwipe() {
+        let app = XCUIApplication(); openProfile(app)
+        app.tabBars.buttons["tab.home"].tap()
+        let carousel = app.descendants(matching: .any)["featuredBanner.carousel"].firstMatch
+        reveal(carousel, app, towardTop: true)
+        captureForeground(app, "physical-p14-current-public-carousel-before-swipe")
+        carousel.swipeLeft()
+        captureForeground(app, "physical-p14-current-public-carousel-after-swipe")
+    }
+
+    func testP14PhysicalBannerOrientationVisualEvidence() {
+        let app = XCUIApplication(); app.activate()
+        XCUIDevice.shared.orientation = .portrait
+        XCTAssertTrue(waitForStablePhysicalOrientation(app, landscape: false))
+        openProfile(app); app.tabBars.buttons["tab.home"].tap()
+        let carousel = app.descendants(matching: .any)["featuredBanner.carousel"].firstMatch
+        reveal(carousel, app, towardTop: true)
+        captureForeground(app, "physical-p14-orientation-portrait")
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertEqual(XCUIDevice.shared.orientation, .landscapeLeft)
+        // The root AX frame and UIImage.size are not reliable orientation
+        // probes here. Wait for the main window's transform to settle before
+        // capturing; a mid-animation screenshot is not visual acceptance.
+        XCTAssertTrue(waitForStablePhysicalOrientation(app, landscape: true))
+        let landscapeCarousel = app.descendants(matching: .any)["featuredBanner.carousel"].firstMatch
+        let settled = NSPredicate { _, _ in
+            guard landscapeCarousel.exists else { return false }
+            let viewport = landscapeCarousel.frame
+            // Query the stable carousel container, not indices into a lazy
+            // card list that is being rebuilt by rotation.
+            return viewport.height > 0 && viewport.height < app.windows.firstMatch.frame.height
+        }
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: settled, object: nil)], timeout: 12), .completed,
+                       "A settled window transform must also replace the stale accessibility-height carousel measurement")
+        captureForeground(app, "physical-p14-orientation-landscape")
+        let geometry = XCTAttachment(string: app.debugDescription)
+        geometry.name = "physical-p14-landscape-actual-hierarchy"
+        geometry.lifetime = .keepAlways; add(geometry)
+        XCUIDevice.shared.orientation = .portrait
+        XCTAssertTrue(waitForStablePhysicalOrientation(app, landscape: false))
+        captureForeground(app, "physical-p14-orientation-restored")
+    }
+
+    private func waitForStablePhysicalOrientation(_ app: XCUIApplication, landscape: Bool) -> Bool {
+        let predicate = NSPredicate { _, _ in
+            let frame = app.windows.firstMatch.frame
+            return abs(frame.minX) < 1 && abs(frame.minY) < 1
+                && (landscape ? frame.width > frame.height : frame.height > frame.width)
+        }
+        return XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: predicate, object: nil)], timeout: 10) == .completed
+    }
+
+    private func revealWholeBannerPreview(_ preview: XCUIElement, _ app: XCUIApplication) {
+        for _ in 0..<12 {
+            let top = app.buttons["editor.close"].firstMatch.frame.maxY + 36
+            let frame = preview.frame
+            if preview.exists && frame.minY >= top && frame.maxY < app.frame.height - 40 { return }
+            let moveDown = frame.minY < top
+            app.coordinate(withNormalizedOffset: .init(dx: 0.97, dy: moveDown ? 0.40 : 0.65))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: .init(dx: 0.97, dy: moveDown ? 0.58 : 0.45)))
+        }
+        XCTAssertGreaterThanOrEqual(preview.frame.minY, app.buttons["editor.close"].firstMatch.frame.maxY + 36)
+        XCTAssertLessThan(preview.frame.maxY, app.frame.height - 40)
+    }
+
+    func testP14InstalledBannerDraftPreviewDiscardAndSpecificStatistics() {
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication(); app.activate()
+        if app.textViews["feedback.reply.text"].firstMatch.exists {
+            XCTAssertTrue((app.textViews["feedback.reply.text"].firstMatch.value as? String ?? "").isEmpty)
+            app.buttons.matching(NSPredicate(format: "label IN %@", ["Готово", "Fertig", "Done"])).firstMatch.tap()
+        }
+        openProfile(app)
+        let owner = app.staticTexts["Serlest"].firstMatch
+        reveal(owner, app, towardTop: true); XCTAssertTrue(owner.exists)
+        app.tabBars.buttons["tab.home"].tap()
+        let carousel = app.descendants(matching: .any)["featuredBanner.carousel"].firstMatch
+        reveal(carousel, app, towardTop: true)
+        XCTAssertTrue(carousel.waitForExistence(timeout: 20))
+        captureForeground(app, "physical-p14-public-carousel-portrait")
+        carousel.swipeLeft()
+        captureForeground(app, "physical-p14-public-carousel-after-swipe")
+        openProfile(app)
+        let entry = app.buttons["profile.featuredBanners"].firstMatch
+        reveal(entry, app); entry.tap()
+        let search = app.textFields["featured.management.search"].firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 25))
+        XCTAssertTrue(app.tabBars.firstMatch.waitForNonExistence(timeout: 5))
+        search.tap(); search.typeText("KFZ Profi Service")
+        dismissKeyboard(app)
+        let bannerID = "kfz-profi-service-tirol-20260910"
+        let edit = app.buttons["bannerManagement.edit." + bannerID].firstMatch
+        XCTAssertTrue(edit.waitForExistence(timeout: 25)); reveal(edit, app)
+        captureForeground(app, "physical-p14-real-banner-management")
+        edit.tap()
+        let preview = app.descendants(matching: .any)["bannerEditor.preview"].firstMatch
+        XCTAssertTrue(preview.waitForExistence(timeout: 15)); reveal(preview, app, towardTop: true)
+        XCTAssertFalse(app.tabBars.firstMatch.exists, "Editor fields must not be covered by root tabs")
+        let originalPreviewHeight = preview.frame.height
+        captureForeground(app, "physical-p14-original-editor-preview")
+        let picker = app.descendants(matching: .any)["bannerEditor.titleColor"].firstMatch
+        reveal(picker, app); picker.tap()
+        captureForeground(app, "physical-p14-native-color-picker")
+        let pickerClose = app.buttons.matching(NSPredicate(format: "label IN %@", ["Schließen", "Close", "Fertig", "Готово"])).firstMatch
+        XCTAssertTrue(pickerClose.waitForExistence(timeout: 5)); pickerClose.tap()
+        // Native photo open/cancel has separate installed-device evidence.
+        // Keep this repeat focused on countdown, preview and chart regressions.
+        let toggle = app.switches["bannerEditor.countdown.enabled"].firstMatch
+        reveal(toggle, app); let original = toggle.value as? String
+        XCTAssertEqual(original, "0", "The exact server baseline has no countdown")
+        toggle.tap()
+        let date = app.descendants(matching: .any)["bannerEditor.countdown.date"].firstMatch
+        reveal(date, app); XCTAssertTrue(date.exists)
+        captureForeground(app, "physical-p14-local-countdown-controls")
+        let dateButton = date.buttons.firstMatch
+        if dateButton.exists { dateButton.tap() } else { date.tap() }
+        captureForeground(app, "physical-p14-native-countdown-date")
+        app.coordinate(withNormalizedOffset: .init(dx: 0.97, dy: 0.12)).tap()
+        let label = app.textFields["bannerEditor.countdown.label"].firstMatch
+        reveal(label, app); label.tap(); label.typeText("UAC TEST — лише чернетка")
+        XCTAssertTrue((label.value as? String ?? "").contains("лише чернетка"))
+        dismissKeyboard(app)
+        let headingColor = app.buttons["bannerEditor.titleColor.yellow"].firstMatch
+        reveal(headingColor, app, towardTop: true); headingColor.tap()
+        let subtitleColor = app.buttons["bannerEditor.subtitleColor.white"].firstMatch
+        reveal(subtitleColor, app); subtitleColor.tap()
+        revealWholeBannerPreview(preview, app)
+        let timer = app.descendants(matching: .any)["featuredBanner.countdown"].firstMatch
+        XCTAssertTrue(timer.waitForExistence(timeout: 10))
+        XCTAssertEqual(preview.frame.height, originalPreviewHeight, accuracy: 1, "Adding a countdown must not shrink the artwork at this type size")
+        captureForeground(app, "physical-p14-countdown-colors-local-preview")
+        let first = timer.label
+        XCTAssertTrue(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "label != %@", first), object: timer)], timeout: 5) == .completed)
+        captureForeground(app, "physical-p14-countdown-seconds-advanced")
+        let close = app.buttons["editor.close"].firstMatch
+        XCTAssertTrue(close.isHittable); close.tap()
+        let keep = app.buttons["bannerEditor.keepEditing"].firstMatch
+        XCTAssertTrue(keep.waitForExistence(timeout: 5)); captureForeground(app, "physical-p14-discard-confirmation")
+        keep.tap(); close.tap()
+        app.buttons["bannerEditor.discard"].tap()
+        XCTAssertTrue(edit.waitForExistence(timeout: 10)); reveal(edit, app); edit.tap()
+        reveal(toggle, app)
+        XCTAssertEqual(toggle.value as? String, original, "Discard must not publish the local countdown")
+        captureForeground(app, "physical-p14-reopened-original-without-countdown")
+        let statistics = app.buttons["bannerEditor.statistics"].firstMatch
+        reveal(statistics, app, towardTop: true); statistics.tap()
+        let period = app.buttons["bannerReport.period"].firstMatch
+        XCTAssertTrue(period.waitForExistence(timeout: 15))
+        let regions = app.buttons["bannerReport.regionFilter"].firstMatch
+        XCTAssertTrue(regions.waitForExistence(timeout: 30), "Filters appear only after the actual protected report loads")
+        XCTAssertFalse(app.tabBars.firstMatch.exists)
+        captureForeground(app, "physical-p14-exact-banner-statistics-confirmed")
+        reveal(regions, app)
+        captureForeground(app, "physical-p14-exact-banner-statistics-regions")
+        // No Save, active toggle, duplicate, deletion, export or external ad click.
+    }
+
     func testP13InstalledNotificationFiltersAndExistingPreferences() {
         let app = XCUIApplication(); app.activate()
         if app.textViews["feedback.reply.text"].firstMatch.exists {

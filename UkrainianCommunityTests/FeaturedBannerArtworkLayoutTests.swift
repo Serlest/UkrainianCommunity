@@ -13,6 +13,22 @@ struct FeaturedBannerArtworkLayoutTests {
         #expect(!ProfileNavigationRoute.savedContent.hidesRootTabBar)
     }
 
+    @Test func offscreenAccessibilityHeightsCannotCreateBlankSpaceAfterRotation() {
+        let old = FeaturedBannerHeightMeasurement(width: 408, height: 826, typeSize: .accessibility5, compact: false)
+        let current = FeaturedBannerHeightMeasurement(width: 800, height: 310, typeSize: .large, compact: true)
+        let removed = FeaturedBannerHeightMeasurement(width: 800, height: 900, typeSize: .large, compact: true)
+        let measurements = ["offscreen": old, "visible": current, "removed": removed]
+        let ids: Set<String> = ["offscreen", "visible"]
+        #expect(FeaturedBannerHeightMeasurement.resolvedHeight(measurements, bannerIDs: ids,
+            width: 800, typeSize: .large, compact: true) == 310)
+        #expect(FeaturedBannerHeightMeasurement.resolvedHeight(measurements, bannerIDs: ids,
+            width: 408, typeSize: .accessibility5, compact: false) == 826)
+        #expect(FeaturedBannerHeightMeasurement.resolvedHeight(measurements, bannerIDs: ids,
+            width: 408, typeSize: .large, compact: false) == 280)
+        #expect(!current.matches(width: 800, typeSize: .large, compact: false))
+        #expect(!current.matches(width: 700, typeSize: .large, compact: true))
+    }
+
     private let width: CGFloat = 358
 
     @Test func countdownRetainsOriginalFullWidthImageAndUncroppedEdges() throws {

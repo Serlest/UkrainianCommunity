@@ -52,6 +52,28 @@ struct FeaturedBannerAspectLayout: Layout {
     }
 }
 
+/// A lazy offscreen slide may retain its previous height. Only measurements
+/// made for the current width, text size and orientation may size the carousel.
+nonisolated struct FeaturedBannerHeightMeasurement: Equatable, Sendable {
+    let width: CGFloat
+    let height: CGFloat
+    let typeSize: DynamicTypeSize
+    let compact: Bool
+
+    func matches(width: CGFloat, typeSize: DynamicTypeSize, compact: Bool) -> Bool {
+        abs(self.width - width) < 0.5 && self.typeSize == typeSize && self.compact == compact
+    }
+
+    static func resolvedHeight(_ measurements: [String: Self], bannerIDs: Set<String>,
+                               width: CGFloat, typeSize: DynamicTypeSize, compact: Bool) -> CGFloat {
+        let heights = measurements.compactMap { id, value -> CGFloat? in
+            guard bannerIDs.contains(id), value.matches(width: width, typeSize: typeSize, compact: compact) else { return nil }
+            return value.height
+        }
+        return max(280, heights.max() ?? 280)
+    }
+}
+
 struct FeaturedBannerCarouselView: View {
     private static let autoAdvanceAnimation = Animation.easeInOut(duration: 0.42)
 
@@ -71,7 +93,7 @@ struct FeaturedBannerCarouselView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedBannerID: FeaturedBanner.ID?
     @State private var isUserInteracting = false
-    @State private var cardHeights: [String: CGFloat] = [:]
+    @State private var cardHeights: [String: FeaturedBannerHeightMeasurement] = [:]
     @State private var cardFrames: [String: CGRect] = [:]
     @State private var settleTask: Task<Void, Never>?
     @State private var bannerFrame: CGRect = .zero
@@ -165,7 +187,9 @@ struct FeaturedBannerCarouselView: View {
     private var carouselFrame: some View {
         Group {
             if usesStackedContent {
-                carouselContent.frame(height: max(280, cardHeights.values.max() ?? 280))
+                carouselContent.frame(height: FeaturedBannerHeightMeasurement.resolvedHeight(
+                    cardHeights, bannerIDs: Set(banners.map(\.id)), width: bannerFrame.width,
+                    typeSize: dynamicTypeSize, compact: verticalSizeClass == .compact))
             } else { switch sizing {
             case let .fixedHeight(height):
                 carouselContent
@@ -211,7 +235,7 @@ struct FeaturedBannerCarouselView: View {
     private var carouselContent: some View {
         GeometryReader { proxy in
             ScrollView(.horizontal) {
-                LazyHStack(spacing: 12) {
+                LazyHStack(alignment: .top, spacing: 12) {
                     ForEach(banners) { banner in
                         bannerSlide(for: banner, size: CGSize(width: max(1, proxy.size.width), height: artworkHeight(for: proxy.size.width)))
                             .id(banner.id)
@@ -274,8 +298,11 @@ struct FeaturedBannerCarouselView: View {
         }
             .frame(width: size.width)
             .fixedSize(horizontal: false, vertical: usesStackedContent)
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-                if usesStackedContent, abs((cardHeights[banner.id] ?? 0) - height) > 0.5 { cardHeights[banner.id] = height }
+            .onGeometryChange(for: FeaturedBannerHeightMeasurement.self) { proxy in
+                FeaturedBannerHeightMeasurement(width: proxy.size.width, height: proxy.size.height,
+                    typeSize: dynamicTypeSize, compact: verticalSizeClass == .compact)
+            } action: { measurement in
+                if usesStackedContent, cardHeights[banner.id] != measurement { cardHeights[banner.id] = measurement }
             }
             .frame(width: size.width, alignment: .top)
     }
@@ -355,6 +382,8 @@ struct FeaturedBannerCarouselView: View {
     }
 
     private func normalizeSelection() {
+        let currentIDs = Set(banners.map(\.id))
+        cardHeights = cardHeights.filter { currentIDs.contains($0.key) }
         guard let firstBanner = banners.first else {
             selectedBannerID = nil
             return
