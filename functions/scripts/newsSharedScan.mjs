@@ -38,6 +38,13 @@ export function requestURLForSource(source, now = new Date()) {
   return url.href;
 }
 
+export function currentViennaRunId(now = new Date()) {
+  const hour = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Vienna", hour: "2-digit", hourCycle: "h23",
+  }).format(now);
+  return `news-${viennaDate(now)}T${hour}`;
+}
+
 async function boundedText(response) {
   const reader = response.body?.getReader();
   if (!reader) return "";
@@ -319,13 +326,18 @@ export async function scanNewsSources(registry, {fetchImpl = fetch, now = new Da
   return results;
 }
 
-export async function runNewsSharedScan(outputRoot, runId, {fetchImpl = fetch, now = new Date()} = {}) {
+export async function runNewsSharedScan(outputRoot, runId, {
+  fetchImpl = fetch, now = new Date(), requireCurrentViennaHour = false,
+} = {}) {
   if (!/^news-\d{4}-\d{2}-\d{2}T\d{2}$/.test(runId)) throw new Error("Invalid news run ID.");
   const registry = JSON.parse(await readFile(join(outputRoot, "source-registry.json"), "utf8"));
   const snapshots = join(outputRoot, "snapshots");
   const target = join(snapshots, `${runId}.json`);
   if (await access(target).then(() => true, () => false)) {
     throw new Error(`Shared discovery snapshot already exists: ${runId}`);
+  }
+  if (requireCurrentViennaHour && runId !== currentViennaRunId(now)) {
+    throw new Error(`New shared scans must use the current Europe/Vienna run ID (${currentViennaRunId(now)}).`);
   }
   const lock = join(outputRoot, "shared-scan.lock");
   const token = randomUUID();
@@ -386,7 +398,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   } else {
     try {
       if (mode === "--run") {
-        console.log(JSON.stringify(await runNewsSharedScan(resolve(outputRoot), runId)));
+        console.log(JSON.stringify(await runNewsSharedScan(resolve(outputRoot), runId, {
+          requireCurrentViennaHour: true,
+        })));
       } else {
         const registry = JSON.parse(await readFile(join(resolve(outputRoot), "source-registry.json"), "utf8"));
         console.log(JSON.stringify({dryRun: true, runId, uniqueSources: planUniqueSourceFetches(registry).length}));

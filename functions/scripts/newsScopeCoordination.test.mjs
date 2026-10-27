@@ -13,7 +13,7 @@ import {
   routeNewsCandidate,
   mergeTodayDiscovery,
 } from "./newsScopeCoordination.mjs";
-import {extractAMSNewsLinks, extractOEBBLiveLinks, extractOEBBTrafficLinks, extractSalzburgTrafficLinks, extractSourceLinks, extractWienerLinienNewsLinks, inspectNewsSource, requestURLForSource, runNewsSharedScan, scanNewsSources} from "./newsSharedScan.mjs";
+import {currentViennaRunId, extractAMSNewsLinks, extractOEBBLiveLinks, extractOEBBTrafficLinks, extractSalzburgTrafficLinks, extractSourceLinks, extractWienerLinienNewsLinks, inspectNewsSource, requestURLForSource, runNewsSharedScan, scanNewsSources} from "./newsSharedScan.mjs";
 
 const fixture = {
   sourceProgress: {
@@ -118,6 +118,29 @@ test("shared scan fetches a multi-scope source once and preserves immutable snap
     await assert.rejects(() => runNewsSharedScan(output, "news-2026-10-12T11", {fetchImpl}),
       /already exists/);
     assert.equal(requested.length, 2);
+  } finally {
+    await rm(directory, {recursive: true, force: true});
+  }
+});
+
+test("new scheduled shared scans reject a run ID from the wrong Vienna hour", async () => {
+  const now = new Date("2026-10-27T14:12:30Z");
+  assert.equal(currentViennaRunId(now), "news-2026-10-27T15");
+
+  const directory = await mkdtemp(join(tmpdir(), "uac-news-scan-hour-"));
+  try {
+    const input = join(directory, "legacy.json");
+    const output = join(directory, "news-v3");
+    await writeFile(input, JSON.stringify(fixture));
+    await prepareNewsScopeLayout(input, output, {write: true});
+    let fetched = false;
+    await assert.rejects(() => runNewsSharedScan(output, "news-2026-10-27T16", {
+      fetchImpl: async () => { fetched = true; throw new Error("should-not-fetch"); },
+      now,
+      requireCurrentViennaHour: true,
+    }), /current Europe\/Vienna run ID \(news-2026-10-27T15\)/);
+    assert.equal(fetched, false);
+    await assert.rejects(() => readFile(join(output, "snapshots", "news-2026-10-27T16.json")));
   } finally {
     await rm(directory, {recursive: true, force: true});
   }
