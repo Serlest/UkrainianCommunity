@@ -26,7 +26,8 @@ struct FirestoreLegalDocumentRepository: LegalDocumentRepository {
     }
 
     func fetchActiveDocumentForReader(type: LegalDocumentType) async throws -> LegalDocument {
-        try await fetchActiveDocumentFromFirestore(type: type)
+        // A cached Firestore snapshot must not silently look like a freshly verified version.
+        try await fetchActiveDocumentFromFirestore(type: type, serverOnly: true)
     }
 
     func fetchAuthoritativeActiveDocument(type: LegalDocumentType) async throws -> LegalDocument {
@@ -166,7 +167,7 @@ struct FirestoreLegalDocumentRepository: LegalDocumentRepository {
         let page = Array(snapshots.documents.prefix(20))
         let documents = try page.compactMap { snapshot -> LegalDocument? in
             let document = decodeDocument(type: type, version: snapshot.documentID, data: snapshot.data())
-            guard document.status == .published else { return nil }
+            guard document.status == .published || document.status == .archived else { return nil }
             guard document.version == snapshot.documentID,
                   snapshot.get("documentType") as? String == type.rawValue,
                   LegalDocumentDraft.hasConsistentVersionIdentifier(document.version, versionNumber: document.versionNumber),
@@ -183,7 +184,8 @@ struct FirestoreLegalDocumentRepository: LegalDocumentRepository {
                 let snapshot = try transaction.getDocument(reference)
                 guard snapshot.exists else { return nil }
                 guard snapshot.get("status") as? String == LegalDocumentStatus.draft.rawValue,
-                      snapshot.get("contentHash") as? String == draft.sourceContentHash
+                      snapshot.get("contentHash") as? String == draft.sourceContentHash,
+                      draft.sourceStateHash == LegalDocumentDraft(document: decodeDocument(type: draft.type, version: draft.version, data: snapshot.data() ?? [:])).stateHash
                 else { throw AppError.validationFailed }
                 transaction.deleteDocument(reference)
             } catch { errorPointer?.pointee = error as NSError }
@@ -218,7 +220,8 @@ struct FirestoreLegalDocumentRepository: LegalDocumentRepository {
                     if snapshot.exists {
                         let data = snapshot.data() ?? [:]
                         guard data["status"] as? String == LegalDocumentStatus.draft.rawValue,
-                              data["contentHash"] as? String == draft.sourceContentHash
+                              data["contentHash"] as? String == draft.sourceContentHash,
+                              draft.sourceStateHash == LegalDocumentDraft(document: decodeDocument(type: draft.type, version: draft.version, data: data)).stateHash
                         else { throw AppError.validationFailed }
                         transaction.updateData(payload, forDocument: reference)
                     } else {
@@ -272,6 +275,7 @@ struct FirestoreLegalDocumentRepository: LegalDocumentRepository {
                           versionData["versionNumber"] as? Int == draft.versionNumber,
                           versionData["status"] as? String == LegalDocumentStatus.draft.rawValue,
                           versionData["contentHash"] as? String == draft.sourceContentHash,
+                          draft.sourceStateHash == LegalDocumentDraft(document: decodeDocument(type: draft.type, version: draft.version, data: versionData)).stateHash,
                           activeVersion == draft.supersedesVersion,
                           activeVersionNumber.map({ draft.versionNumber == $0 + 1 }) == true
                     else { throw AppError.validationFailed }
@@ -513,7 +517,9 @@ struct FirestoreLegalDocumentRepository: LegalDocumentRepository {
                   data["supersedesVersion"] as? String == draft.supersedesVersion,
                   data["changeSummary"] as? String == draft.changeSummary,
                   data["requiresAcceptance"] as? Bool == draft.requiresAcceptance else { return false }
-            return Self.hasValidContentHashes(decodeDocument(type: draft.type, version: draft.version, data: data), allowIncomplete: true)
+            let saved = decodeDocument(type: draft.type, version: draft.version, data: data)
+            return LegalDocumentDraft(document: saved).stateHash == draft.stateHash
+                && Self.hasValidContentHashes(saved, allowIncomplete: true)
         } catch { return false }
     }
 
@@ -531,6 +537,7 @@ struct FirestoreLegalDocumentRepository: LegalDocumentRepository {
                 && versionData["versionNumber"] as? Int == draft.versionNumber
                 && versionData["status"] as? String == LegalDocumentStatus.published.rawValue
                 && versionData["contentHash"] as? String == draft.normalizedContentHash
+                && LegalDocumentDraft(document: decodeDocument(type: draft.type, version: draft.version, data: versionData)).stateHash == draft.stateHash
         } catch {
             return false
         }

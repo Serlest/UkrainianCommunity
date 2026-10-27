@@ -15,6 +15,10 @@ struct MockLegalDocumentRepository: LegalDocumentRepository {
         await storage.managementState(type: type)
     }
 
+    func fetchVersionHistory(type: LegalDocumentType, before: Int?) async throws -> LegalVersionPage {
+        await storage.history(type: type, before: before)
+    }
+
     func discardDraft(_ draft: LegalDocumentDraft) async throws { await storage.discardDraft(draft) }
 
     func saveDraft(_ draft: LegalDocumentDraft, updatedBy userID: String) async throws {
@@ -44,6 +48,7 @@ private actor MockLegalDocumentStorage {
     static let shared = MockLegalDocumentStorage()
 
     private var activeDocuments: [LegalDocumentType: LegalDocument] = [:]
+    private var publishedHistory: [LegalDocumentType: [LegalDocument]] = [:]
     private var drafts: [LegalDocumentType: LegalDocumentDraft] = [:]
     private var authoritativeFetchCounts: [LegalDocumentType: Int] = [:]
 
@@ -112,7 +117,14 @@ private actor MockLegalDocumentStorage {
         drafts[draft.type] = draft
     }
 
+    func history(type: LegalDocumentType, before: Int?) async -> LegalVersionPage {
+        let active = await activeDocument(type: type)
+        let documents = ([active] + (publishedHistory[type] ?? [])).filter { before == nil || $0.versionNumber < before! }.sorted { $0.versionNumber > $1.versionNumber }
+        return LegalVersionPage(documents: documents, nextBefore: nil)
+    }
+
     func publishDraft(_ draft: LegalDocumentDraft, publishedBy userID: String) {
+        if let previous = activeDocuments[draft.type] { publishedHistory[draft.type, default: []].append(previous) }
         activeDocuments[draft.type] = draftDocument(from: draft, status: .published)
         drafts[draft.type] = nil
     }

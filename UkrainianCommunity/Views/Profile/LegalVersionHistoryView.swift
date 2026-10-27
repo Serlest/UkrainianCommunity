@@ -2,7 +2,7 @@ import SwiftUI
 
 struct LegalVersionReader: View {
     let document: LegalDocument
-    @State private var locale = "de"
+    @State private var locale = AppLanguage.stored.rawValue
     var body: some View {
         ProfileDestinationLayout(title: document.type.historyTitle, introSubtitle: AppStrings.legalVersionLabel(document.version)) {
             Picker(AppStrings.LegalManagement.localePicker, selection: $locale) {
@@ -11,8 +11,7 @@ struct LegalVersionReader: View {
             }.pickerStyle(.segmented)
             if let content = document.content(preferredLocale: locale) {
                 AppEditorSectionCard {
-                    Text(content.title).font(.title2.bold())
-                    LegalMarkdownRenderer(markdown: content.contentMarkdown, fallbackText: content.contentText)
+                    LegalDocumentText(content: content)
                 }
             }
         }
@@ -37,7 +36,7 @@ struct LegalTextChange: Identifiable, Equatable {
 struct LegalVersionComparisonView: View {
     let previous: LegalDocument
     let current: LegalDocument
-    @State private var locale = "de"
+    @State private var locale = AppLanguage.stored.rawValue
     private var changes: [LegalTextChange] {
         LegalTextChange.compare(old: previous.content(preferredLocale: locale)?.contentMarkdown ?? "",
                                 new: current.content(preferredLocale: locale)?.contentMarkdown ?? "")
@@ -65,59 +64,64 @@ struct LegalVersionComparisonView: View {
 
 struct LegalVersionHistoryView: View {
     let type: LegalDocumentType
-    let active: LegalDocument
-    let repository: LegalDocumentRepository
     @EnvironmentObject private var authState: AuthState
     @Environment(\.dismiss) private var dismiss
-    @State private var documents: [LegalDocument] = []
-    @State private var cursor: Int?
-    @State private var loaded = false
-    @State private var loading = false
-    @State private var error = false
+    @StateObject private var model: LegalHistoryViewModel
+    init(type: LegalDocumentType, active: LegalDocument, repository: LegalDocumentRepository) {
+        self.type = type
+        _model = StateObject(wrappedValue: LegalHistoryViewModel(type: type, active: active, repository: repository))
+    }
     var body: some View {
         ProfileDestinationLayout(title: LegalEditorText.history, introSubtitle: type.historyTitle) {
-            if PermissionService.isAppOwner(user: authState.user) {
-                if loading && documents.isEmpty { LoadingStateCard(title: nil) }
-                if error {
+            if !LegalAccessScope(authState).allowsOwner || model.accessDenied {
+                ErrorStateCard(systemImage: "lock.fill", title: AppStrings.LegalManagement.permissionTitle,
+                               message: AppStrings.LegalManagement.permissionMessage)
+            } else {
+                if !model.hasLoaded || model.loading && model.documents.isEmpty { LoadingStateCard(title: nil) }
+                if model.error {
                     ErrorStateCard(systemImage: "clock", title: LegalEditorText.history,
-                                   message: AppStrings.LegalManagement.loadFailed,
-                                   retryTitle: AppStrings.Action.retry) { Task { await load() } }
+                                   message: AppStrings.LegalManagement.loadFailed, retryTitle: AppStrings.Action.retry) {
+                        Task { await model.retry() }
+                    }
                 }
-                ForEach(documents, id: \.version) { document in
+                if model.hasLoaded && !model.error && model.documents.isEmpty {
+                    Text(model.canLoadMore ? LegalEvidenceText.continueHistory : LegalFlowText.historyEmpty)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+                if !model.documents.isEmpty {
+                    Text(LegalFlowText.historyContext).font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                    LegalMetadataLabel(title: AppStrings.legalVersionLabel(model.reference.version), systemImage: "number")
+                }
+                ForEach(model.documents, id: \.version) { document in
                     AppEditorSectionCard {
                         Text(AppStrings.legalVersionLabel(document.version)).font(.headline)
-                        if let date = document.publishedAt { Text(LocalizationStore.dateString(from: date)).foregroundStyle(AppTheme.textSecondary) }
-                        if document.version == active.version { Text(LegalEditorText.active).font(.caption) }
-                        NavigationLink { LegalVersionReader(document: document) } label: {
-                            Label(LegalEditorText.read, systemImage: "doc.text")
+                        if let date = document.publishedAt {
+                            Text(LocalizationStore.dateString(from: date)).font(.subheadline)
+                                .foregroundStyle(AppTheme.textSecondary).fixedSize(horizontal: false, vertical: true)
                         }
-                        if document.version != active.version {
-                            NavigationLink { LegalVersionComparisonView(previous: document, current: active) } label: {
-                                Label(LegalEditorText.compare, systemImage: "text.badge.plus")
-                            }
+                        if document.version == model.reference.version { Text(LegalEditorText.active).font(.caption) }
+                        NavigationLink { LegalVersionReader(document: document) } label: {
+                            LegalActionLabel(title: LegalEditorText.read, systemImage: "doc.text")
+                        }.accessibilityIdentifier("legal.history.read.\(document.version)")
+                        if document.version != model.reference.version {
+                            NavigationLink { LegalVersionComparisonView(previous: document, current: model.reference) } label: {
+                                LegalActionLabel(title: LegalEditorText.compare, systemImage: "text.badge.plus")
+                            }.accessibilityIdentifier("legal.history.compare.\(document.version)")
                         }
                     }
                 }
-                if loaded && cursor != nil {
-                    Button(LegalEditorText.more) { Task { await load() } }.disabled(loading)
+                if model.canLoadMore {
+                    PrimaryActionButton(title: LegalEditorText.more, isEnabled: !model.loading) { Task { await model.load(reset: false) } }
                 }
             }
         }
-        .task { await load() }
-        .onChange(of: authState.user?.id) { _, _ in documents = []; dismiss() }
-    }
-    private func load() async {
-        guard !loading, PermissionService.isAppOwner(user: authState.user), !loaded || cursor != nil else { return }
-        let userID = authState.user?.id
-        loading = true; error = false
-        defer { loading = false }
-        do {
-            let page = try await repository.fetchVersionHistory(type: type, before: cursor)
-            guard authState.user?.id == userID else { return }
-            let known = Set(documents.map(\.version))
-            documents += page.documents.filter { !known.contains($0.version) }
-            cursor = page.nextBefore; loaded = true
-        } catch { self.error = true }
+        .task(id: LegalQueryScope(authState, query: "history")) {
+            model.clear(); model.accessScope = { LegalAccessScope(authState) }
+            guard LegalAccessScope(authState).allowsOwner else { return }
+            await model.load()
+        }
+        .appRefreshable { await model.load() }
+        .onChange(of: LegalAccessScope(authState)) { _, _ in model.clear(); dismiss() }
     }
 }
 

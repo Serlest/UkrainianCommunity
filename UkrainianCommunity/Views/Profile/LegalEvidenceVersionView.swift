@@ -9,11 +9,15 @@ struct LegalEvidenceVersionView: View {
     @State private var failed = false
     @State private var loading = false
     @State private var locale = "de"
+    @State private var requestID = UUID()
 
     var body: some View {
         ProfileDestinationLayout(title: LegalEvidenceText.versionTitle,
             introSubtitle: AppStrings.legalVersionLabel(event.version ?? "")) {
-            if let document {
+            if !LegalAccessScope(authState).allowsOwner {
+                ErrorStateCard(systemImage: "lock.fill", title: AppStrings.LegalEvidence.permissionTitle,
+                               message: AppStrings.LegalEvidence.permissionMessage)
+            } else if let document {
                 Text(event.contentHash == nil ? LegalEvidenceText.missingHash : LegalEvidenceText.verifiedHash)
                     .font(.footnote).foregroundStyle(AppTheme.textSecondary)
                 Picker(AppStrings.LegalManagement.localePicker, selection: $locale) {
@@ -22,11 +26,7 @@ struct LegalEvidenceVersionView: View {
                 }.pickerStyle(.segmented)
                 if let content = document.content(preferredLocale: locale) {
                     AppEditorSectionCard {
-                        if content.contentMarkdown.trimmingCharacters(in: .whitespacesAndNewlines)
-                            .components(separatedBy: .newlines).first != "# \(content.title)" {
-                            Text(content.title).font(.title2.bold())
-                        }
-                        LegalMarkdownRenderer(markdown: content.contentMarkdown, fallbackText: content.contentText)
+                        LegalDocumentText(content: content)
                     }
                 }
             } else if failed {
@@ -35,20 +35,27 @@ struct LegalEvidenceVersionView: View {
             } else { LoadingStateCard(title: nil) }
         }
         .task { locale = event.locale == "uk" ? "uk" : "de"; await load() }
-        .onChange(of: authState.user?.id) { _, _ in document = nil; dismiss() }
+        .onChange(of: LegalAccessScope(authState)) { _, _ in requestID = UUID(); document = nil; loading = false; dismiss() }
         .accessibilityIdentifier("screen.legalEvidence.version")
     }
 
     private func load() async {
-        guard !loading, PermissionService.isAppOwner(user: authState.user),
+        guard !loading, LegalAccessScope(authState).allowsOwner,
               let type = event.documentType, let version = event.version else { failed = true; return }
-        let userID = authState.user?.id
+        let scope = LegalAccessScope(authState), id = UUID()
+        requestID = id
         loading = true; failed = false
-        defer { loading = false }
+        defer { if requestID == id { loading = false } }
         do {
-            let loaded = try await repository.fetchPublishedVersion(type: type, version: version, expectedHash: event.contentHash)
-            guard authState.user?.id == userID, !Task.isCancelled else { return }
+            let loaded = try await RefreshRequest.run {
+                try await repository.fetchPublishedVersion(type: type, version: version, expectedHash: event.contentHash)
+            }
+            guard LegalAccessScope(authState) == scope, requestID == id, !Task.isCancelled else { return }
             document = loaded
-        } catch { failed = true }
+        } catch is CancellationError { return }
+        catch {
+            guard LegalAccessScope(authState) == scope, requestID == id else { return }
+            document = nil; failed = true
+        }
     }
 }

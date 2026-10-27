@@ -90,11 +90,11 @@ struct LegalDocumentView: View {
         ) {
             AppGroupedContentPlane {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                    if viewModel.isLoading, viewModel.document == nil {
+                    if (!viewModel.hasLoaded || viewModel.isLoading), viewModel.document == nil {
                         LoadingStateCard(title: nil)
                     }
 
-                    if let errorMessage = viewModel.errorMessage {
+                    if let errorMessage = viewModel.errorMessage ?? (viewModel.isUsingBundle ? LegalFlowText.bundleSource : nil) {
                         InlineMessageCard(style: .error, message: errorMessage)
                         Button {
                             Task { await viewModel.load() }
@@ -106,6 +106,7 @@ struct LegalDocumentView: View {
                         .disabled(viewModel.isLoading)
                     }
 
+                    if viewModel.document != nil {
                     AppEditorSectionCard {
                         ViewThatFits(in: .horizontal) {
                             HStack(spacing: 8) {
@@ -120,11 +121,7 @@ struct LegalDocumentView: View {
                         }
                     }
 
-                    AppEditorSectionCard {
-                        LegalMarkdownRenderer(
-                            markdown: displayedContent.contentMarkdown,
-                            fallbackText: displayedContent.contentText
-                        )
+                    AppEditorSectionCard { LegalDocumentText(content: displayedContent) }
                     }
                 }
             }
@@ -139,7 +136,7 @@ struct LegalDocumentView: View {
     }
 
     private var versionChip: some View {
-        AppInfoChip(
+        LegalMetadataLabel(
             title: AppStrings.legalVersionLabel(displayedDocument.version),
             systemImage: "doc.text"
         )
@@ -148,36 +145,48 @@ struct LegalDocumentView: View {
     @ViewBuilder
     private var lastUpdatedChip: some View {
         if let lastUpdatedText {
-            AppInfoChip(title: lastUpdatedText, systemImage: "calendar")
+            LegalMetadataLabel(title: lastUpdatedText, systemImage: "calendar")
         }
     }
 }
 
 @MainActor
-private final class LegalDocumentReaderViewModel: ObservableObject {
+final class LegalDocumentReaderViewModel: ObservableObject {
     @Published private(set) var document: LegalDocument?
     @Published private(set) var isLoading = false
+    @Published private(set) var hasLoaded = false
+    @Published private(set) var isUsingBundle = false
     @Published private(set) var errorMessage: String?
-
     private let kind: LegalDocumentKind
     private let repository: LegalDocumentRepository
+    private var flight: (UUID, Task<LegalDocument, Error>)?
 
-    init(kind: LegalDocumentKind, repository: LegalDocumentRepository) {
-        self.kind = kind
-        self.repository = repository
-    }
+    init(kind: LegalDocumentKind, repository: LegalDocumentRepository) { self.kind = kind; self.repository = repository }
 
     func load() async {
-        isLoading = true
-        errorMessage = nil
-
-        do {
-            document = try await RefreshRequest.run { [repository, kind] in try await repository.fetchActiveDocumentForReader(type: kind.documentType) }
-        } catch {
-            document = LegalDocument.hardcodedFallback(type: kind.documentType)
-            errorMessage = AppStrings.Legal.offlineFallbackNotice
+        let request: (UUID, Task<LegalDocument, Error>)
+        if let flight { request = flight }
+        else {
+            let repository = repository, kind = kind
+            request = (UUID(), Task { @MainActor in
+                try await RefreshRequest.run { try await repository.fetchActiveDocumentForReader(type: kind.documentType) }
+            })
+            flight = request
         }
-
-        isLoading = false
+        isLoading = true; errorMessage = nil
+        let result = await request.1.result
+        guard !Task.isCancelled else { return }
+        guard flight?.0 == request.0 else { return }
+        flight = nil; isLoading = false
+        hasLoaded = true
+        switch result {
+        case .success(let loaded): document = loaded; isUsingBundle = false
+        case .failure(let error):
+            guard !(error is CancellationError) else { return }
+            if document == nil { document = LegalDocument.hardcodedFallback(type: kind.documentType); isUsingBundle = true }
+            errorMessage = isUsingBundle
+                ? LegalReadFailure(error) == .network ? LegalFlowText.offlineBundle : AppStrings.Legal.offlineFallbackNotice
+                : LegalFlowText.readerRefreshFailed
+        }
     }
 }

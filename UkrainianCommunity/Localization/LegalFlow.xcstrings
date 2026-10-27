@@ -1,0 +1,166 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "legal_flow.conflict": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чернетку змінено на іншому пристрої або опубліковано нову версію. Ваші правки залишилися в редакторі. Поверніться до списку, оновіть документ і звірте зміни перед повторним збереженням."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Entwurf wurde auf einem anderen Gerät geändert oder eine neue Version veröffentlicht. Ihre Eingaben bleiben im Editor. Öffnen Sie die aktualisierte Dokumentübersicht und gleichen Sie die Änderungen vor erneutem Speichern ab."
+          }
+        }
+      }
+    },
+    "legal_flow.readerRefreshFailed": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося перевірити актуальну версію. Показано останній завантажений документ. Спробуйте оновити ще раз."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die aktuelle Version konnte nicht geprüft werden. Das zuletzt geladene Dokument bleibt sichtbar. Versuchen Sie es erneut."
+          }
+        }
+      }
+    },
+    "legal_flow.offlineBundle": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Немає з’єднання. Показано збережену в застосунку копію; актуальну версію ще не перевірено."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Verbindung. Angezeigt wird die in der App gespeicherte Kopie; die aktuelle Version wurde noch nicht geprüft."
+          }
+        }
+      }
+    },
+    "legal_flow.historyEmpty": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Опублікованих версій поки немає."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Es sind noch keine veröffentlichten Versionen vorhanden."
+          }
+        }
+      }
+    },
+    "legal_flow.historyContext": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Порівняння з версією, завантаженою під час останнього оновлення цієї історії."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergleich mit der Version, die beim letzten Aktualisieren dieses Verlaufs geladen wurde."
+          }
+        }
+      }
+    },
+    "legal_flow.save": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зберегти"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speichern"
+          }
+        }
+      }
+    },
+    "legal_flow.activeLoading": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося завантажити документ із сервера. Повторіть спробу."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Dokument konnte nicht vom Server geladen werden. Versuchen Sie es erneut."
+          }
+        }
+      }
+    },
+    "legal_flow.editorTitle": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Редактор документа"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dokument bearbeiten"
+          }
+        }
+      }
+    },
+    "legal_flow.bundleSource": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Копія, збережена в застосунку. Актуальну версію ще не підтверджено."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In der App gespeicherte Kopie. Die aktuelle Version wurde noch nicht bestätigt."
+          }
+        }
+      }
+    },
+    "legal_flow.readVersion": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Текст цієї версії"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Version lesen"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

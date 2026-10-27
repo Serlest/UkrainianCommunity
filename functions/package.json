@@ -53,7 +53,8 @@
     "test:rules:contentPlanning": "firebase emulators:exec --project demo-ukrainian-community-content-planning-rules --only firestore \"node --test smoke-tests/contentPlanningRules.test.mjs\"",
     "test:publication-control:integration": "npm run build && firebase emulators:exec --project demo-uac-publication-control --only firestore \"node --test lib/publicationControl/*.integration.test.js\"",
     "test:directory:recent": "npm run build && firebase emulators:exec --project demo-uac-directory-recent --only firestore \"node --test lib/directory/directoryRecent*.test.js\"",
-    "events:amend": "node scripts/eventsAmendPublished.mjs"
+    "events:amend": "node scripts/eventsAmendPublished.mjs",
+    "test:legal:integration": "npm run build && firebase emulators:exec --project demo-uac-legal-contract --only auth,firestore \"node --test --test-concurrency=1 lib/legal/*.test.js\""
   },
   "dependencies": {
     "@simplewebauthn/server": "^14.0.3",

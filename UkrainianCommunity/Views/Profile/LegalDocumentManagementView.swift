@@ -1,47 +1,12 @@
 import Combine
 import SwiftUI
 
-@MainActor
-final class LegalDocumentManagementViewModel: ObservableObject {
-    @Published var states: [LegalDocumentType: LegalDocumentManagementState] = [:]
-    @Published var isLoading = false
-    @Published var errorMessage: String?
-
-    @Published var failedTypes: Set<LegalDocumentType> = []
-
-    private let repository: LegalDocumentRepository
-    private var loadGeneration = 0
-
-    init(repository: LegalDocumentRepository) {
-        self.repository = repository
-    }
-
-    func load() async {
-        loadGeneration += 1
-        let generation = loadGeneration
-        isLoading = true
-        errorMessage = nil
-
-        async let terms = loadState(.terms)
-        async let privacy = loadState(.privacy)
-        async let rules = loadState(.organizationRules)
-        let results = await [terms, privacy, rules]
-        guard generation == loadGeneration else { return }
-        states = [:]
-        failedTypes = []
-        for (type, result) in zip(LegalDocumentType.allCases, results) {
-            switch result {
-            case .success(let state): states[type] = state
-            case .failure: failedTypes.insert(type)
-            }
-        }
-        errorMessage = states.isEmpty ? AppStrings.LegalManagement.loadFailed : nil
-        if generation == loadGeneration { isLoading = false }
-    }
-    private func loadState(_ type: LegalDocumentType) async -> Result<LegalDocumentManagementState, Error> {
-        do { return .success(try await RefreshRequest.run { [self] in try await repository.fetchManagementState(type: type) }) }
-        catch { return .failure(error) }
-    }
+private enum LegalEditorPresentation: Identifiable {
+    case preview(LegalDocument, String)
+    case close(LegalDocumentDraft)
+    case publish(LegalDocumentDraft)
+    case discard(LegalDocumentDraft)
+    var id: String { switch self { case .preview: "preview"; case .close: "close"; case .publish: "publish"; case .discard: "discard" } }
 }
 
 struct LegalDocumentManagementView: View {
@@ -59,13 +24,14 @@ struct LegalDocumentManagementView: View {
             title: AppStrings.LegalManagement.title,
             introSubtitle: AppStrings.LegalManagement.subtitle
         ) {
-            if !PermissionService.isAppOwner(user: authState.user) {
+            if !LegalAccessScope(authState).allowsOwner || viewModel.accessDenied {
                 ErrorStateCard(
                     systemImage: "lock.fill",
                     title: AppStrings.LegalManagement.permissionTitle,
-                    message: AppStrings.LegalManagement.permissionMessage
-                )
-            } else if viewModel.isLoading && viewModel.states.isEmpty {
+                    message: AppStrings.LegalManagement.permissionMessage,
+                    retryTitle: LegalAccessScope(authState).allowsOwner ? AppStrings.Action.retry : nil
+                ) { Task { await viewModel.load() } }
+            } else if (!viewModel.hasLoaded || viewModel.isLoading) && viewModel.states.isEmpty {
                 LoadingStateCard(title: nil)
                     .frame(maxWidth: .infinity, minHeight: 120)
             } else if let errorMessage = viewModel.errorMessage, viewModel.states.isEmpty {
@@ -84,17 +50,22 @@ struct LegalDocumentManagementView: View {
                     }
 
                     ForEach(LegalDocumentType.allCases) { type in
-                        if viewModel.failedTypes.contains(type) {
+                        if viewModel.failedTypes.contains(type), viewModel.states[type] == nil {
                             ErrorStateCard(systemImage: "doc.badge.ellipsis", title: type.title,
                                            message: AppStrings.LegalManagement.loadFailed,
                                            retryTitle: AppStrings.Action.retry) { Task { await viewModel.load() } }
                         } else {
+                        if viewModel.failedTypes.contains(type) {
+                            InlineMessageCard(style: .error, message: AppStrings.LegalManagement.loadFailed)
+                            Button(AppStrings.Action.retry) { Task { await viewModel.load(types: [type]) } }
+                        }
                         LegalDocumentManagementCard(
                             type: type,
                             state: viewModel.states[type],
+                            canEdit: !viewModel.failedTypes.contains(type),
                             repository: repository,
                             onSaved: {
-                                await viewModel.load()
+                                await viewModel.load(types: [type], force: true)
                             }
                         )
                         }
@@ -103,29 +74,33 @@ struct LegalDocumentManagementView: View {
                 .allowsHitTesting(!viewModel.isLoading)
             }
         }
-        .task {
-            guard PermissionService.isAppOwner(user: authState.user) else { return }
+        .task(id: LegalQueryScope(authState, query: "management")) {
+            viewModel.clear()
+            viewModel.accessScope = { LegalAccessScope(authState) }
+            guard LegalAccessScope(authState).allowsOwner else { return }
             await viewModel.load()
         }
         .appRefreshable {
-            guard PermissionService.isAppOwner(user: authState.user) else { return }
+            guard LegalAccessScope(authState).allowsOwner else { return }
             await viewModel.load()
         }
     }
 }
 
 private struct LegalDocumentManagementCard: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let type: LegalDocumentType
     let state: LegalDocumentManagementState?
+    var canEdit = true
     let repository: LegalDocumentRepository
     let onSaved: () async -> Void
 
     var body: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                HStack(alignment: .top, spacing: 12) {
+                (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12)) : AnyLayout(HStackLayout(alignment: .top, spacing: 12))) {
                     Image(systemName: type.systemImage)
-                        .font(.headline.weight(.semibold))
+                        .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .frame(width: 40, height: 40)
                         .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -146,8 +121,9 @@ private struct LegalDocumentManagementCard: View {
 
                 VStack(alignment: .leading, spacing: 8) {
                     if let activeDocument = state?.activeDocument {
-                        AppInfoChip(title: AppStrings.legalVersionLabel(activeDocument.version), systemImage: "number")
-                        AppInfoChip(
+                        LegalMetadataLabel(title: AppStrings.legalVersionLabel(activeDocument.version), systemImage: "number")
+                            .accessibilityIdentifier("legal.manage.version.\(type.rawValue)")
+                        LegalMetadataLabel(
                             title: type == .privacy
                                 ? AppStrings.LegalManagement.privacyAcknowledgement
                                 : type == .terms || activeDocument.requiresAcceptance
@@ -157,7 +133,7 @@ private struct LegalDocumentManagementCard: View {
                                 ? "checkmark.seal" : "minus.circle"
                         )
                         if let publishedAt = activeDocument.publishedAt {
-                            AppInfoChip(
+                            LegalMetadataLabel(
                                 title: AppStrings.legalLastUpdatedLabel(LocalizationStore.dateString(from: publishedAt)),
                                 systemImage: "calendar"
                             )
@@ -165,16 +141,16 @@ private struct LegalDocumentManagementCard: View {
                     }
 
                     if state?.draftDocument != nil {
-                        AppInfoChip(title: AppStrings.LegalManagement.draftExists, systemImage: "pencil.and.outline")
+                        LegalMetadataLabel(title: AppStrings.LegalManagement.draftExists, systemImage: "pencil.and.outline")
                     }
                 }
 
                 if let active = state?.activeDocument {
                     NavigationLink { LegalVersionReader(document: active) } label: {
-                        Label(LegalEditorText.active, systemImage: "doc.text.magnifyingglass")
+                        LegalActionLabel(title: LegalEditorText.active, systemImage: "doc.text.magnifyingglass")
                     }.accessibilityIdentifier("legal.manage.active.\(type.rawValue)")
                     NavigationLink { LegalVersionHistoryView(type: type, active: active, repository: repository) } label: {
-                        Label(LegalEditorText.history, systemImage: "clock.arrow.circlepath")
+                        LegalActionLabel(title: LegalEditorText.history, systemImage: "clock.arrow.circlepath")
                     }.accessibilityIdentifier("legal.manage.history.\(type.rawValue)")
                 }
 
@@ -195,6 +171,7 @@ private struct LegalDocumentManagementCard: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("legal.manage.edit.\(type.rawValue)")
+                .disabled(state == nil || !canEdit)
             }
         }
     }
@@ -214,6 +191,7 @@ private struct LegalDocumentManagementCard: View {
 private struct LegalDocumentEditorView: View {
     @EnvironmentObject private var authState: AuthState
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let type: LegalDocumentType
     let state: LegalDocumentManagementState?
     let repository: LegalDocumentRepository
@@ -227,11 +205,10 @@ private struct LegalDocumentEditorView: View {
     @State private var isPublishing = false
     @State private var statusMessage: String?
     @State private var statusStyle: InlineMessageStyle = .info
-    @State private var isShowingPreview = false
-    @State private var isConfirmingPublish = false
     @State private var validationErrors: [String] = []
-    @State private var isConfirmingClose = false
-    @State private var isConfirmingDiscard = false
+    @State private var presentation: LegalEditorPresentation?
+    @State private var editorScope: LegalAccessScope?
+    @State private var operationID = UUID()
 
     init(
         type: LegalDocumentType,
@@ -261,8 +238,8 @@ private struct LegalDocumentEditorView: View {
 
     var body: some View {
         PushedScreenShell(
-            title: AppStrings.LegalManagement.editorTitle(type.title),
-            subtitle: LegalEditorText.privateDraft,
+            title: LegalFlowText.editorTitle,
+            subtitle: type.title,
             tabBarHidden: true,
             backAction: handleBack
         ) {
@@ -272,56 +249,70 @@ private struct LegalDocumentEditorView: View {
         }
         .safeAreaInset(edge: .bottom) {
             HStack(spacing: 12) {
-                PrimaryActionButton(title: AppStrings.LegalManagement.saveDraft,
+                PrimaryActionButton(title: dynamicTypeSize.isAccessibilitySize ? LegalFlowText.save : AppStrings.LegalManagement.saveDraft,
                                     loadingTitle: AppStrings.LegalManagement.saving,
-                                    isEnabled: (!hasPersistedDraft || hasUnsavedChanges) && !isPublishing,
+                                    isEnabled: (!hasPersistedDraft || hasUnsavedChanges) && !isPublishing && currentSession,
                                     isLoading: isSaving, systemImage: "tray.and.arrow.down.fill") {
                     Task { _ = await saveDraft() }
                 }.accessibilityIdentifier("legal.edit.save")
                 Menu {
-                    Button(AppStrings.LegalManagement.preview, systemImage: "doc.richtext") { isShowingPreview = true }
-                    Button(AppStrings.LegalManagement.publish, systemImage: "paperplane", role: .destructive) { validateAndConfirmPublish() }
+                    Button(AppStrings.LegalManagement.preview, systemImage: "doc.richtext") { presentation = .preview(previewDocument, selectedLocale) }.accessibilityIdentifier("legal.edit.preview")
+                    Button(AppStrings.LegalManagement.publish, systemImage: "paperplane", role: .destructive) { validateAndConfirmPublish() }.accessibilityIdentifier("legal.edit.publish")
                     if hasPersistedDraft {
-                        Button(LegalEditorText.discard, systemImage: "trash", role: .destructive) { isConfirmingDiscard = true }
+                        Button(LegalEditorText.discard, systemImage: "trash", role: .destructive) { presentation = .discard(lastSavedDraft) }
                             .accessibilityIdentifier("legal.edit.discard")
                     }
                 } label: {
-                    Label(LegalEditorText.actions, systemImage: "ellipsis.circle")
-                        .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                    Image(systemName: "ellipsis.circle").font(.system(size: 24, weight: .semibold))
+                        .frame(width: 44, height: 44).accessibilityLabel(LegalEditorText.actions)
                 }
                 .accessibilityIdentifier("legal.edit.actions")
-                .disabled(isSaving || isPublishing)
+                .disabled(isSaving || isPublishing || !currentSession)
             }
             .padding(.horizontal, AppTheme.pageHorizontal)
             .padding(.vertical, 10)
             .background(.ultraThinMaterial)
         }
-        .confirmationDialog(LegalEditorText.closeTitle, isPresented: $isConfirmingClose) {
-            Button(AppStrings.LegalManagement.saveDraft) { Task { if await saveDraft() { dismiss() } } }
-            Button(LegalEditorText.leaveUnsaved, role: .destructive) { dismiss() }
-            Button(AppStrings.Common.cancel, role: .cancel) {}
+        .task { if editorScope == nil { editorScope = LegalAccessScope(authState) } }
+        .onChange(of: LegalAccessScope(authState)) { _, _ in
+            operationID = UUID(); presentation = nil; isSaving = false; isPublishing = false; dismiss()
         }
-        .confirmationDialog(LegalEditorText.discardTitle, isPresented: $isConfirmingDiscard) {
-            Button(LegalEditorText.discard, role: .destructive) { Task { await discardDraft() } }
-                .accessibilityIdentifier("legal.edit.confirmDiscard")
-            Button(AppStrings.Common.cancel, role: .cancel) {}
-        } message: { Text(LegalEditorText.discardMessage) }
-        .onChange(of: authState.user?.id) { _, _ in dismiss() }
-        .confirmationDialog(
-            AppStrings.LegalManagement.publishConfirmTitle,
-            isPresented: $isConfirmingPublish,
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.LegalManagement.publish, role: .destructive) {
-                Task { await publish() }
+        .onChange(of: draft) { _, _ in
+            if !isSaving && !isPublishing && hasUnsavedChanges { statusMessage = nil; validationErrors = [] }
+        }
+        .sheet(item: $presentation) { presentationContent($0) }
+    }
+
+    @ViewBuilder private func presentationContent(_ route: LegalEditorPresentation) -> some View {
+        switch route {
+        case let .preview(document, locale):
+            NavigationStack { LegalMarkdownPreview(document: document, preferredLocale: locale) }
+        case let .close(command):
+            NotificationConfirmationSheet(title: LegalEditorText.closeTitle, cancel: { presentation = nil }) {
+                NotificationConfirmationAction(title: AppStrings.LegalManagement.saveDraft, id: "legal.edit.closeSave") {
+                    presentation = nil
+                    Task { if await saveDraft(command) { dismiss() } }
+                }
+                NotificationConfirmationAction(title: LegalEditorText.leaveUnsaved, id: "legal.edit.leaveUnsaved", role: .destructive) {
+                    presentation = nil; dismiss()
+                }
             }
-            Button(AppStrings.Common.cancel, role: .cancel) {}
-        } message: {
-            Text(type == .privacy ? LegalEditorText.privacyPublishMessage : AppStrings.LegalManagement.publishConfirmMessage)
-        }
-        .sheet(isPresented: $isShowingPreview) {
-            NavigationStack {
-                LegalMarkdownPreview(document: previewDocument, preferredLocale: selectedLocale)
+        case let .discard(command):
+            NotificationConfirmationSheet(title: LegalEditorText.discardTitle,
+                message: type.title + "\n" + AppStrings.legalVersionLabel(command.version) + "\n\n" + LegalEditorText.discardMessage,
+                cancel: { presentation = nil }) {
+                NotificationConfirmationAction(title: LegalEditorText.discard, id: "legal.edit.confirmDiscard", role: .destructive) {
+                    presentation = nil; Task { await discardDraft(command) }
+                }
+            }
+        case let .publish(command):
+            NotificationConfirmationSheet(title: AppStrings.LegalManagement.publishConfirmTitle,
+                message: type.title + "\n" + AppStrings.legalVersionLabel(command.version) + "\n\n" +
+                    (type == .privacy ? LegalEditorText.privacyPublishMessage : AppStrings.LegalManagement.publishConfirmMessage),
+                cancel: { presentation = nil }) {
+                NotificationConfirmationAction(title: AppStrings.LegalManagement.publish, id: "legal.edit.confirmPublish", role: .destructive) {
+                    presentation = nil; Task { await publish(command) }
+                }
             }
         }
     }
@@ -338,14 +329,17 @@ private struct LegalDocumentEditorView: View {
 
             AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                    Text(LegalEditorText.privateDraft).font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                     SectionHeaderBlock(
                         title: type == .privacy ? LegalEditorText.privacyVersionTitle : AppStrings.LegalManagement.versionSection,
                         subtitle: AppStrings.LegalManagement.versionSectionSubtitle
                     )
 
-                    AppInfoChip(title: AppStrings.legalVersionLabel(draft.version), systemImage: "number")
+                    LegalMetadataLabel(title: AppStrings.legalVersionLabel(draft.version), systemImage: "number")
+                        .accessibilityIdentifier("legal.edit.version")
 
-                    AppInfoChip(
+                    LegalMetadataLabel(
                         title: type == .privacy ? AppStrings.LegalManagement.privacyAcknowledgement : AppStrings.LegalManagement.requiresAcceptance,
                         systemImage: "checkmark.seal"
                     )
@@ -383,7 +377,8 @@ private struct LegalDocumentEditorView: View {
                     .pickerStyle(.segmented)
 
                     Text(AppStrings.LegalManagement.localizedTitle).font(.subheadline.weight(.semibold))
-                    TextField(AppStrings.LegalManagement.localizedTitle, text: localizedTitleBinding)
+                    TextField(AppStrings.LegalManagement.localizedTitle, text: localizedTitleBinding, axis: .vertical)
+                        .lineLimit(1...4).accessibilityIdentifier("legal.edit.title")
                         .appEditorInputStyle()
 
                     Text(AppStrings.LegalManagement.localizedContent).font(.subheadline.weight(.semibold))
@@ -398,13 +393,14 @@ private struct LegalDocumentEditorView: View {
 
         }
         .padding(.bottom, 16)
-        .disabled(isSaving || isPublishing)
+        .disabled(isSaving || isPublishing || presentation != nil || !currentSession)
     }
 
     private func changeSummaryBinding(locale: String) -> Binding<String> {
         Binding(
             get: { LegalChangeSummary(raw: draft.changeSummary).localized(locale) },
             set: { value in
+                validationErrors = []
                 var summary = LegalChangeSummary(raw: draft.changeSummary)
                 if locale == "uk" { summary.ukrainian = value } else { summary.german = value }
                 draft.changeSummary = summary.encoded
@@ -470,90 +466,104 @@ private struct LegalDocumentEditorView: View {
         )
     }
 
-    private func saveDraft() async -> Bool {
-        guard PermissionService.isAppOwner(user: authState.user), let userID = authState.user?.id else { return false }
-        guard !isSaving, !isPublishing else { return false }
-        guard !hasPersistedDraft || hasUnsavedChanges else { return true }
-        guard draft.locales.values.allSatisfy({ $0.title.utf16.count <= 500 && $0.contentMarkdown.utf16.count <= 100000 }) else {
-            validationErrors = [LegalEditorText.tooLong]; return false
-        }
-        isSaving = true
-        statusMessage = nil
-        validationErrors = []
-        defer { isSaving = false }
-
-        do {
-            var finalDraft = normalizedDraft
-            try await repository.saveDraft(finalDraft, updatedBy: userID)
-            guard authState.user?.id == userID else { return false }
-            finalDraft.sourceContentHash = finalDraft.normalizedContentHash
-            draft = finalDraft
-            lastSavedDraft = finalDraft
-            hasPersistedDraft = true
-            await onSaved()
-            statusStyle = .success
-            statusMessage = AppStrings.LegalManagement.draftSaved
-            return true
-        } catch {
-            statusStyle = .error
-            statusMessage = AppStrings.LegalManagement.saveFailed
-            return false
-        }
+    private var currentSession: Bool {
+        let current = LegalAccessScope(authState)
+        return current.allowsOwner && current == editorScope
     }
 
-    private func publish() async {
-        guard PermissionService.isAppOwner(user: authState.user), let userID = authState.user?.id else { return }
-        guard !isSaving, !isPublishing else { return }
-        guard publishValidationErrors(for: normalizedDraft).isEmpty else {
-            validateAndConfirmPublish()
-            return
+    private func requireCurrent(_ scope: LegalAccessScope, operation: UUID) throws {
+        guard currentSession, scope == LegalAccessScope(authState), operation == operationID, !Task.isCancelled else { throw CancellationError() }
+    }
+
+    private func persist(_ command: LegalDocumentDraft, scope: LegalAccessScope, operation: UUID) async throws -> LegalDocumentDraft {
+        try requireCurrent(scope, operation: operation)
+        guard let userID = scope.identity.userID else { throw AppError.permissionDenied }
+        try await repository.saveDraft(command, updatedBy: userID)
+        try requireCurrent(scope, operation: operation)
+        var saved = command
+        saved.sourceContentHash = saved.normalizedContentHash
+        saved.sourceStateHash = saved.stateHash
+        draft = saved; lastSavedDraft = saved; hasPersistedDraft = true
+        await onSaved()
+        try requireCurrent(scope, operation: operation)
+        return saved
+    }
+
+    private func saveDraft(_ captured: LegalDocumentDraft? = nil) async -> Bool {
+        guard currentSession, !isSaving, !isPublishing else { return false }
+        let command = captured ?? normalizedDraft
+        guard command.stateHash == normalizedDraft.stateHash else { statusMessage = LegalFlowText.conflict; statusStyle = .error; return false }
+        guard !hasPersistedDraft || hasUnsavedChanges else { return true }
+        guard command.locales.values.allSatisfy({ $0.title.utf16.count <= 500 && $0.contentMarkdown.utf16.count <= 100000 }) else {
+            validationErrors = [LegalEditorText.tooLong]; return false
         }
-
-        statusMessage = nil
-        validationErrors = []
-
-        if (!hasPersistedDraft || hasUnsavedChanges), !(await saveDraft()) { return }
-        isPublishing = true
-        defer { isPublishing = false }
-
+        let scope = LegalAccessScope(authState), operation = UUID()
+        operationID = operation; isSaving = true; statusMessage = nil; validationErrors = []
+        defer { if operationID == operation { isSaving = false } }
         do {
-            let finalDraft = normalizedDraft
-            try await repository.publishDraft(finalDraft, publishedBy: userID)
+            _ = try await persist(command, scope: scope, operation: operation)
+            statusStyle = .success; statusMessage = AppStrings.LegalManagement.draftSaved
+            return true
+        } catch is CancellationError { return false }
+        catch { if currentSession && operationID == operation { showMutationFailure(error, publishing: false) }; return false }
+    }
+
+    private func publish(_ captured: LegalDocumentDraft) async {
+        guard currentSession, !isSaving, !isPublishing else { return }
+        guard captured.stateHash == normalizedDraft.stateHash else { showMutationFailure(AppError.validationFailed, publishing: true); return }
+        validationErrors = publishValidationErrors(for: captured)
+        guard validationErrors.isEmpty else { return }
+        let scope = LegalAccessScope(authState), operation = UUID()
+        operationID = operation; isPublishing = true; statusMessage = nil
+        defer { if operationID == operation { isPublishing = false } }
+        do {
+            var command = captured
+            if !hasPersistedDraft || hasUnsavedChanges { command = try await persist(command, scope: scope, operation: operation) }
+            try requireCurrent(scope, operation: operation)
+            guard let userID = scope.identity.userID else { throw AppError.permissionDenied }
+            try await repository.publishDraft(command, publishedBy: userID)
+            try requireCurrent(scope, operation: operation)
             await onSaved()
+            try requireCurrent(scope, operation: operation)
             dismiss()
-        } catch {
-            statusStyle = .error
-            statusMessage = AppStrings.LegalManagement.publishFailed
-        }
+        } catch is CancellationError { return }
+        catch { if currentSession && operationID == operation { showMutationFailure(error, publishing: true) } }
     }
 
     private func handleBack() {
         guard !isSaving, !isPublishing else { return }
-        guard hasUnsavedChanges else {
-            dismiss()
-            return
-        }
-        isConfirmingClose = true
+        guard hasUnsavedChanges else { dismiss(); return }
+        presentation = .close(normalizedDraft)
     }
 
-    private func discardDraft() async {
-        guard PermissionService.isAppOwner(user: authState.user), !isSaving, !isPublishing else { return }
-        isSaving = true
-        defer { isSaving = false }
+    private func discardDraft(_ captured: LegalDocumentDraft) async {
+        guard currentSession, !isSaving, !isPublishing else { return }
+        let scope = LegalAccessScope(authState), operation = UUID()
+        operationID = operation; isSaving = true; statusMessage = nil
+        defer { if operationID == operation { isSaving = false } }
         do {
-            try await repository.discardDraft(lastSavedDraft)
+            try requireCurrent(scope, operation: operation)
+            try await repository.discardDraft(captured)
+            try requireCurrent(scope, operation: operation)
             await onSaved()
+            try requireCurrent(scope, operation: operation)
             dismiss()
-        } catch {
-            statusStyle = .error
-            statusMessage = AppStrings.LegalManagement.saveFailed
-        }
+        } catch is CancellationError { return }
+        catch { if currentSession && operationID == operation { showMutationFailure(error, publishing: false) } }
+    }
+
+    private func showMutationFailure(_ error: Error, publishing: Bool) {
+        statusStyle = .error
+        statusMessage = error as? AppError == .validationFailed ? LegalFlowText.conflict
+            : publishing ? AppStrings.LegalManagement.publishFailed : AppStrings.LegalManagement.saveFailed
     }
 
     private func validateAndConfirmPublish() {
+        guard currentSession, !isSaving, !isPublishing else { return }
         statusMessage = nil
-        validationErrors = publishValidationErrors(for: normalizedDraft)
-        isConfirmingPublish = validationErrors.isEmpty
+        let command = normalizedDraft
+        validationErrors = publishValidationErrors(for: command)
+        if validationErrors.isEmpty { presentation = .publish(command) }
     }
 
     private func publishValidationErrors(for draft: LegalDocumentDraft) -> [String] {
@@ -628,14 +638,11 @@ private struct LegalMarkdownPreview: View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                 AppEditorSectionCard {
-                    SectionHeaderBlock(title: content.title, subtitle: AppStrings.legalVersionLabel(document.version))
+                    LegalMetadataLabel(title: AppStrings.legalVersionLabel(document.version), systemImage: "number")
                 }
 
                 AppEditorSectionCard {
-                    LegalMarkdownRenderer(
-                        markdown: content.contentMarkdown,
-                        fallbackText: content.contentText
-                    )
+                    LegalDocumentText(content: content)
                 }
             }
             .padding(.horizontal, AppTheme.pageHorizontal)
@@ -651,23 +658,6 @@ private struct LegalMarkdownPreview: View {
         }
     }
 
-}
-
-private extension LegalDocumentDraft {
-    init(document: LegalDocument) {
-        self.init(
-            type: document.type,
-            version: document.version,
-            versionNumber: document.versionNumber,
-            defaultLocale: document.defaultLocale,
-            canonicalLocale: document.canonicalLocale ?? document.defaultLocale,
-            locales: document.locales,
-            requiresAcceptance: document.requiresAcceptance,
-            changeSummary: document.changeSummary,
-            supersedesVersion: document.supersedesVersion,
-            sourceContentHash: document.status == .draft ? document.contentHash : nil
-        )
-    }
 }
 
 private extension LegalDocumentType {

@@ -180,6 +180,8 @@ struct LegalDocumentDraft: Equatable {
     /// Hash observed when this mutable draft was loaded. Saves persist it as
     /// the base hash and compare it with the current server document.
     var sourceContentHash: String? = nil
+    /// Full mutable state read from the server, independent of immutable published content hashes.
+    var sourceStateHash: String? = nil
 
     static func from(activeDocument: LegalDocument) -> LegalDocumentDraft {
         let nextVersion = Self.nextVersion(after: activeDocument)
@@ -195,6 +197,19 @@ struct LegalDocumentDraft: Equatable {
             supersedesVersion: activeDocument.version,
             sourceContentHash: nil
         )
+    }
+
+    var stateHash: String {
+        var values: [String: String?] = [
+            "type": type.rawValue, "version": version, "number": String(versionNumber),
+            "defaultLocale": defaultLocale.lowercased(), "canonicalLocale": canonicalLocale.lowercased(),
+            "requiresAcceptance": String(requiresAcceptance), "changeSummary": changeSummary,
+            "supersedesVersion": supersedesVersion, "normalizedContentHash": normalizedContentHash
+        ]
+        for locale in locales.keys.sorted() { values["plainText:" + locale.lowercased()] = .some(locales[locale]?.contentText) }
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        // This dictionary only contains strings/null, so JSON encoding cannot fail.
+        return Self.sha256(String(decoding: (try? encoder.encode(values)) ?? Data(), as: UTF8.self))
     }
 
     var hasConsistentVersionIdentifier: Bool {
@@ -277,4 +292,16 @@ struct LegalDocumentDraft: Equatable {
 
         return 1
     }
+}
+
+extension LegalDocumentDraft {
+    init(document: LegalDocument) {
+        self.init(type: document.type, version: document.version, versionNumber: document.versionNumber,
+                  defaultLocale: document.defaultLocale, canonicalLocale: document.canonicalLocale ?? document.defaultLocale,
+                  locales: document.locales, requiresAcceptance: document.requiresAcceptance,
+                  changeSummary: document.changeSummary, supersedesVersion: document.supersedesVersion,
+                  sourceContentHash: document.status == .draft ? document.contentHash : nil)
+        if document.status == .draft { sourceStateHash = stateHash }
+    }
+
 }

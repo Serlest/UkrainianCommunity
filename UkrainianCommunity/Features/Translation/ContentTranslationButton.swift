@@ -19,9 +19,13 @@ struct ContentTranslationPreview: Identifiable {
     let previousTargets: [String]
     let indices: [Int]
     var translations: [String]
-    func isCurrent(userID: String?, organizationID: String?, sources: [String], targets: [String]) -> Bool {
+    var authorizationRevision: Int? = nil
+    var authority: ProfileAccessIdentity? = nil
+    func isCurrent(userID: String?, organizationID: String?, sources: [String], targets: [String], authorizationRevision: Int? = nil, authority: ProfileAccessIdentity? = nil) -> Bool {
         self.userID == userID && self.organizationID == organizationID
             && self.sources == sources && previousTargets == targets
+            && (self.authorizationRevision == nil || self.authorizationRevision == authorizationRevision)
+            && (self.authority == nil || self.authority == authority)
     }
 }
 
@@ -59,6 +63,7 @@ struct ContentTranslationButton: View {
         self.kind = kind; self.fields = fields; self.sourceLanguage = sourceLanguage
         self.organizationId = organizationId
     }
+    @State private var requestID = UUID()
     @EnvironmentObject private var authState: AuthState
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var preview: ContentTranslationPreview?
@@ -70,7 +75,7 @@ struct ContentTranslationButton: View {
             || PermissionService.isAppOwner(user: authState.user)
     }
     private var canTranslate: Bool {
-        !busy && hasAccessContext && !fields.allSatisfy { $0.source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        !busy && hasAccessContext && (kind != "legal" || LegalAccessScope(authState).allowsOwner) && !fields.allSatisfy { $0.source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -104,37 +109,41 @@ struct ContentTranslationButton: View {
         .sheet(item: $preview) { draft in
             NavigationStack { ContentTranslationReview(draft: draft, fields: fields, targetLanguage: targetLanguage) { result in
                 guard result.isCurrent(userID: authState.user?.id, organizationID: organizationId,
-                                       sources: fields.map(\.source), targets: fields.map { $0.target.wrappedValue }) else {
+                                       sources: fields.map(\.source), targets: fields.map { $0.target.wrappedValue },
+                                       authorizationRevision: authState.authorizationRevision, authority: ProfileAccessIdentity(user: authState.user)),
+                      kind != "legal" || LegalAccessScope(authState).allowsOwner else {
                     error = EditorTranslationStrings.changed; return false
                 }
                 for (offset, index) in result.indices.enumerated() { fields[index].target.wrappedValue = result.translations[offset] }
                 error = nil; preview = nil; return true
             } }
         }
-        .onChange(of: authState.user?.id) { _, _ in task?.cancel(); preview = nil; busy = false }
+        .onChange(of: LegalAccessScope(authState)) { _, _ in requestID = UUID(); task?.cancel(); preview = nil; busy = false }
         .onChange(of: organizationId) { _, _ in task?.cancel(); preview = nil; busy = false }
-        .onDisappear { task?.cancel(); busy = false }
+        .onDisappear { requestID = UUID(); task?.cancel(); busy = false }
     }
     private func translate() {
+        guard kind != "legal" || LegalAccessScope(authState).allowsOwner else { return }
+        let scope = LegalAccessScope(authState), id = UUID(); requestID = id
         let sources = fields.map(\.source), targets = fields.map { $0.target.wrappedValue }
         let indices = fields.indices.filter { !sources[$0].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         let userID = authState.user?.id
         let organizationID = organizationId
         busy = true; error = nil
         task = Task { @MainActor in
-            defer { busy = false }
+            defer { if requestID == id { busy = false } }
             do {
                 let result = try await ContentTranslationService.translate(
                     kind: kind, texts: indices.map { sources[$0] }, sourceLanguage: sourceLanguage,
                     organizationId: organizationID
                 )
-                guard !Task.isCancelled, result.count == indices.count,
+                guard !Task.isCancelled, requestID == id, scope == LegalAccessScope(authState), result.count == indices.count,
                       userID == authState.user?.id, organizationID == organizationId else { return }
                 preview = ContentTranslationPreview(userID: userID, organizationID: organizationID,
                                                     sources: sources, previousTargets: targets,
-                                                    indices: indices, translations: result)
+                                                    indices: indices, translations: result, authorizationRevision: scope.authorizationRevision, authority: scope.identity)
             } catch {
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, requestID == id, scope == LegalAccessScope(authState) else { return }
                 self.error = (error as NSError).code == FunctionsErrorCode.resourceExhausted.rawValue ? EditorTranslationStrings.limit : EditorTranslationStrings.error
             }
         }

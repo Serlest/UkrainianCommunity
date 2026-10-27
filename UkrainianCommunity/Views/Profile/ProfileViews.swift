@@ -49,7 +49,8 @@ enum ProfileNavigationRoute: Hashable {
     // destination's hidden tab bar. Other routes intentionally retain tabs.
     var hidesRootTabBar: Bool {
         switch self {
-        case .accountSecurity, .directoryEditors, .userManagement, .contentPlanning(draftID: nil): true
+        case .accountSecurity, .directoryEditors, .userManagement, .contentPlanning(draftID: nil),
+             .legalDocumentManagement, .legalEvidence, .legal: true
         default: false
         }
     }

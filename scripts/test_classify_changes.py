@@ -65,6 +65,11 @@ class ClassifyChangesTests(unittest.TestCase):
         self.assertFalse(lanes.ios)
         self.assertEqual(lanes.integrations, ["analytics-cutover"])
 
+    def test_legal_changes_run_connected_contracts(self) -> None:
+        lanes = classify(["functions/src/legal/legalDocuments.ts"])
+        self.assertEqual(lanes.integrations, ["legal"])
+        self.assertTrue(lanes.functions)
+
     def test_translation_and_directory_run_only_their_integration_suites(self) -> None:
         lanes = classify([
             "functions/src/translation/service.ts",

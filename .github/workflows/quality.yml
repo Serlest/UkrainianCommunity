@@ -205,6 +205,11 @@ jobs:
         working-directory: functions
         run: npm run test:platform-roles:integration
 
+      - name: Run legal publication, evidence and acknowledgement integration tests
+        if: contains(fromJSON(needs.changes.outputs.integrations), 'legal')
+        working-directory: functions
+        run: npm run test:legal:integration
+
       - name: Run presence and legal gate integration test
         if: contains(fromJSON(needs.changes.outputs.integrations), 'presence')
         working-directory: functions
