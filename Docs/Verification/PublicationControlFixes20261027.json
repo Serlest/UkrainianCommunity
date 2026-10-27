@@ -1,0 +1,607 @@
+{
+  "block": 16,
+  "totalBlocks": 19,
+  "date": "2026-10-27",
+  "name": "Контроль публікацій та автоматичних проходів",
+  "status": "implemented_locally_verified_and_deployed_pending_device_acceptance",
+  "baseHead": "726076f8",
+  "inventory": "Docs/Verification/PublicationControlInventory20261027.json",
+  "baselineAudit": "Docs/Verification/PublicationControlAudit20261027.json",
+  "artifactBase": "build/fix-publication16-20261027",
+  "implementationAuthorized": true,
+  "testFlightChanged": false,
+  "publicReleaseChanged": false,
+  "fixes": [
+    {
+      "id": "P16-F01",
+      "status": "implemented",
+      "change": "Versioned corrected logical reports; original revisions preserved with dedicated45day retention; QA folders excluded.",
+      "evidence": "Production:22 corrected versions,22 originals independently verified;711 current files match; importer42errors->0; repeated watch passes0errors."
+    },
+    {
+      "id": "P16-F02",
+      "status": "implemented",
+      "change": "Separate lastAttemptAt, lastSuccessfulCheckAt, lastImportedAt; successful check advances only with no sync errors. Bounded affected-report disclosure and accurate refresh action.",
+      "evidence": "Writer tests and actual importer metadata/readback; repeated successful no-op checks do not change lastImportedAt."
+    },
+    {
+      "id": "P16-F03",
+      "status": "implemented",
+      "change": "Retry stores the exact failed cursor/append mode and preserves confirmed pages; invalidated cursor explicitly restarts.",
+      "evidence": "Both formerly failing third-page regressions pass; first,second,third,third, retained first two pages."
+    },
+    {
+      "id": "P16-F04",
+      "status": "implemented",
+      "change": "Indexed region/kind/date server pages; compact transactional daily summaries; lazy rows and current-context60second revisit cache; permanent invalid reports cached until changed.",
+      "evidence": "Five additive indexesREADY;30daily summaries rebuilt;1063 original index records hash-identical. Live ordered queries return bounded pages. Aggregate total still scans matching index entries, not all documents into application memory."
+    },
+    {
+      "id": "P16-F05",
+      "status": "implemented",
+      "change": "Region sent to server history query and cursor validation; explicit filtered-empty state.",
+      "evidence": "Emulator82 regional rows across80+2 pages, foreign/deleted anchors rejected; live index read; uk/de maxAX empty-state UI."
+    },
+    {
+      "id": "P16-F06",
+      "status": "implemented",
+      "change": "Single-column accessibility metrics, wrapping date control, accessible calendar/region sheets and full-width large-text region button.",
+      "evidence": "Actual uk/light and de/dark normal/medium/maxAX screenshots inspected; final longest region label checked separately."
+    },
+    {
+      "id": "P16-F07",
+      "status": "implemented",
+      "change": "Counts/date shown only where relevant; latest-source context separate; grouped localized reason/remedy with raw evidence in disclosure. Historical reports do not receive current-state staleness warnings.",
+      "evidence": "Four tabs and disclosures source/runtime reviewed; positive news/event detail routes; removed material disabled."
+    },
+    {
+      "id": "P16-F08",
+      "status": "implemented",
+      "change": "Vienna formatting/calendar day, strict real dates, Monday calendar, schedule-based overnight/DST stale deadlines and midpoint day rollover. Calendar cancel preserves and Done commits.",
+      "evidence": "Server date/DST tests; schedule DST unit; native picker runtime;19actual active schedules imported.26hour conservative fallback if schedule absent."
+    },
+    {
+      "id": "P16-F09",
+      "status": "implemented",
+      "change": "Generation fences in every legacy asynchronous read/write, editor callbacks, role/session-aware modal reset; owner API access rejection discards retained private pages.",
+      "evidence": "Six delayed operations plus archive tested across accountABA; security rejection matrix and late region/account response cases."
+    },
+    {
+      "id": "P16-F10",
+      "status": "implemented",
+      "change": "Old four-section UI acceptance now enters through the actual legacy notification route, preserving all section assertions.",
+      "evidence": "Inbox->notice->destination->legacy four sections passes; no test publications/deletions in production."
+    },
+    {
+      "id": "P16-F11",
+      "status": "implemented",
+      "change": "Date button uses a rectangular content shape over the full44point row; its middle whitespace now responds.",
+      "evidence": "New calendar interaction acceptance failed before the fix, then passed selection/cancel/confirm/reopen on the actual native picker."
+    }
+  ],
+  "checks": {
+    "ios": {
+      "result": "Passed",
+      "passedTests": 928,
+      "failedTests": 0,
+      "skippedTests": 40,
+      "totalTestCount": 968
+    },
+    "iosResult": "build/fix-publication16-20261027/FinalUnitAndNavigation.xcresult",
+    "iosSkipBoundary": "40 opt-in SDK/device-dependent tests were not enabled; not claimed as passed.",
+    "adaptiveAcceptance": {
+      "result": "passed",
+      "families": 2,
+      "languages": [
+        "uk",
+        "de"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "sizes": [
+        "mediumAX",
+        "maximumAX"
+      ],
+      "artifact": "build/fix-publication16-20261027/AdaptiveAcceptance.xcresult",
+      "boundary": "Final full-text region styling and calendar interaction have a separate final check."
+    },
+    "lastVisualDetails": {
+      "longestRegionMaxAX": "passed, FinalVisualDetails.xcresult/testLargestRegionLabelKeepsItsFullText",
+      "calendarInteraction": "passed, CalendarInteractionFixed.xcresult; center hit target, cancel without change, select earlier date, Done and reopen",
+      "preFixFailure": "FinalVisualDetails.xcresult reproduced normal-size empty-center date hit failure; fixed rather than skipped."
+    },
+    "serverUnit": {
+      "passed": 515,
+      "skipped": 169,
+      "failed": 0,
+      "artifact": "build/fix-publication16-20261027/server-unit.log"
+    },
+    "serverIntegration": {
+      "passed": 5,
+      "skipped": 0,
+      "artifact": "build/fix-publication16-20261027/server-and-roles.log"
+    },
+    "accessCases": {
+      "passed": 12,
+      "artifact": "build/fix-publication16-20261027/server-and-roles.log"
+    },
+    "observerUnit": {
+      "passed": 8,
+      "failed": 0,
+      "artifact": "build/fix-publication16-20261027/observer-tests-final.log"
+    },
+    "releaseBuild": {
+      "result": "running final one-line hit-target follow-up; previous complete source Release passed",
+      "artifact": "build/fix-publication16-20261027/release-final-ui-shape.log",
+      "signed": false,
+      "boundary": "Unsigned generic iOS Release compile, not an installed iPhone or TestFlight binary.",
+      "existingWarnings": [
+        "SystemLogDeliveryQueue captured self",
+        "DirectoryEditorAccessStore Decodable isolation"
+      ],
+      "newPublicationControlWarnings": 0
+    },
+    "static": [
+      "localizations.log",
+      "index-validation.log",
+      "release-config.log"
+    ],
+    "legacyServerIntegration": {
+      "passed": 3,
+      "skipped": 0,
+      "artifact": "build/fix-publication16-20261027/legacy-server-integration.log"
+    }
+  },
+  "production": {
+    "functions": [
+      {
+        "name": "getPublicationControl",
+        "state": "ACTIVE",
+        "onDeployUpdatePolicy": true,
+        "ready": true,
+        "traffic100": true,
+        "revision": "getpublicationcontrol-00004-pih",
+        "sourceMatches": true,
+        "files": [
+          {
+            "file": "src/publicationControl/publicationControl.ts",
+            "matches": true,
+            "sha256": "f2f54f514e2915161611e5e88ae7a134f6204e0934967627884ef9691811b3fb"
+          },
+          {
+            "file": "lib/publicationControl/publicationControl.js",
+            "matches": true,
+            "sha256": "a04a085d7edca4eb955e937f503fc05458a239bea68b45c47368178b10e0f732"
+          },
+          {
+            "file": "src/auth/context.ts",
+            "matches": true,
+            "sha256": "691cbb4e1c6d3a0c0ced792913a5c7bc5e0f6c179b8f8201fff5e3728599cf1b"
+          },
+          {
+            "file": "lib/auth/context.js",
+            "matches": true,
+            "sha256": "e06efcb960f37b1a29bc736d1150f295fd74194500ea96e35d9149d7a517d205"
+          },
+          {
+            "file": "src/permissions/userPermissions.ts",
+            "matches": true,
+            "sha256": "35b5063e3f3ef8263b88e9d642a4c60835bc1e5ebe931c042746cd14d7692406"
+          },
+          {
+            "file": "lib/permissions/userPermissions.js",
+            "matches": true,
+            "sha256": "99c77ccf015ac54dd26d1938456d19b5ae00bf4036b81aa176dddc6e530b3842"
+          }
+        ]
+      },
+      {
+        "name": "maintainPublicationControlNews",
+        "state": "ACTIVE",
+        "onDeployUpdatePolicy": true,
+        "ready": true,
+        "traffic100": true,
+        "revision": "maintainpublicationcontrolnews-00004-fef",
+        "sourceMatches": true,
+        "files": [
+          {
+            "file": "src/publicationControl/publicationControl.ts",
+            "matches": true,
+            "sha256": "f2f54f514e2915161611e5e88ae7a134f6204e0934967627884ef9691811b3fb"
+          },
+          {
+            "file": "lib/publicationControl/publicationControl.js",
+            "matches": true,
+            "sha256": "a04a085d7edca4eb955e937f503fc05458a239bea68b45c47368178b10e0f732"
+          },
+          {
+            "file": "src/auth/context.ts",
+            "matches": true,
+            "sha256": "691cbb4e1c6d3a0c0ced792913a5c7bc5e0f6c179b8f8201fff5e3728599cf1b"
+          },
+          {
+            "file": "lib/auth/context.js",
+            "matches": true,
+            "sha256": "e06efcb960f37b1a29bc736d1150f295fd74194500ea96e35d9149d7a517d205"
+          },
+          {
+            "file": "src/permissions/userPermissions.ts",
+            "matches": true,
+            "sha256": "35b5063e3f3ef8263b88e9d642a4c60835bc1e5ebe931c042746cd14d7692406"
+          },
+          {
+            "file": "lib/permissions/userPermissions.js",
+            "matches": true,
+            "sha256": "99c77ccf015ac54dd26d1938456d19b5ae00bf4036b81aa176dddc6e530b3842"
+          }
+        ]
+      },
+      {
+        "name": "maintainPublicationControlEvents",
+        "state": "ACTIVE",
+        "onDeployUpdatePolicy": true,
+        "ready": true,
+        "traffic100": true,
+        "revision": "maintainpublicationcontrolevents-00004-loq",
+        "sourceMatches": true,
+        "files": [
+          {
+            "file": "src/publicationControl/publicationControl.ts",
+            "matches": true,
+            "sha256": "f2f54f514e2915161611e5e88ae7a134f6204e0934967627884ef9691811b3fb"
+          },
+          {
+            "file": "lib/publicationControl/publicationControl.js",
+            "matches": true,
+            "sha256": "a04a085d7edca4eb955e937f503fc05458a239bea68b45c47368178b10e0f732"
+          },
+          {
+            "file": "src/auth/context.ts",
+            "matches": true,
+            "sha256": "691cbb4e1c6d3a0c0ced792913a5c7bc5e0f6c179b8f8201fff5e3728599cf1b"
+          },
+          {
+            "file": "lib/auth/context.js",
+            "matches": true,
+            "sha256": "e06efcb960f37b1a29bc736d1150f295fd74194500ea96e35d9149d7a517d205"
+          },
+          {
+            "file": "src/permissions/userPermissions.ts",
+            "matches": true,
+            "sha256": "35b5063e3f3ef8263b88e9d642a4c60835bc1e5ebe931c042746cd14d7692406"
+          },
+          {
+            "file": "lib/permissions/userPermissions.js",
+            "matches": true,
+            "sha256": "99c77ccf015ac54dd26d1938456d19b5ae00bf4036b81aa176dddc6e530b3842"
+          }
+        ]
+      }
+    ],
+    "runtime": {
+      "callableWithoutCredentials": {
+        "status": 401,
+        "body": {
+          "error": {
+            "message": "Authentication is required.",
+            "status": "UNAUTHENTICATED"
+          }
+        }
+      },
+      "triggers": [
+        {
+          "name": "getPublicationControl",
+          "eventTrigger": null
+        },
+        {
+          "name": "maintainPublicationControlNews",
+          "eventTrigger": {
+            "eventFilters": [
+              {
+                "attribute": "document",
+                "operator": "match-path-pattern",
+                "value": "news/{contentId}"
+              },
+              {
+                "attribute": "database",
+                "value": "(default)"
+              },
+              {
+                "attribute": "namespace",
+                "value": "(default)"
+              }
+            ],
+            "eventType": "google.cloud.firestore.document.v1.written",
+            "pubsubTopic": "projects/ukrainiancommunity-dbd5f/topics/eventarc-eur3-maintainpublicationcontrolnews-348480-559",
+            "retryPolicy": "RETRY_POLICY_RETRY",
+            "serviceAccountEmail": "919042658790-compute@developer.gserviceaccount.com",
+            "trigger": "projects/ukrainiancommunity-dbd5f/locations/eur3/triggers/maintainpublicationcontrolnews-348480",
+            "triggerRegion": "eur3"
+          }
+        },
+        {
+          "name": "maintainPublicationControlEvents",
+          "eventTrigger": {
+            "eventFilters": [
+              {
+                "attribute": "database",
+                "value": "(default)"
+              },
+              {
+                "attribute": "namespace",
+                "value": "(default)"
+              },
+              {
+                "attribute": "document",
+                "operator": "match-path-pattern",
+                "value": "events/{contentId}"
+              }
+            ],
+            "eventType": "google.cloud.firestore.document.v1.written",
+            "pubsubTopic": "projects/ukrainiancommunity-dbd5f/topics/eventarc-eur3-maintainpublicationcontrolevents-189919-813",
+            "retryPolicy": "RETRY_POLICY_RETRY",
+            "serviceAccountEmail": "919042658790-compute@developer.gserviceaccount.com",
+            "trigger": "projects/ukrainiancommunity-dbd5f/locations/eur3/triggers/maintainpublicationcontrolevents-189919",
+            "triggerRegion": "eur3"
+          }
+        }
+      ],
+      "boundary": "Startup/unauthenticated rejection and deployed Eventarc configuration; no synthetic public event mutation."
+    },
+    "eventarc": {
+      "artifact": "build/fix-publication16-20261027/eventarc-readback.json",
+      "deliveryBoundary": "Configured destinations/filters/service account read back. No synthetic public content mutation to induce delivery."
+    },
+    "indexes": "Five new composite indexes created additively andREADY; existing indexes retained.",
+    "dailyReconciliation": {
+      "at": "2026-10-27T06:57:33.889957+00:00",
+      "days": [
+        {
+          "day": "2026-10-27",
+          "news": 0,
+          "events": 0
+        },
+        {
+          "day": "2026-10-26",
+          "news": 25,
+          "events": 32
+        },
+        {
+          "day": "2026-10-25",
+          "news": 23,
+          "events": 17
+        },
+        {
+          "day": "2026-10-24",
+          "news": 35,
+          "events": 20
+        },
+        {
+          "day": "2026-10-23",
+          "news": 48,
+          "events": 20
+        },
+        {
+          "day": "2026-10-22",
+          "news": 58,
+          "events": 26
+        },
+        {
+          "day": "2026-10-21",
+          "news": 57,
+          "events": 31
+        },
+        {
+          "day": "2026-10-20",
+          "news": 59,
+          "events": 38
+        },
+        {
+          "day": "2026-10-19",
+          "news": 66,
+          "events": 53
+        },
+        {
+          "day": "2026-10-18",
+          "news": 26,
+          "events": 28
+        },
+        {
+          "day": "2026-10-17",
+          "news": 26,
+          "events": 50
+        },
+        {
+          "day": "2026-10-16",
+          "news": 48,
+          "events": 44
+        },
+        {
+          "day": "2026-10-15",
+          "news": 4,
+          "events": 22
+        },
+        {
+          "day": "2026-10-14",
+          "news": 4,
+          "events": 47
+        },
+        {
+          "day": "2026-10-13",
+          "news": 3,
+          "events": 40
+        },
+        {
+          "day": "2026-10-12",
+          "news": 2,
+          "events": 10
+        },
+        {
+          "day": "2026-10-11",
+          "news": 0,
+          "events": 5
+        },
+        {
+          "day": "2026-10-10",
+          "news": 0,
+          "events": 7
+        },
+        {
+          "day": "2026-10-09",
+          "news": 0,
+          "events": 8
+        },
+        {
+          "day": "2026-10-08",
+          "news": 0,
+          "events": 9
+        },
+        {
+          "day": "2026-10-07",
+          "news": 0,
+          "events": 3
+        },
+        {
+          "day": "2026-10-06",
+          "news": 0,
+          "events": 7
+        },
+        {
+          "day": "2026-10-05",
+          "news": 1,
+          "events": 3
+        },
+        {
+          "day": "2026-10-04",
+          "news": 1,
+          "events": 7
+        },
+        {
+          "day": "2026-10-03",
+          "news": 0,
+          "events": 12
+        },
+        {
+          "day": "2026-10-02",
+          "news": 0,
+          "events": 13
+        },
+        {
+          "day": "2026-10-01",
+          "news": 0,
+          "events": 11
+        },
+        {
+          "day": "2026-09-30",
+          "news": 0,
+          "events": 7
+        },
+        {
+          "day": "2026-09-29",
+          "news": 0,
+          "events": 0
+        },
+        {
+          "day": "2026-09-28",
+          "news": 0,
+          "events": 7
+        }
+      ],
+      "indexRows": 1063,
+      "indexUnchanged": true,
+      "indexHash": "353bab39845700d83c2d7f621b23ddda693cbee2ed4279eed206c358b785e5a0",
+      "liveQueries": [
+        {
+          "filters": [],
+          "page": 31
+        },
+        {
+          "filters": [
+            [
+              "region",
+              "wien"
+            ]
+          ],
+          "page": 3
+        },
+        {
+          "filters": [
+            [
+              "kind",
+              "news"
+            ]
+          ],
+          "page": 25
+        },
+        {
+          "filters": [
+            [
+              "region",
+              "wien"
+            ],
+            [
+              "kind",
+              "news"
+            ]
+          ],
+          "page": 1
+        }
+      ],
+      "boundary": "IAM transactional summary reconciliation and indexed queries. No publication/index writes; not an authenticated iPhone callable session."
+    },
+    "observer": {
+      "correctedReports": 22,
+      "preservedOriginals": 22,
+      "matchingCurrentReports": 711,
+      "semanticMismatches": 0,
+      "skippedEmptyReportFolders": 3,
+      "currentImportErrors": 0,
+      "watchMode": "LaunchAgent restarted; periodic success/error metadata every60seconds.",
+      "retention": "Dedicated publicationControlExpiresAt field under revisions hasACTIVE TTL45days from report completion; no other revisions targeted.",
+      "evidence": [
+        "build/fix-publication16-20261027/repair-sync.log",
+        "build/fix-publication16-20261027/revisions-verified.json",
+        "build/fix-publication16-20261027/sync-after-validation.json",
+        "build/fix-publication16-20261027/production-readback.json",
+        "build/publication-control-observer/observer.log"
+      ]
+    },
+    "coverageBoundary": "Latest19 source checks remain partial where their underlying coverage is incomplete. Sync repair is not evidence of complete editorial source coverage.",
+    "compatibility": "Original callable fields and cursor format retained; optional added fields. Existing news/events/index data not edited by the repair."
+  },
+  "visualEvidenceViewed": [
+    "build/fix-publication16-20261027/AdaptiveCaptures/C030FE46-86FA-492B-8AD4-2A60D1BE4D92.png",
+    "build/fix-publication16-20261027/AdaptiveCaptures/54C82854-285C-4373-93CB-B04EB59608EB.png",
+    "build/fix-publication16-20261027/AdaptiveCaptures/E8E15804-8F0F-43FA-ABC0-856712169A25.png",
+    "build/fix-publication16-20261027/AdaptiveCaptures/905F8DC6-0ED0-4990-99FF-DF99C3872906.png"
+  ],
+  "physicalDevice": {
+    "status": "unavailable",
+    "evidence": "build/fix-publication16-20261027/devices.json",
+    "remaining": [
+      "Signed owner-session overview/history on real server",
+      "Date and region filtering, news/event detail and return",
+      "Both languages/themes and accessibility text on iPhone"
+    ],
+    "questionSent": true
+  },
+  "legacyBoundary": "Existing legacy publication state machine verified separately in demo Firestore; no publish/archive/delete exercise on live business data. Changed client generation guards covered in isolated VM tests.",
+  "sourceCI": {
+    "status": "pending push and exact revision run; not claimed passed"
+  },
+  "remainingAcceptance": [
+    "Physical iPhone acceptance with installed signed copy; currently device unavailable.",
+    "Exact-revision hosted CI terminal result.",
+    "No new TestFlight upload requested."
+  ],
+  "sourceFileHashes": {
+    "UkrainianCommunity/ViewModels/PublicationControlStore.swift": "11594d6f324ec9e0b9e791d270060e2fe4df4bafd6c8572618a4015981c8d3b6",
+    "UkrainianCommunity/Views/Profile/PublicationControlView.swift": "b8de434cc23fe15d00db186723c5e2dd75e26774882b995e33a0fa245120855e",
+    "UkrainianCommunity/ViewModels/OwnerContentPlanningViewModel.swift": "6ab6de44dfef915aa282152a5e2144de8ab4aacf83d964771f9d3f1451876b36",
+    "UkrainianCommunity/Views/Profile/OwnerContentPlanningView.swift": "043669c8c0f22ea3d8e3a059614bd2cf7c54502286a24042668c5379c48f469a",
+    "functions/src/publicationControl/publicationControl.ts": "f2f54f514e2915161611e5e88ae7a134f6204e0934967627884ef9691811b3fb",
+    "functions/scripts/publicationControlSync.mjs": "45b455ff1e1c333d3a4b44648be441c05cd18f8930256281cd9eb522525610ae"
+  }
+}

@@ -2,7 +2,7 @@
   "block": 16,
   "totalBlocks": 19,
   "name": "Контроль публікацій та автоматичних проходів",
-  "status": "initial_audit_requires_implementation",
+  "status": "implemented_locally_verified_and_deployed_pending_device_acceptance",
   "sourceHead": "149623c38d92e5c7e8175b25f0d1473775ee494c",
   "groups": [
     {
@@ -98,12 +98,11 @@
     "owner without current legal acceptance",
     "guest"
   ],
-  "implementationAuthorized": false,
+  "implementationAuthorized": true,
   "remainingAcceptance": [
-    "Fix and repeat the exact failing page3->retry scenarios",
-    "Signed physical owner-account read and date/filter/detail/return paths",
-    "Long-running late response and A->B->A in legacy draft compatibility modals",
-    "Explicit event child fixture/runtime, picker date/DST/travel timezone cases",
-    "Full corrected narrow/maxAX layout after implementation"
-  ]
+    "Physical iPhone acceptance with installed signed copy; currently device unavailable.",
+    "Exact-revision hosted CI terminal result.",
+    "No new TestFlight upload requested."
+  ],
+  "resolutionReport": "Docs/Verification/PublicationControlFixes20261027.json"
 }

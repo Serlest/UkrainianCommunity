@@ -983,12 +983,17 @@ final class UkrainianCommunityUITests: XCTestCase {
 
     @MainActor
     func testOwnerContentPlanningExposesFourStableSections() throws {
-        let app = launchOwnerApp()
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment = ["UITestForceOwnerSession":"1", "UITestNotificationDetails":"1", "UITestLegacyPlanning":"1", "UITestAppLanguage":"de", "UITestResetUserSettings":"1"]
+        app.launch()
         tapRootTab(rootTabs[4], in: app, timeout: 20)
-        let planning = element("profile.contentPlanning", in: app)
-        scrollToElement(planning, in: app, maxSwipes: 14)
-        XCTAssertTrue(planning.waitForExistence(timeout: 8))
-        planning.tap()
+        let bell = app.buttons["notificationInbox.bell"].firstMatch
+        XCTAssertTrue(bell.waitForExistence(timeout: 20)); bell.tap()
+        let notice = app.buttons["notificationInbox.open.legacy-draft"].firstMatch
+        XCTAssertTrue(notice.waitForExistence(timeout: 10)); notice.tap()
+        let destination = app.buttons["notificationDetail.openDestination"].firstMatch
+        XCTAssertTrue(destination.waitForExistence(timeout: 10)); destination.tap()
 
         XCTAssertTrue(element("screen.contentPlanning", in: app).waitForExistence(timeout: 10))
         for section in ["drafts", "scheduled", "attention", "history"] {

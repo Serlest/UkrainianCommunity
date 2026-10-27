@@ -10,6 +10,8 @@ private final class OwnerContentDraftRepositoryStub: OwnerContentDraftRepository
         let cursor: OwnerContentDraftPageCursor?
     }
 
+    var operationPause: ((String) async -> Void)?
+    var archivePause: (() async -> Void)?
     var pages: [OwnerContentPlanningSection: [OwnerContentDraftPage]] = [:]
     var exactDraft: OwnerContentDraft?
     var lease: OwnerContentPublicationLease?
@@ -29,6 +31,7 @@ private final class OwnerContentDraftRepositoryStub: OwnerContentDraftRepository
         limit: Int,
         after cursor: OwnerContentDraftPageCursor?
     ) async throws -> OwnerContentDraftPage {
+        await operationPause?("load")
         pageRequests.append(PageRequest(userID: userID, section: section, limit: limit, cursor: cursor))
         guard var queued = pages[section], !queued.isEmpty else {
             return OwnerContentDraftPage(items: [], nextCursor: nil, hasMore: false)
@@ -39,6 +42,7 @@ private final class OwnerContentDraftRepositoryStub: OwnerContentDraftRepository
     }
 
     func fetchDraft(userID: String, draftID: String) async throws -> OwnerContentDraft {
+        await operationPause?("deepLink")
         exactRequests.append((userID, draftID))
         guard let exactDraft, exactDraft.id == draftID else { throw AppError.notFound }
         return exactDraft
@@ -49,6 +53,7 @@ private final class OwnerContentDraftRepositoryStub: OwnerContentDraftRepository
         draftID: String,
         attemptID: String
     ) async throws -> OwnerContentPublicationLease {
+        await operationPause?("begin")
         beginRequests.append((draftID, attemptID))
         if let beginError { throw beginError }
         if let beginResponseData {
@@ -64,17 +69,68 @@ private final class OwnerContentDraftRepositoryStub: OwnerContentDraftRepository
         draftID: String,
         publication: ContentPlanningPublicationResult
     ) async throws {
+        await operationPause?("finish")
         finalizedPublications.append(publication)
         if let finalizeError { throw finalizeError }
     }
 
-    func failPublication(userID: String, draftID: String, leaseID: String, message: String) async throws {}
-    func archive(userID: String, draftID: String) async throws { archivedDraftIDs.append(draftID) }
-    func delete(userID: String, draftID: String) async throws { deletedDraftIDs.append(draftID) }
+    func failPublication(userID: String, draftID: String, leaseID: String, message: String) async throws { await operationPause?("fail") }
+    func archive(userID: String, draftID: String) async throws { await archivePause?(); archivedDraftIDs.append(draftID) }
+    func delete(userID: String, draftID: String) async throws { await operationPause?("delete"); deletedDraftIDs.append(draftID) }
 }
 
 @MainActor
 struct OwnerContentPlanningViewModelTests {
+    @Test(arguments: ["load", "deepLink", "begin", "finish", "fail", "delete"])
+    func lateLegacyOperationsCannotCrossAccountABA(operation: String) async {
+        let repository = OwnerContentDraftRepositoryStub()
+        let oldDraft = makeDraft(id: "old")
+        repository.exactDraft = oldDraft
+        repository.lease = makeLease(for: oldDraft, contentAlreadyExists: false)
+        repository.pages[.drafts] = [.init(items: [oldDraft], nextCursor: nil, hasMore: false)]
+        let viewModel = OwnerContentPlanningViewModel(repository: repository)
+        viewModel.start(userID: "owner")
+        if operation == "finish" || operation == "fail" { _ = await viewModel.beginPublishing(oldDraft) }
+        var pause: CheckedContinuation<Void, Never>?
+        repository.operationPause = { requested in
+            if requested == operation { await withCheckedContinuation { pause = $0 } }
+        }
+        let old = Task { () -> Bool in
+            switch operation {
+            case "load": await viewModel.load(.drafts, userID: "owner"); return false
+            case "deepLink": return await viewModel.fetchDraftForDeepLink(oldDraft.id) != nil
+            case "begin": return await viewModel.beginPublishing(oldDraft) != nil
+            case "finish": return await viewModel.finishPublishing(oldDraft, publication: .init(kind: oldDraft.kind, contentID: "planning-old", scheduledAt: nil, publicationLeaseID: "lease-1"))
+            case "fail": await viewModel.failPublishing(oldDraft, message: "old failure"); return false
+            default: return await viewModel.delete(oldDraft)
+            }
+        }
+        while pause == nil { await Task.yield() }
+        viewModel.start(userID: "other"); viewModel.start(userID: "owner")
+        let current = makeDraft(id: "current"); viewModel.reveal(current)
+        let generation = viewModel.contextGeneration
+        pause?.resume()
+        #expect(await old.value == false)
+        #expect(viewModel.contextGeneration == generation)
+        #expect(viewModel.snapshot(for: .drafts).items.map(\.id) == ["current"])
+        #expect(viewModel.actionErrorMessage == nil && viewModel.deepLinkError == nil)
+    }
+
+    @Test func lateArchiveCannotMutateSameUIDAfterLeavingAndReturning() async {
+        let repository = OwnerContentDraftRepositoryStub()
+        var continuation: CheckedContinuation<Void, Never>?
+        repository.archivePause = { await withCheckedContinuation { continuation = $0 } }
+        let viewModel = OwnerContentPlanningViewModel(repository: repository)
+        let draft = makeDraft(id: "same-id", state: .needsAttention, kind: .event)
+        viewModel.start(userID: "owner"); viewModel.reveal(draft)
+        let old = Task { await viewModel.archive(draft) }
+        while continuation == nil { await Task.yield() }
+        viewModel.stop(); viewModel.start(userID: "owner"); viewModel.reveal(draft)
+        continuation?.resume()
+        #expect(await old.value == false)
+        #expect(viewModel.snapshot(for: .attention).items.contains { $0.id == draft.id })
+    }
+
     @Test func incompleteEventCanBeDeletedWithoutAnEditorPayload() async {
         let draft = makeDraft(id: "missing-start-date", state: .needsAttention, kind: .event)
         #expect(!draft.isEditableInPlanning)

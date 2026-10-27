@@ -13,6 +13,11 @@ enum MockContentBuilder {
         let userID = profileRoleFixture()?.id ?? (ProcessInfo.processInfo.environment["UITestForceOwnerSession"] == "1" ? ownerUser().id : currentUser().id)
         let critical = ProcessInfo.processInfo.environment["UITestCriticalNotification"] == "1"
         let message = fixtureText("mock.event.1.details", "An evening for networking, announcements, and practical orientation for families living in Tirol. Tea, children’s corner, and language support will be available.")
+        if ProcessInfo.processInfo.environment["UITestLegacyPlanning"] == "1" {
+            return [userID: [AppNotification(id: "legacy-draft", recipientUserId: userID, type: .contentDraftReady,
+                sourceType: .system, sourceId: "", actionType: .openContentPlanning, actionTargetId: "missing-legacy-draft",
+                message: "Legacy draft", payload: [:], isRead: false, readAt: nil, createdAt: .now)]]
+        }
         return [userID: [
             AppNotification(id: "detail-info", recipientUserId: userID, type: .systemAnnouncement,
                 sourceType: .system, sourceId: "", severity: critical ? .critical : .info, requiresPopup: critical,
@@ -54,9 +59,11 @@ enum MockContentBuilder {
 #if DEBUG && targetEnvironment(simulator)
         guard ProcessInfo.processInfo.arguments.contains("-ui-testing"), ProcessInfo.processInfo.environment["UITestPublicationControl"] == "1" else { return nil }
         let now = Date.now.timeIntervalSince1970 * 1000
-        let run = PublicationControlRun(id: "test-run", kind: "news", region: "wien", runId: "news-fixture", status: "partial", endedAt: now - 3600000, timestampBasis: "reportCompletedAt", published: 2, candidates: 8, rejected: 6, sourcesExpected: 11, sourcesChecked: 9, issues: [.init(code: "restrictedSource", detail: "The source required authentication; no article was published from inaccessible evidence.")], issueCount: 1, publicationOnly: false)
-        let rows = [PublicationControlItem(id: "news_news-1", kind: "news", contentId: "news-1", titleUK: "Довгий заголовок новини: зміни та корисна інформація для української громади у Відні", titleDE: "Ein ausführlicher Nachrichtentitel: Änderungen und wichtige Informationen für die ukrainische Gemeinschaft in Wien", region: "wien", firstPublicAt: now, sourceState: "approved", timingSource: "creation")]
-        return PublicationControlAPI(overview: { _, day in .init(day: day, serverTime: now, news: 2, events: 1, regions: [.init(region: "austria", news: 1, events: 0), .init(region: "wien", news: 1, events: 1)], sources: [run], syncedAt: now, syncErrors: Int(ProcessInfo.processInfo.environment["UITestPublicationSyncErrors"] ?? "0") ?? 0) }, items: { _, _, region, _ in .init(items: rows.filter { region == nil || $0.region == region }, cursor: nil, total: 1) }, runs: { _, _ in .init(runs: [run], cursor: nil) })
+        let run = PublicationControlRun(id: "test-run", kind: "news", region: "wien", runId: "news-fixture", status: "partial", endedAt: now - 3600000, timestampBasis: "reportCompletedAt", published: 2, candidates: 8, rejected: 6, sourcesExpected: 11, sourcesChecked: 9, issues: [.init(code: "restrictedSource", detail: "The source required authentication; no article was published from inaccessible evidence.")], issueCount: 1, publicationOnly: false, scheduledAt: now - 3600000, schedule: .init(hours: [9, 14, 19], minutes: [0], timeZone: "Europe/Vienna", graceMinutes: 90))
+        let rows = [PublicationControlItem(id: "news_news-1", kind: "news", contentId: "news-1", titleUK: "Довгий заголовок новини: зміни та корисна інформація для української громади у Відні", titleDE: "Ein ausführlicher Nachrichtentitel: Änderungen und wichtige Informationen für die ukrainische Gemeinschaft in Wien", region: "wien", firstPublicAt: now, sourceState: "approved", timingSource: "creation"),
+                    PublicationControlItem(id: "event_event-1", kind: "event", contentId: "event-1", titleUK: "Контрольна подія", titleDE: "Kontrolltermin", region: "tirol", firstPublicAt: now, sourceState: "approved", timingSource: "creation"),
+                    PublicationControlItem(id: "news_removed", kind: "news", contentId: "removed", titleUK: "Архівний матеріал", titleDE: "Archivierter Inhalt", region: "wien", firstPublicAt: now, sourceState: "removed", timingSource: "legacyCreation")]
+        return PublicationControlAPI(overview: { _, day in .init(day: day, serverTime: now, news: 2, events: 1, regions: [.init(region: "austria", news: 0, events: 0), .init(region: "wien", news: 2, events: 0), .init(region: "tirol", news: 0, events: 1)], sources: [run], syncedAt: now, syncErrors: Int(ProcessInfo.processInfo.environment["UITestPublicationSyncErrors"] ?? "0") ?? 0) }, items: { _, _, region, _ in .init(items: rows.filter { region == nil || $0.region == region }, cursor: nil, total: rows.filter { region == nil || $0.region == region }.count) }, runs: { _, region, _ in .init(runs: region == nil || region == run.region ? [run] : [], cursor: nil) })
 #else
         return nil
 #endif

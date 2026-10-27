@@ -1,161 +1,11 @@
 import SwiftUI
-import Combine
-import FirebaseFunctions
 
-nonisolated struct PublicationControlItem: Decodable, Sendable, Identifiable {
-    let id: String
-    let kind: String
-    let contentId: String
-    let titleUK: String
-    let titleDE: String
-    let region: String
-    let firstPublicAt: Double?
-    let sourceState: String
-    let timingSource: String
-    var title: String { LocalizationStore.language == .german ? titleDE : titleUK }
-}
-nonisolated struct PublicationControlIssue: Decodable, Sendable { let code: String; let detail: String }
-nonisolated struct PublicationControlRun: Decodable, Sendable, Identifiable {
-    let id: String
-    let kind: String
-    let region: String
-    let runId: String
-    let status: String
-    let endedAt: Double?
-    let timestampBasis: String
-    let published: Int?
-    let candidates: Int?
-    let rejected: Int?
-    let sourcesExpected: Int?
-    let sourcesChecked: Int?
-    let issues: [PublicationControlIssue]
-    let issueCount: Int
-    let publicationOnly: Bool
-    var lastCompleteAt: Double? = nil
-}
-nonisolated struct PublicationControlRegion: Decodable, Sendable, Identifiable {
-    let region: String
-    let news: Int
-    let events: Int
-    var id: String { region }
-}
-nonisolated struct PublicationControlOverview: Decodable, Sendable {
-    let day: String
-    let serverTime: Double
-    let news: Int
-    let events: Int
-    let regions: [PublicationControlRegion]
-    let sources: [PublicationControlRun]
-    let syncedAt: Double?
-    var syncErrors: Int? = nil
-    var legacyTimeCount: Int? = nil
-}
-nonisolated struct PublicationControlItemsPage: Decodable, Sendable { let items: [PublicationControlItem]; let cursor: String?; let total: Int }
-nonisolated struct PublicationControlRunsPage: Decodable, Sendable { let runs: [PublicationControlRun]; let cursor: String? }
-nonisolated private struct PublicationControlRequest: Encodable {
-    let action: String
-    let principalId: String
-    var day: String? = nil
-    var region: String? = nil
-    var kind: String? = nil
-    var cursor: String? = nil
-}
-@MainActor struct PublicationControlAPI {
-    var overview: (String, String) async throws -> PublicationControlOverview
-    var items: (String, String, String?, String?) async throws -> PublicationControlItemsPage
-    var runs: (String, String?) async throws -> PublicationControlRunsPage
-    private static func call<T: Decodable & Sendable>(_ request: PublicationControlRequest, as: T.Type) async throws -> T {
-        var callable: Callable<PublicationControlRequest, T> = Functions.functions(region: "europe-west3").httpsCallable("getPublicationControl")
-        callable.timeoutInterval = 30
-        return try await callable.call(request)
-    }
-    static let live = Self(overview: { actor, day in try await call(.init(action: "overview", principalId: actor, day: day), as: PublicationControlOverview.self) },
-        items: { actor, day, region, cursor in try await call(.init(action: "items", principalId: actor, day: day, region: region, cursor: cursor), as: PublicationControlItemsPage.self) },
-        runs: { actor, cursor in try await call(.init(action: "runs", principalId: actor, cursor: cursor), as: PublicationControlRunsPage.self) })
-}
-@MainActor final class PublicationControlStore: ObservableObject {
-    @Published private(set) var overview: PublicationControlOverview?
-    private(set) var receivedAt = Date.now
-    @Published private(set) var items: [PublicationControlItem] = []
-    @Published private(set) var runs: [PublicationControlRun] = []
-    @Published private(set) var loading = false
-    @Published private(set) var loadingItems = false
-    @Published private(set) var loadingRuns = false
-    @Published private(set) var itemCursor: String?
-    @Published private(set) var runCursor: String?
-    @Published private(set) var error: String?
-    @Published private(set) var itemsError: String?
-    @Published private(set) var runsError: String?
-    private let api: PublicationControlAPI
-    private var generation = UUID()
-    private var itemGeneration = UUID()
-    private var actor: String?
-    private var day = ""
-    private var region: String?
-    private var hasLoadedItems = false
-    init(api: PublicationControlAPI? = nil) { self.api = api ?? .live }
-    func reset() {
-        generation = UUID(); itemGeneration = UUID(); actor = nil
-        overview = nil; items = []; runs = []; itemCursor = nil; runCursor = nil
-        loading = false; loadingItems = false; loadingRuns = false; error = nil; itemsError = nil; runsError = nil
-        hasLoadedItems = false
-    }
-    func load(actor: String, day: String) async {
-        if self.actor != actor || self.day != day { reset() }
-        self.actor = actor; self.day = day; generation = UUID(); itemGeneration = UUID(); loadingItems = false; loadingRuns = false
-        hasLoadedItems = false
-        let token = generation
-        loading = true; error = nil
-        defer { if generation == token { loading = false } }
-        do {
-            let response = try await api.overview(actor, day)
-            guard self.actor == actor, generation == token, !Task.isCancelled else { return }
-            receivedAt = .now; overview = response
-        } catch { if generation == token, !Task.isCancelled { self.error = PublicationControlText.loadFailed } }
-    }
-    func reportNow(at date: Date = .now) -> Double {
-        guard let overview else { return date.timeIntervalSince1970 * 1000 }
-        return overview.serverTime + max(0, date.timeIntervalSince(receivedAt)) * 1000
-    }
-    func loadItems(region: String?, more: Bool = false) async {
-        guard let actor, !more || !loadingItems && itemCursor != nil else { return }
-        if !more, self.region == region, loadingItems || (hasLoadedItems && itemsError == nil) { return }
-        if !more {
-            itemGeneration = UUID()
-            if self.region != region { items = [] }
-            itemCursor = nil
-            hasLoadedItems = false
-        }
-        self.region = region
-        let token = generation, itemToken = itemGeneration
-        loadingItems = true; itemsError = nil
-        defer { if generation == token, itemGeneration == itemToken { loadingItems = false } }
-        do {
-            let response = try await api.items(actor, day, region, more ? itemCursor : nil)
-            guard self.actor == actor, generation == token, itemGeneration == itemToken, !Task.isCancelled else { return }
-            if !more { items = [] }
-            let known = Set(items.map(\.id)); items += response.items.filter { !known.contains($0.id) }; itemCursor = response.cursor
-            hasLoadedItems = true
-        } catch { if generation == token, itemGeneration == itemToken, !Task.isCancelled { itemsError = PublicationControlText.loadFailed } }
-    }
-    func loadRuns(more: Bool = false) async {
-        guard let actor, !loadingRuns, !more || runCursor != nil else { return }
-        let token = generation
-        loadingRuns = true; runsError = nil
-        defer { if generation == token { loadingRuns = false } }
-        do {
-            let response = try await api.runs(actor, more ? runCursor : nil)
-            guard self.actor == actor, generation == token, !Task.isCancelled else { return }
-            if !more { runs = [] }
-            let known = Set(runs.map(\.id)); runs += response.runs.filter { !known.contains($0.id) }; runCursor = response.cursor
-        } catch { if generation == token, !Task.isCancelled { runsError = PublicationControlText.loadFailed } }
-    }
-}
 enum PublicationControlText {
     static func value(_ uk: String, _ de: String) -> String { DirectoryEditorText.value(uk, de) }
     static var title: String { value("Контроль публікацій", "Publikationsübersicht") }
     static var subtitle: String { value("Новини, події та результати автоматичних проходів.", "Nachrichten, Termine und Ergebnisse der automatischen Durchläufe.") }
     static var loadFailed: String { value("Не вдалося оновити дані. Перевірте з’єднання та спробуйте ще раз.", "Daten konnten nicht aktualisiert werden. Prüfen Sie die Verbindung und versuchen Sie es erneut.") }
+    static var listChanged: String { value("Список змінився. Оновіть його, щоб продовжити.", "Die Liste hat sich geändert. Aktualisieren Sie sie, um fortzufahren.") }
     static var retry: String { value("Спробувати ще раз", "Erneut versuchen") }
     static func region(_ code: String) -> String {
         if code == "austria" { return value("Уся Австрія", "Ganz Österreich") }
@@ -183,27 +33,58 @@ enum PublicationControlText {
         default: value("Покриття джерел неповне", "Quellenabdeckung ist unvollständig")
         }
     }
+    static let calendar: Calendar = {
+        var calendar = Calendar(identifier: .gregorian); calendar.timeZone = TimeZone(identifier: "Europe/Vienna")!; calendar.firstWeekday = 2; return calendar
+    }()
     static func date(_ ms: Double?) -> String {
-        guard let ms else { return value("Немає даних", "Keine Daten") }
-        return Date(timeIntervalSince1970: ms / 1000).formatted(.dateTime.day().month(.abbreviated).hour().minute().locale(LocalizationStore.locale))
+        guard let ms, ms.isFinite, ms >= 0, ms <= 253402300799000 else { return value("Немає даних", "Keine Daten") }
+        return Date(timeIntervalSince1970: ms / 1000).formatted(Date.FormatStyle(date: .abbreviated, time: .shortened, locale: LocalizationStore.locale, calendar: calendar, timeZone: calendar.timeZone))
     }
+    static func nextExpected(_ run: PublicationControlRun) -> Date? {
+        guard let schedule = run.schedule, schedule.timeZone == "Europe/Vienna", let ms = run.scheduledAt ?? run.endedAt, ms.isFinite else { return nil }
+        let base = Date(timeIntervalSince1970: ms / 1000)
+        for offset in 0...2 {
+            guard let day = calendar.date(byAdding: .day, value: offset, to: calendar.startOfDay(for: base)) else { continue }
+            let dates = schedule.hours.filter { (0..<24).contains($0) }.flatMap { hour in
+                schedule.minutes.filter { (0..<60).contains($0) }.compactMap { minute in
+                    calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day)
+                }
+            }
+            if let next = dates.filter({ $0 > base }).min() { return next }
+        }
+        return nil
+    }
+    static func remedy(_ code: String) -> String {
+        switch code {
+        case "restrictedSource": value("Перевірте доступ до джерела. Матеріал потребує доступного підтвердження.", "Prüfen Sie den Quellenzugriff. Der Inhalt benötigt einen zugänglichen Beleg.")
+        case "capacity": value("Перевірте завершення попереднього проходу та наступний запланований запуск.", "Prüfen Sie den vorherigen Durchlauf und den nächsten geplanten Start.")
+        case "sourceUnavailable": value("Перевірте доступність джерела та результат наступного проходу.", "Prüfen Sie die Erreichbarkeit der Quelle und den nächsten Durchlauf.")
+        case "uncertainPublication": value("Звірте матеріал у вкладці «Публікації» перед повторною спробою.", "Gleichen Sie den Inhalt vor einem erneuten Versuch unter Publikationen ab.")
+        default: value("Перевірте, які джерела залишилися неперевіреними. Повний результат ще не підтверджено.", "Prüfen Sie die noch offenen Quellen. Ein vollständiges Ergebnis ist noch nicht bestätigt.")
+        }
+    }
+
 }
 struct PublicationControlView: View {
     @EnvironmentObject private var authState: AuthState
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var store: PublicationControlStore
     @State private var section = "items"
     @State private var selectedRegion = "all"
     @State private var date = Date()
+    @State private var choosingDate = false
+    @State private var choosingRegion = false
+    @State private var lastContextKey = ""
     @State private var clockDate = Date.now
     private let onOpen: (OwnerContentDraftKind, String) -> Void
-    private var actor: String { PermissionService.isAppOwner(user: authState.user) ? authState.user?.id ?? "" : "" }
+    private var actor: String { authState.isAuthenticated && PermissionService.isAppOwner(user: authState.user) ? authState.user?.id ?? "" : "" }
     private var day: String {
-        let formatter = DateFormatter(); formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.timeZone = TimeZone(identifier: "Europe/Vienna"); formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: date)
+        let parts = PublicationControlText.calendar.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year!, parts.month!, parts.day!)
     }
     private var region: String? { selectedRegion == "all" ? nil : selectedRegion }
-    private var key: String { actor + "|" + day }
+    private var key: String { actor + "|" + day + "|" + String(ProfileAccessIdentity(user: authState.user).hashValue) + "|" + String(describing: authState.sessionState) }
     @MainActor init(api: PublicationControlAPI? = nil, onOpen: @escaping (OwnerContentDraftKind, String) -> Void) {
         _store = StateObject(wrappedValue: PublicationControlStore(api: api ?? MockContentBuilder.publicationControlFixture() ?? .live)); self.onOpen = onOpen
     }
@@ -218,7 +99,8 @@ struct PublicationControlView: View {
                 }
                 if store.loading { ProgressView().frame(maxWidth: .infinity) }
                 if let overview = store.overview {
-                    overviewCard(overview)
+                    if section == "items" || section == "regions" { overviewCard(overview) }
+                    else { synchronizationCard(overview) }
                     filters
                     switch section {
                     case "regions": regionCards(overview)
@@ -232,19 +114,32 @@ struct PublicationControlView: View {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("screen.publicationControl")
         .task(id: key) {
-            guard !actor.isEmpty else { store.reset(); return }
-            await refresh()
+            if lastContextKey != key { store.reset(); lastContextKey = key; choosingDate = false; choosingRegion = false }
+            guard !actor.isEmpty else { return }
+            await refresh(force: false)
         }
         .task(id: selectedRegion + "|" + section) {
             guard !actor.isEmpty, store.overview != nil else { return }
             if section == "items" { await store.loadItems(region: region) }
-            if section == "history", store.runs.isEmpty { await store.loadRuns() }
+            if section == "history" { await store.loadRuns(region: region) }
         }
         .appRefreshable { await refresh() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await refresh(force: false) } }
+        }
+        .sheet(isPresented: $choosingRegion) {
+            PublicationControlRegionSheet(selected: selectedRegion) { selectedRegion = $0 }
+        }
+        .sheet(isPresented: $choosingDate) {
+            PublicationControlDateSheet(date: date) { selected in date = selected }
+        }
         .task {
             while !Task.isCancelled {
                 do { try await Task.sleep(for: .seconds(60)) } catch { return }
+                let previousToday = PublicationControlText.calendar.startOfDay(for: clockDate)
                 clockDate = .now
+                if PublicationControlText.calendar.isDate(date, inSameDayAs: previousToday),
+                   !PublicationControlText.calendar.isDate(clockDate, inSameDayAs: previousToday) { date = clockDate }
             }
         }
     }
@@ -253,13 +148,22 @@ struct PublicationControlView: View {
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(text("Дата публікацій", "Publikationsdatum")).font(.headline)
-                    DatePicker(text("Дата публікацій", "Publikationsdatum"), selection: $date, in: Date.now.addingTimeInterval(-29 * 86400)...Date.now, displayedComponents: .date).tint(AppTheme.accentPrimary)
-                        .labelsHidden().datePickerStyle(.compact)
-                        .environment(\.timeZone, TimeZone(identifier: "Europe/Vienna")!)
+                    Button { choosingDate = true } label: {
+                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                            Image(systemName: "calendar").font(.system(size: 20))
+                            Text(date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted, locale: LocalizationStore.locale, calendar: PublicationControlText.calendar, timeZone: PublicationControlText.calendar.timeZone)))
+                                .font(.body.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.down").font(.system(size: 14))
+                        }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).contentShape(Rectangle())
+                    }.buttonStyle(.plain).foregroundStyle(AppTheme.accentPrimaryForeground)
+                        .accessibilityIdentifier("publicationControl.day")
+                    Text(text("День за часом Відня", "Kalendertag nach Wiener Zeit")).font(.caption).foregroundStyle(AppTheme.textSecondary)
                 }
-                HStack(spacing: 24) {
-                    metric(PublicationControlText.kind("news"), count: value.news, icon: "newspaper")
-                    metric(PublicationControlText.kind("event"), count: value.events, icon: "calendar")
+                if typeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 20) { summaryMetrics(value) }
+                } else {
+                    HStack(alignment: .top, spacing: 24) { summaryMetrics(value) }
                 }
                 DisclosureGroup(text("Як рахуються публікації", "So werden Publikationen gezählt")) {
                     Text(text("За датою першої публікації у застосунку. Загальноавстрійські матеріали враховано один раз.", "Nach der ersten Veröffentlichung in der App. Österreichweite Inhalte werden einmal gezählt.")).font(.caption).foregroundStyle(AppTheme.textSecondary)
@@ -267,29 +171,63 @@ struct PublicationControlView: View {
                         Text(text("Для перенесеної історії використано дату додавання матеріалу: точний час першої публікації раніше не завжди зберігався.", "Für übernommene Inhalte wird das Erstellungsdatum verwendet: Der genaue Zeitpunkt der ersten Veröffentlichung wurde früher nicht immer gespeichert.")).font(.caption).foregroundStyle(AppTheme.textSecondary)
                     }
                 }
-                if (value.syncErrors ?? 0) > 0 {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Label(text("Частину звітів не отримано", "Einige Berichte fehlen"), systemImage: "exclamationmark.triangle")
-                            .font(.subheadline.weight(.semibold)).foregroundStyle(AppTheme.accentWarningForeground)
-                            .accessibilityIdentifier("publicationControl.syncWarning")
-                        Text(text("Неповні результати. Звітів з помилкою: ", "Unvollständige Ergebnisse. Fehlerhafte Berichte: ") + String(value.syncErrors ?? 0))
-                            .font(.caption).foregroundStyle(AppTheme.textSecondary)
-                            .accessibilityIdentifier("publicationControl.syncWarning.count")
-                        Button(PublicationControlText.retry) { Task { await refresh() } }
-                            .disabled(store.loading)
-                            .accessibilityIdentifier("publicationControl.syncWarning.retry")
-                    }
-                }
-                Divider()
-                Text(text("Звіти оновлено: ", "Berichte aktualisiert: ") + PublicationControlText.date(value.syncedAt)).font(.caption).foregroundStyle(AppTheme.textSecondary)
-                if value.syncedAt == nil || store.reportNow(at: clockDate) - (value.syncedAt ?? 0) > 2 * 3600000 {
-                    Label(text("Звіти застаріли. Останні зміни можуть бути відсутні.", "Berichte sind veraltet. Neueste Änderungen können fehlen."), systemImage: "exclamationmark.triangle").font(.subheadline).foregroundStyle(AppTheme.accentWarningForeground)
-                }
+                synchronizationStatus(value)
             }
         }
     }
+    private func synchronizationCard(_ value: PublicationControlOverview) -> some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(text("Результати проходів", "Ergebnisse der Durchläufe")).font(.headline)
+                Text(text("Показано останні результати, незалежно від дати публікації.", "Die letzten Ergebnisse werden unabhängig vom Publikationsdatum angezeigt.")).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                synchronizationStatus(value)
+            }
+        }
+    }
+    @ViewBuilder private func synchronizationStatus(_ value: PublicationControlOverview) -> some View {
+        if (value.syncErrors ?? 0) > 0 {
+            VStack(alignment: .leading, spacing: 8) {
+                Label {
+                    Text(text("Частину звітів не отримано", "Einige Berichte fehlen"))
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle").font(.system(size: 20))
+                }
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(AppTheme.accentWarningForeground)
+                    .accessibilityIdentifier("publicationControl.syncWarning")
+                Text(text("Неповні результати. Звітів з помилкою: ", "Unvollständige Ergebnisse. Fehlerhafte Berichte: ") + String(value.syncErrors ?? 0))
+                    .font(.caption).foregroundStyle(AppTheme.textSecondary)
+                    .accessibilityIdentifier("publicationControl.syncWarning.count")
+                if let issues = value.syncIssues, !issues.isEmpty {
+                    DisclosureGroup(text("Звіти, що потребують перевірки", "Zu prüfende Berichte")) {
+                        ForEach(Array(issues.prefix(20).enumerated()), id: \.offset) { _, issue in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text([issue.kind.map { PublicationControlText.kind($0) }, issue.region.map { PublicationControlText.region($0) }].compactMap { $0 }.joined(separator: " · ")).font(.subheadline)
+                                if let detail = issue.detail { Text(verbatim: detail).font(.caption).textSelection(.enabled) }
+                            }.fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                Button(text("Оновити перегляд", "Ansicht aktualisieren")) { Task { await refresh() } }
+                    .disabled(store.loading)
+                    .accessibilityIdentifier("publicationControl.syncWarning.retry")
+            }
+        }
+        Divider()
+        Text(text("Успішна перевірка синхронізації: ", "Erfolgreiche Synchronisationsprüfung: ") + PublicationControlText.date(value.lastSuccessfulCheckAt ?? value.syncedAt)).font(.caption).foregroundStyle(AppTheme.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+        if let attempted = value.lastAttemptAt {
+            Text(text("Остання спроба: ", "Letzter Versuch: ") + PublicationControlText.date(attempted)).font(.caption).foregroundStyle(AppTheme.textSecondary)
+        }
+        if value.syncedAt == nil || store.reportNow(at: clockDate) - (value.lastSuccessfulCheckAt ?? value.syncedAt ?? 0) > 2 * 3600000 {
+            Label(text("Звіти застаріли. Останні зміни можуть бути відсутні.", "Berichte sind veraltet. Neueste Änderungen können fehlen."), systemImage: "exclamationmark.triangle").font(.subheadline).foregroundStyle(AppTheme.accentWarningForeground)
+        }
+    }
+    @ViewBuilder private func summaryMetrics(_ value: PublicationControlOverview) -> some View {
+        metric(PublicationControlText.kind("news"), count: value.news, icon: "newspaper")
+        metric(PublicationControlText.kind("event"), count: value.events, icon: "calendar")
+    }
     private func metric(_ title: String, count: Int, icon: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) { Label(title, systemImage: icon).font(.subheadline); Text(count.formatted()).font(.largeTitle.bold()).monospacedDigit() }.frame(maxWidth: .infinity, alignment: .leading)
+        VStack(alignment: .leading, spacing: 6) { HStack(alignment: .top, spacing: 10) { Image(systemName: icon).font(.system(size: 20)); Text(title).accessibilityIdentifier("publicationControl.metric." + icon).font(.subheadline).fixedSize(horizontal: false, vertical: true) }; Text(count.formatted()).font(.largeTitle.bold()).monospacedDigit() }.frame(maxWidth: .infinity, alignment: .leading)
     }
     private var filters: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -302,38 +240,46 @@ struct PublicationControlView: View {
                 default: text("Публікації", "Publikationen")
                 }
             }, identifier: { "publicationControl.tab." + $0 })
-            Menu {
-                Picker(text("Регіон", "Region"), selection: $selectedRegion) {
-                Text(text("Усі регіони", "Alle Regionen")).tag("all")
-                ForEach(["austria", "burgenland", "kaernten", "niederoesterreich", "oberoesterreich", "salzburg", "steiermark", "tirol", "vorarlberg", "wien", "unknown"], id: \.self) { Text(PublicationControlText.region($0)).tag($0) }
+            Button { choosingRegion = true } label: {
+                let title = selectedRegion == "all" ? text("Усі регіони", "Alle Regionen") : PublicationControlText.region(selectedRegion)
+                if typeSize.isAccessibilitySize {
+                    HStack(alignment: .firstTextBaseline, spacing: 12) {
+                        Image(systemName: "mappin.and.ellipse").font(.system(size: 18)).accessibilityHidden(true)
+                        Text(title).font(.subheadline.weight(.medium)).fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.down").font(.system(size: 14)).accessibilityHidden(true)
+                    }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).padding(12)
+                        .foregroundStyle(selectedRegion == "all" ? AppTheme.textPrimary : .white)
+                        .background(selectedRegion == "all" ? AppTheme.surfaceControl : AppTheme.accentPrimary, in: RoundedRectangle(cornerRadius: 18))
+                } else {
+                    AppFilterChip(title: title, systemImage: "mappin.and.ellipse", isSelected: selectedRegion != "all", trailingSystemImage: "chevron.down")
                 }
-            } label: {
-                AppFilterChip(title: selectedRegion == "all" ? text("Усі регіони", "Alle Regionen") : PublicationControlText.region(selectedRegion),
-                              systemImage: "mappin.and.ellipse", isSelected: selectedRegion != "all", trailingSystemImage: "chevron.down")
             }.buttonStyle(.plain).accessibilityIdentifier("publicationControl.region")
         }
     }
-    @ViewBuilder private var itemCards: some View {
-        if let error = store.itemsError { InlineMessageCard(style: .error, message: error); Button(PublicationControlText.retry) { Task { await store.loadItems(region: region) } } }
-        if store.loadingItems { ProgressView() }
-        if store.items.isEmpty && !store.loadingItems && store.itemsError == nil { empty(text("За цю дату публікацій немає", "Keine Publikationen an diesem Tag")) }
-        ForEach(store.items) { item in
-            Button {
-                guard item.sourceState == "approved", let kind = OwnerContentDraftKind(rawValue: item.kind) else { return }
-                onOpen(kind, item.contentId)
-            } label: {
-                AppEditorSectionCard {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(item.title).font(.headline).foregroundStyle(AppTheme.textPrimary)
-                        Text(PublicationControlText.kind(item.kind) + " · " + PublicationControlText.region(item.region)).font(.caption).foregroundStyle(AppTheme.textSecondary)
-                        Text((item.timingSource == "legacyCreation" ? text("Додано: ", "Erstellt: ") : "") + PublicationControlText.date(item.firstPublicAt)).font(.caption).foregroundStyle(AppTheme.textSecondary)
-                        if item.sourceState != "approved" { Label(text("Більше не у відкритому доступі", "Nicht mehr öffentlich verfügbar"), systemImage: "archivebox").font(.caption).foregroundStyle(AppTheme.textSecondary) }
-                        else { Label(text("Відкрити матеріал", "Inhalt öffnen"), systemImage: "arrow.up.right").font(.subheadline) }
+    private var itemCards: some View {
+        LazyVStack(alignment: .leading, spacing: 16) {
+            if let error = store.itemsError { InlineMessageCard(style: .error, message: error); Button(PublicationControlText.retry) { Task { await store.loadItems(region: region) } } }
+            if store.loadingItems { ProgressView() }
+            if store.items.isEmpty && !store.loadingItems && store.itemsError == nil { empty(text("За цю дату публікацій немає", "Keine Publikationen an diesem Tag")) }
+            ForEach(store.items) { item in
+                Button {
+                    guard item.sourceState == "approved", let kind = OwnerContentDraftKind(rawValue: item.kind) else { return }
+                    onOpen(kind, item.contentId)
+                } label: {
+                    AppEditorSectionCard {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(item.title).font(.headline).foregroundStyle(AppTheme.textPrimary)
+                            Text(PublicationControlText.kind(item.kind) + " · " + PublicationControlText.region(item.region)).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                            Text((item.timingSource == "legacyCreation" ? text("Додано: ", "Erstellt: ") : "") + PublicationControlText.date(item.firstPublicAt)).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                            if item.sourceState != "approved" { Label(text("Більше не у відкритому доступі", "Nicht mehr öffentlich verfügbar"), systemImage: "archivebox").font(.caption).foregroundStyle(AppTheme.textSecondary) }
+                            else { Label(text("Відкрити матеріал", "Inhalt öffnen"), systemImage: "arrow.up.right").font(.subheadline) }
+                        }
                     }
-                }
-            }.buttonStyle(.plain).disabled(item.sourceState != "approved").accessibilityIdentifier("publicationControl.item.\(item.contentId)")
+                }.buttonStyle(.plain).disabled(item.sourceState != "approved").accessibilityIdentifier("publicationControl.item.\(item.contentId)")
+            }
+            if store.itemCursor != nil { Button(text("Показати ще", "Weitere anzeigen")) { Task { await store.loadItems(region: region, more: true) } }.disabled(store.loadingItems) }
         }
-        if store.itemCursor != nil { Button(text("Показати ще", "Weitere anzeigen")) { Task { await store.loadItems(region: region, more: true) } }.disabled(store.loadingItems) }
     }
     @ViewBuilder private func regionCards(_ overview: PublicationControlOverview) -> some View {
         ForEach(overview.regions.filter { (region == nil || $0.region == region) && ($0.region != "unknown" || $0.news + $0.events > 0 || region == "unknown") }) { item in
@@ -378,7 +324,9 @@ struct PublicationControlView: View {
                     let grouped = Dictionary(grouping: run.issues, by: \.code)
                     ForEach(grouped.keys.sorted(), id: \.self) { code in
                         let entries = grouped[code] ?? []
-                        DisclosureGroup(PublicationControlText.issue(code) + (entries.count > 1 ? " (\(entries.count))" : "")) {
+                        Text(PublicationControlText.issue(code)).font(.subheadline.weight(.semibold))
+                        Text(PublicationControlText.remedy(code)).font(.footnote).foregroundStyle(AppTheme.textSecondary).fixedSize(horizontal: false, vertical: true)
+                        DisclosureGroup(text("Технічні подробиці", "Technische Einzelheiten") + (entries.count > 1 ? " (\(entries.count))" : "")) {
                             ForEach(Array(Set(entries.map(\.detail))).sorted(), id: \.self) { detail in
                                 Text(verbatim: detail).font(.caption).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
                             }
@@ -389,47 +337,114 @@ struct PublicationControlView: View {
             }
         }
     }
-    @ViewBuilder private var historyCards: some View {
-        Text(text("Історія отриманих звітів. Час із файлу позначається окремо, якщо звіт не містить часу завершення.", "Historie der eingegangenen Berichte. Fehlt die Abschlusszeit, wird die Dateizeit gesondert gekennzeichnet.")).font(.caption).foregroundStyle(AppTheme.textSecondary)
-        if let error = store.runsError { InlineMessageCard(style: .error, message: error); Button(PublicationControlText.retry) { Task { await store.loadRuns() } } }
-        ForEach(store.runs.filter { region == nil || $0.region == region }) { run in
-            AppEditorSectionCard {
-                VStack(alignment: .leading, spacing: 10) {
-                    runSummary(run, now: store.reportNow(at: clockDate))
-                    Text(text("Опубліковано за звітом: ", "Laut Bericht veröffentlicht: ") + (run.published.map(String.init) ?? "—")).font(.subheadline)
-                    if let candidates = run.candidates {
-                        Text(text("Опрацьовано кандидатів: ", "Bearbeitete Kandidaten: ") + String(candidates) + (run.rejected.map { text(" · Відхилено / пропущено: \($0)", " · Abgelehnt / übersprungen: \($0)") } ?? "")).font(.caption).foregroundStyle(AppTheme.textSecondary)
-                    }
-                    if let checked = run.sourcesChecked { Text(text("Перевірено джерел: ", "Geprüfte Quellen: ") + String(checked) + (run.sourcesExpected.map { " / \($0)" } ?? "")).font(.caption).foregroundStyle(AppTheme.textSecondary) }
-                    if run.publicationOnly { Text(text("Продовження підготовленої публікації", "Fortsetzung einer vorbereiteten Publikation")).font(.caption) }
-                    DisclosureGroup(text("Подробиці проходу", "Details des Durchlaufs")) {
-                        Text(verbatim: run.runId).font(.caption).textSelection(.enabled)
-                        ForEach(Array(run.issues.enumerated()), id: \.offset) { _, issue in Text(PublicationControlText.issue(issue.code) + "\n" + issue.detail).font(.caption).textSelection(.enabled) }
+    private var historyCards: some View {
+        LazyVStack(alignment: .leading, spacing: 16) {
+            Text(text("Історія отриманих звітів. Час із файлу позначається окремо, якщо звіт не містить часу завершення.", "Historie der eingegangenen Berichte. Fehlt die Abschlusszeit, wird die Dateizeit gesondert gekennzeichnet.")).font(.caption).foregroundStyle(AppTheme.textSecondary)
+            if let error = store.runsError { InlineMessageCard(style: .error, message: error); Button(PublicationControlText.retry) { Task { await store.loadRuns(region: region) } } }
+            ForEach(store.runs) { run in
+                AppEditorSectionCard {
+                    VStack(alignment: .leading, spacing: 10) {
+                        runSummary(run, now: store.reportNow(at: clockDate), showsFreshness: false)
+                        Text(text("Опубліковано за звітом: ", "Laut Bericht veröffentlicht: ") + (run.published.map(String.init) ?? "—")).font(.subheadline)
+                        if let candidates = run.candidates {
+                            Text(text("Опрацьовано кандидатів: ", "Bearbeitete Kandidaten: ") + String(candidates) + (run.rejected.map { text(" · Відхилено / пропущено: \($0)", " · Abgelehnt / übersprungen: \($0)") } ?? "")).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                        }
+                        if let checked = run.sourcesChecked { Text(text("Перевірено джерел: ", "Geprüfte Quellen: ") + String(checked) + (run.sourcesExpected.map { " / \($0)" } ?? "")).font(.caption).foregroundStyle(AppTheme.textSecondary) }
+                        if run.publicationOnly { Text(text("Продовження підготовленої публікації", "Fortsetzung einer vorbereiteten Publikation")).font(.caption) }
+                        DisclosureGroup(text("Подробиці проходу", "Details des Durchlaufs")) {
+                            Text(verbatim: run.runId).font(.caption).textSelection(.enabled)
+                            ForEach(Array(run.issues.enumerated()), id: \.offset) { _, issue in Text(PublicationControlText.issue(issue.code) + "\n" + issue.detail).font(.caption).textSelection(.enabled) }
+                        }
                     }
                 }
             }
+            if store.loadingRuns { ProgressView() }
+            if store.runs.isEmpty && !store.loadingRuns && store.runsError == nil { empty(region == nil ? text("Звітів ще немає", "Noch keine Berichte") : text("За цим регіоном звітів немає", "Für diese Region liegen keine Berichte vor")) }
+            if store.runCursor != nil { Button(text("Завантажити старіші проходи", "Ältere Durchläufe laden")) { Task { await store.loadRuns(region: region, more: true) } }.disabled(store.loadingRuns) }
         }
-        if store.loadingRuns { ProgressView() }
-        if store.runs.isEmpty && !store.loadingRuns && store.runsError == nil { empty(text("Звітів ще немає", "Noch keine Berichte")) }
-        if store.runCursor != nil { Button(text("Завантажити старіші проходи", "Ältere Durchläufe laden")) { Task { await store.loadRuns(more: true) } }.disabled(store.loadingRuns) }
     }
-    private func isStale(_ run: PublicationControlRun, now: Double) -> Bool { now - (run.endedAt ?? 0) > (run.kind == "news" ? 3 : 26) * 3600000 }
-    private func runSummary(_ run: PublicationControlRun, now: Double) -> some View {
+    private func isStale(_ run: PublicationControlRun, now: Double) -> Bool {
+        if let next = PublicationControlText.nextExpected(run), let schedule = run.schedule {
+            return now > next.timeIntervalSince1970 * 1000 + Double(max(0, schedule.graceMinutes)) * 60000
+        }
+        return now - (run.endedAt ?? 0) > 26 * 3600000
+    }
+    private func runSummary(_ run: PublicationControlRun, now: Double, showsFreshness: Bool = true) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(PublicationControlText.kind(run.kind) + " · " + PublicationControlText.region(run.region)).font(.headline)
             Label(PublicationControlText.status(run.status), systemImage: run.status == "complete" ? "checkmark.circle" : "exclamationmark.triangle").font(.subheadline).foregroundStyle(run.status == "complete" ? AppTheme.accentSuccessForeground : AppTheme.accentWarningForeground)
             Text((run.timestampBasis == "reportFileModifiedAt" ? text("Час файлу: ", "Dateizeit: ") : "") + PublicationControlText.date(run.endedAt)).font(.caption).foregroundStyle(AppTheme.textSecondary)
-            if isStale(run, now: now) { Text(text("Новішого звіту немає — поточний стан невідомий", "Kein neuerer Bericht – aktueller Zustand unbekannt")).font(.caption).foregroundStyle(AppTheme.accentWarningForeground) }
+            if showsFreshness && isStale(run, now: now) { Text(text("Новішого звіту немає — поточний стан невідомий", "Kein neuerer Bericht – aktueller Zustand unbekannt")).font(.caption).foregroundStyle(AppTheme.accentWarningForeground) }
+            if showsFreshness, let next = PublicationControlText.nextExpected(run) {
+                Text(text("Наступний запланований прохід: ", "Nächster geplanter Durchlauf: ") + PublicationControlText.date(next.timeIntervalSince1970 * 1000)).font(.caption).foregroundStyle(AppTheme.textSecondary)
+            }
             if let complete = run.lastCompleteAt { Text(text("Останній повністю завершений прохід: ", "Letzter vollständig abgeschlossener Durchlauf: ") + PublicationControlText.date(complete)).font(.caption).foregroundStyle(AppTheme.textSecondary) }
         }.fixedSize(horizontal: false, vertical: true)
     }
     private func empty(_ message: String) -> some View { AppEditorSectionCard { Text(message).foregroundStyle(AppTheme.textSecondary).frame(maxWidth: .infinity, alignment: .leading) } }
-    private func refresh() async {
+    private func refresh(force: Bool = true) async {
         let currentActor = actor
         guard !currentActor.isEmpty else { store.reset(); return }
-        await store.load(actor: currentActor, day: day)
-        guard actor == currentActor, !Task.isCancelled else { return }
+        let currentKey = key
+        await store.load(actor: currentActor, day: day, force: force)
+        guard key == currentKey, actor == currentActor, !Task.isCancelled else { return }
         if section == "items" { await store.loadItems(region: region) }
-        if section == "history" { await store.loadRuns() }
+        if section == "history" { await store.loadRuns(region: region) }
+    }
+}
+
+private struct PublicationControlDateSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State var date: Date
+    let confirm: (Date) -> Void
+    private let calendar = PublicationControlText.calendar
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                DatePicker(PublicationControlText.value("Дата публікацій", "Publikationsdatum"), selection: $date,
+                           in: calendar.date(byAdding: .day, value: -29, to: calendar.startOfDay(for: .now))!...Date.now, displayedComponents: .date)
+                    .datePickerStyle(.graphical)
+                    .environment(\.calendar, calendar).environment(\.timeZone, calendar.timeZone)
+                    .padding().accessibilityIdentifier("publicationControl.calendar")
+            }
+            .navigationTitle(PublicationControlText.value("Дата", "Datum"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button(AppStrings.Common.cancel) { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(AppStrings.Common.done) { confirm(date); dismiss() }.accessibilityIdentifier("publicationControl.calendar.done")
+                }
+            }
+        }
+    }
+}
+
+
+private struct PublicationControlRegionSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let selected: String
+    let confirm: (String) -> Void
+    private let regions = ["all", "austria", "burgenland", "kaernten", "niederoesterreich", "oberoesterreich", "salzburg", "steiermark", "tirol", "vorarlberg", "wien", "unknown"]
+    var body: some View {
+        NavigationStack {
+            List(regions, id: \.self) { region in
+                Button {
+                    confirm(region); dismiss()
+                } label: {
+                    HStack(alignment: .firstTextBaseline, spacing: 12) {
+                        Text(region == "all" ? PublicationControlText.value("Усі регіони", "Alle Regionen") : PublicationControlText.region(region))
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                        if region == selected { Image(systemName: "checkmark").font(.system(size: 18, weight: .semibold)) }
+                    }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).contentShape(Rectangle())
+                }.foregroundStyle(AppTheme.textPrimary)
+                    .accessibilityIdentifier("publicationControl.region." + region)
+                    .accessibilityAddTraits(region == selected ? .isSelected : [])
+                    .listRowBackground(AppTheme.surfacePrimary)
+            }.scrollContentBackground(.hidden).background { AppBackgroundView() }
+                .navigationTitle(PublicationControlText.value("Регіон", "Region"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button(AppStrings.Common.cancel) { dismiss() } } }
+        }
     }
 }

@@ -1,4 +1,4 @@
-import {FieldPath, Timestamp, type DocumentData} from "firebase-admin/firestore";
+import {FieldPath, Timestamp, type DocumentData, type Query} from "firebase-admin/firestore";
 import {onDocumentWritten} from "firebase-functions/v2/firestore";
 import {onCall,HttpsError} from "firebase-functions/v2/https";
 import {db} from "../firebase/admin";
@@ -20,7 +20,18 @@ export async function updatePublicationIndex(kind:string,id:string,observed:Docu
     if (!existing.exists) {
       const createdPublic = !before && observed?.createdAt instanceof Timestamp;
       const time=createdPublic ? observed!.createdAt as Timestamp : eventTime;
-      tx.create(reference,{...publicationProjection(kind,id,observed!,time,createdPublic?"creation":"approvalEvent"),sourceState:current.exists ? current.get("moderationStatus") ?? "unknown":"removed",updatedAt:Timestamp.now()});
+      const projection=publicationProjection(kind,id,observed!,time,createdPublic?"creation":"approvalEvent");
+      const dayRef=db.doc(`publicationControlDays/${projection.day}`),daySnapshot=await tx.get(dayRef);
+      let summary=daySnapshot.data();
+      if(!summary) {
+        const older=await tx.get(db.collection("publicationControlItems").where("day","==",projection.day).limit(1));
+        summary={news:0,events:0,legacyTimeCount:0,regions:{},ready:older.empty};
+      }
+      const counter=kind==="news"?"news":"events",regions={...summary.regions};
+      regions[projection.region]={news:0,events:0,...regions[projection.region]};
+      regions[projection.region][counter]+=1;
+      tx.set(dayRef,{...summary,[counter]:(summary[counter]??0)+1,regions,updatedAt:Timestamp.now()});
+      tx.create(reference,{...projection,sourceState:current.exists ? current.get("moderationStatus") ?? "unknown":"removed",updatedAt:Timestamp.now()});
     } else {
       // Read canonical content in the transaction, so late/replayed events cannot restore stale state.
       const data=current.data();
@@ -37,45 +48,79 @@ const trigger=(collection:"news"|"events")=>onDocumentWritten({document:`${colle
 });
 export const maintainPublicationControlNews=trigger("news");
 export const maintainPublicationControlEvents=trigger("events");
+/** Transactional migration/reconciliation; never modifies a publication or its index. */
+export async function rebuildPublicationDay(day:string) {
+  return db.runTransaction(async tx=>{
+    const ref=db.doc(`publicationControlDays/${day}`);
+    await tx.get(ref);
+    const rows=await tx.get(db.collection("publicationControlItems").where("day","==",day));
+    const summary:DocumentData={news:0,events:0,legacyTimeCount:0,regions:{},ready:true,updatedAt:Timestamp.now()};
+    for(const doc of rows.docs) {
+      const row=doc.data(),key=row.kind==="news"?"news":"events",region=publicationRegions.includes(row.region)?row.region:"unknown";
+      summary[key]++; if(row.timingSource==="legacyCreation")summary.legacyTimeCount++;
+      summary.regions[region]??={news:0,events:0};summary.regions[region][key]++;
+    }
+    tx.set(ref,summary);return summary;
+  });
+}
+export function validPublicationDay(day:unknown,today:string):day is string {
+  if(typeof day!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(day))return false;
+  const date=new Date(day+"T12:00:00Z");
+  return Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===day&&day<=today
+    &&day>=new Date(new Date(today+"T12:00:00Z").getTime()-30*86400000).toISOString().slice(0,10);
+}
 function dto(data:DocumentData,id:string) {
-  const result:DocumentData={id,...data};
-  for (const key of ["firstPublicAt","endedAt","syncedAt","lastCompleteAt"]) result[key]=data[key] instanceof Timestamp ? data[key].toMillis():null;
+  const result:DocumentData={...data,id};
+  for (const key of ["firstPublicAt","endedAt","scheduledAt","syncedAt","lastCompleteAt","lastAttemptAt","lastSuccessfulCheckAt","lastImportedAt","lastReportAt","nextExpectedAt"]) result[key]=data[key] instanceof Timestamp ? data[key].toMillis():null;
   return result;
 }
 export const getPublicationControl=onCall({region:"europe-west3",maxInstances:6,enforceAppCheck:false},async request=>{
   const actor=await requireVerifiedActiveUser(request);
   if (!isAppOwner(actor.permissions) || request.data?.principalId !== actor.uid) throw new HttpsError("permission-denied","App owner access is required.");
   const input=request.data??{}, today=dailyDocumentIDFor(new Date()),day=input.day??today;
-  if (typeof day!=="string" || !/^\d{4}-\d{2}-\d{2}$/.test(day) || day>today || day<dailyDocumentIDFor(new Date(Date.now()-30*86400000))) throw new HttpsError("invalid-argument","Select a day within the last 30 days.");
+  if (!validPublicationDay(day,today)) throw new HttpsError("invalid-argument","Select a day within the last 30 days.");
   if (input.region != null && !publicationRegions.includes(input.region) || input.kind != null && !["news","event"].includes(input.kind)) throw new HttpsError("invalid-argument","Invalid filter.");
-  if (input.action === "overview" || input.action === "items") {
-    const documents=await db.collection("publicationControlItems").where("day","==",day).get();
-    const all=documents.docs.map(d=>dto(d.data(),d.id));
-    const items=all.filter(d=>(!input.region || d.region===input.region)&&(!input.kind || d.kind===input.kind)).sort((a,b)=>b.firstPublicAt-a.firstPublicAt || a.id.localeCompare(b.id));
-    let start=0;
-    if (input.cursor!=null) {
-      if (typeof input.cursor!=="string" || input.cursor.length>500) throw new HttpsError("invalid-argument","Invalid cursor.");
-      const anchor=items.findIndex(d=>d.id===input.cursor);
-      if (anchor<0) throw new HttpsError("aborted","The list changed. Refresh it.");
-      start=anchor+1;
-    }
-    const page=items.slice(start,start+30);
-    if (input.action === "items") return {items:page,cursor:items.length>start+30?page.at(-1)!.id:null,total:items.length};
-    const [sources,meta]=await Promise.all([db.collection("publicationControlSources").get(),db.doc("publicationControlMeta/importer").get()]);
-    return {day,serverTime:Date.now(),legacyTimeCount:all.filter(d=>d.timingSource==="legacyCreation").length,news:all.filter(d=>d.kind==="news").length,events:all.filter(d=>d.kind==="event").length,
-      regions:publicationRegions.map(region=>({region,news:all.filter(d=>d.kind==="news"&&d.region===region).length,events:all.filter(d=>d.kind==="event"&&d.region===region).length})),sources:sources.docs.map(d=>dto(d.data(),d.id)),syncErrors:Number(meta.get("errors")??0),syncedAt:meta.get("syncedAt") instanceof Timestamp?meta.get("syncedAt").toMillis():null};
+  if(input.action==="overview") {
+    const [daily,sources,meta]=await Promise.all([db.doc(`publicationControlDays/${day}`).get(),db.collection("publicationControlSources").limit(30).get(),db.doc("publicationControlMeta/importer").get()]);
+    // Compatibility fallback is used only until historical day summaries are rebuilt.
+    let counts=daily.data();
+    if(!counts?.ready)counts=await rebuildPublicationDay(day);
+    const metadata=dto(meta.data()??{},"importer");
+    return {day,serverTime:Date.now(),news:counts.news,events:counts.events,legacyTimeCount:counts.legacyTimeCount,
+      regions:publicationRegions.map(region=>({region,news:counts!.regions?.[region]?.news??0,events:counts!.regions?.[region]?.events??0})),
+      sources:sources.docs.map(d=>dto(d.data(),d.id)),syncErrors:Number(meta.get("errors")??0),
+      syncedAt:metadata.lastSuccessfulCheckAt??metadata.syncedAt,
+      lastAttemptAt:metadata.lastAttemptAt,lastSuccessfulCheckAt:metadata.lastSuccessfulCheckAt,
+      lastImportedAt:metadata.lastImportedAt,lastReportAt:metadata.lastReportAt,
+      syncIssues:meta.get("issues")??[]};
   }
-  if (input.action === "runs") {
-    let query=db.collection("publicationControlRuns").orderBy("endedAt","desc").orderBy(FieldPath.documentId()).limit(80);
-    if (input.cursor!=null) {
-      if (typeof input.cursor!=="string" || !/^[a-f0-9]{40}$/.test(input.cursor)) throw new HttpsError("invalid-argument","Invalid cursor.");
-      const cursor=await db.collection("publicationControlRuns").doc(input.cursor).get();
-      if (!cursor.exists) throw new HttpsError("aborted","History changed. Refresh it.");
-      query=query.startAfter(cursor);
+  if(input.action==="items") {
+    let query:Query=db.collection("publicationControlItems").where("day","==",day);
+    if(input.region!=null)query=query.where("region","==",input.region);
+    if(input.kind!=null)query=query.where("kind","==",input.kind);
+    const total=(await query.count().get()).data().count;
+    query=query.orderBy("firstPublicAt","desc").orderBy(FieldPath.documentId());
+    if(input.cursor!=null) {
+      if(typeof input.cursor!=="string"||input.cursor.length>500||input.cursor.includes("/"))throw new HttpsError("invalid-argument","Invalid cursor.");
+      const anchor=await db.doc(`publicationControlItems/${input.cursor}`).get();
+      if(!anchor.exists||anchor.get("day")!==day||(input.region!=null&&anchor.get("region")!==input.region)||(input.kind!=null&&anchor.get("kind")!==input.kind))throw new HttpsError("aborted","The list changed. Refresh it.");
+      query=query.startAfter(anchor);
     }
-    // Compact bounded pages; the UI applies the selected region to these history rows.
-    const result=await query.get();
-    return {runs:result.docs.map(d=>dto(d.data(),d.id)),cursor:result.size===80?result.docs.at(-1)!.id:null};
+    const result=await query.limit(31).get(),rows=result.docs.slice(0,30);
+    return {items:rows.map(d=>dto(d.data(),d.id)),cursor:result.size>30?rows.at(-1)!.id:null,total};
+  }
+  if(input.action==="runs") {
+    let query:Query=db.collection("publicationControlRuns");
+    if(input.region!=null)query=query.where("region","==",input.region);
+    query=query.orderBy("endedAt","desc").orderBy(FieldPath.documentId());
+    if(input.cursor!=null) {
+      if(typeof input.cursor!=="string"||!/^[a-f0-9]{40}$/.test(input.cursor))throw new HttpsError("invalid-argument","Invalid cursor.");
+      const anchor=await db.doc(`publicationControlRuns/${input.cursor}`).get();
+      if(!anchor.exists||(input.region!=null&&anchor.get("region")!==input.region))throw new HttpsError("aborted","History changed. Refresh it.");
+      query=query.startAfter(anchor);
+    }
+    const result=await query.limit(81).get(),rows=result.docs.slice(0,80);
+    return {runs:rows.map(d=>dto(d.data(),d.id)),cursor:result.size>80?rows.at(-1)!.id:null};
   }
   throw new HttpsError("invalid-argument","Invalid action.");
 });

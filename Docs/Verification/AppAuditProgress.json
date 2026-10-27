@@ -3,7 +3,7 @@
   "totalBlocks": 19,
   "completedBlocks": 10,
   "remainingBlocks": 9,
-  "nextBlock": 16,
+  "nextBlock": 17,
   "blocks": [
     {
       "number": 1,
@@ -317,8 +317,18 @@
     {
       "number": 16,
       "name": "Контроль публикаций и автоматических проходов",
-      "status": "initial_audit_requires_implementation",
+      "status": "implemented_locally_verified_and_deployed_pending_device_acceptance",
       "openChecks": [
+        "Physical iPhone acceptance with installed signed copy; currently device unavailable.",
+        "Exact-revision hosted CI terminal result.",
+        "No new TestFlight upload requested."
+      ],
+      "inventory": "Docs/Verification/PublicationControlInventory20261027.json",
+      "report": "Docs/Verification/PublicationControlAudit20261027.json",
+      "productionChanged": true,
+      "testFlightChanged": false,
+      "resolutionReport": "Docs/Verification/PublicationControlFixes20261027.json",
+      "implementedFindings": [
         "P16-F01",
         "P16-F02",
         "P16-F03",
@@ -328,12 +338,19 @@
         "P16-F07",
         "P16-F08",
         "P16-F09",
-        "P16-F10"
+        "P16-F10",
+        "P16-F11"
       ],
-      "inventory": "Docs/Verification/PublicationControlInventory20261027.json",
-      "report": "Docs/Verification/PublicationControlAudit20261027.json",
-      "productionChanged": false,
-      "testFlightChanged": false
+      "localValidation": {
+        "result": "Passed",
+        "passedTests": 928,
+        "failedTests": 0,
+        "skippedTests": 40,
+        "totalTestCount": 968
+      },
+      "sourceCI": {
+        "status": "pending push and exact revision run; not claimed passed"
+      }
     },
     {
       "number": 17,

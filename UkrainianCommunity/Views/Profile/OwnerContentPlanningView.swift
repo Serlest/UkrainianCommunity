@@ -13,6 +13,8 @@ struct OwnerContentPlanningView: View {
     @State private var pendingDeleteDraft: OwnerContentDraft?
     @State private var handledDeepLinkID: String?
 
+    @State private var loadedAccessKey = ""
+    private var accessKey: String { "\(activeUserID ?? "none")|\(ProfileAccessIdentity(user: authState.user).hashValue)|\(authState.sessionState)" }
     private let initialDraftID: String?
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
@@ -50,18 +52,19 @@ struct OwnerContentPlanningView: View {
             .padding(.bottom, AppTheme.homeBottomContentPadding)
         }
         .accessibilityIdentifier("screen.contentPlanning")
-        .task(id: activeUserID) {
-            guard let userID = activeUserID else {
-                viewModel.stop()
-                return
-            }
+        .task(id: accessKey + "|" + selectedSection.rawValue) {
+            guard let userID = activeUserID else { viewModel.stop(); return }
+            if loadedAccessKey != accessKey { viewModel.stop(); loadedAccessKey = accessKey }
             viewModel.start(userID: userID)
             await viewModel.load(selectedSection, userID: userID)
+            guard !Task.isCancelled else { return }
             await handleInitialDeepLinkIfNeeded()
         }
-        .task(id: "\(activeUserID ?? "none")|\(selectedSection.rawValue)") {
-            guard let userID = activeUserID else { return }
-            await viewModel.load(selectedSection, userID: userID)
+        .onChange(of: accessKey) { _, _ in
+            if loadedAccessKey != accessKey { viewModel.stop() }
+            selectedDraft = nil; selectedInspectionDraft = nil; pendingEventStartDateDraft = nil
+            resolvedEventDraft = nil; selectedReceipt = nil; pendingArchiveDraft = nil; pendingDeleteDraft = nil
+            handledDeepLinkID = nil
         }
         .appRefreshable { await viewModel.refresh(selectedSection) }
         .fullScreenCover(item: $selectedDraft) { draft in
@@ -120,7 +123,7 @@ struct OwnerContentPlanningView: View {
     }
 
     private var activeUserID: String? {
-        guard let user = authState.user, PermissionService.isAppOwner(user: user) else { return nil }
+        guard authState.isAuthenticated, let user = authState.user, PermissionService.isAppOwner(user: user) else { return nil }
         return user.id
     }
 
@@ -303,7 +306,9 @@ struct OwnerContentPlanningView: View {
 
     private func handleInitialDeepLinkIfNeeded() async {
         guard let initialDraftID, handledDeepLinkID != initialDraftID else { return }
-        guard let draft = await viewModel.fetchDraftForDeepLink(initialDraftID) else { return }
+        let token = viewModel.contextGeneration
+        guard let draft = await viewModel.fetchDraftForDeepLink(initialDraftID), !Task.isCancelled,
+              viewModel.contextGeneration == token, activeUserID != nil else { return }
         handledDeepLinkID = initialDraftID
         viewModel.reveal(draft)
         selectedSection = draft.planningSection
@@ -345,9 +350,16 @@ struct OwnerContentPlanningView: View {
 
     @ViewBuilder
     private func editor(for draft: OwnerContentDraft) -> some View {
+        let token = viewModel.contextGeneration
         let callbacks = OwnerContentPlanningPublicationCallbacks(
-            begin: { await viewModel.beginPublishing(draft) },
-            fail: { message in await viewModel.failPublishing(draft, message: message) }
+            begin: {
+                guard viewModel.contextGeneration == token, activeUserID != nil, !Task.isCancelled else { return nil }
+                return await viewModel.beginPublishing(draft)
+            },
+            fail: { message in
+                guard viewModel.contextGeneration == token, activeUserID != nil, !Task.isCancelled else { return }
+                await viewModel.failPublishing(draft, message: message)
+            }
         )
         switch draft.kind {
         case .news:
@@ -357,7 +369,8 @@ struct OwnerContentPlanningView: View {
                 organizationRepository: organizationRepository,
                 planningPublicationCallbacks: callbacks,
                 onPublished: { publication in
-                    await viewModel.finishPublishing(draft, publication: publication)
+                    guard viewModel.contextGeneration == token, activeUserID != nil, !Task.isCancelled else { return false }
+                    return await viewModel.finishPublishing(draft, publication: publication)
                 }
             )
         case .event:
@@ -367,7 +380,8 @@ struct OwnerContentPlanningView: View {
                 organizationRepository: organizationRepository,
                 planningPublicationCallbacks: callbacks,
                 onPublished: { publication in
-                    await viewModel.finishPublishing(draft, publication: publication)
+                    guard viewModel.contextGeneration == token, activeUserID != nil, !Task.isCancelled else { return false }
+                    return await viewModel.finishPublishing(draft, publication: publication)
                 }
             )
         }

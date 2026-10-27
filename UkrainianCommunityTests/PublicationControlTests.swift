@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import FirebaseFunctions
 @testable import UkrainianCommunity
 
 @MainActor struct PublicationControlTests {
@@ -9,7 +10,7 @@ import Testing
         let store = PublicationControlStore(api: .init(overview: { actor, day in
             if actor == "old" { return try await withCheckedThrowingContinuation { resume = $0 } }
             return overview(day, news: 9)
-        }, items: { _,_,_,_ in .init(items: [], cursor: nil, total: 0) }, runs: { _,_ in .init(runs: [], cursor: nil) }))
+        }, items: { _,_,_,_ in .init(items: [], cursor: nil, total: 0) }, runs: { _,_,_ in .init(runs: [], cursor: nil) }))
         let old = Task { await store.load(actor: "old", day: "2026-10-22") }
         while resume == nil { await Task.yield() }
         await store.load(actor: "new", day: "2026-10-22")
@@ -24,7 +25,7 @@ import Testing
         let store = PublicationControlStore(api: .init(overview: { _,day in overview(day) }, items: { _,_,region,cursor in
             if region == "wien" { return try await withCheckedThrowingContinuation { resume = $0 } }
             return .init(items: cursor == nil ? [row("1", "tirol")] : [row("1", "tirol"), row("2", "tirol")], cursor: cursor == nil ? "next" : nil, total: 2)
-        }, runs: { _,_ in .init(runs: [], cursor: nil) }))
+        }, runs: { _,_,_ in .init(runs: [], cursor: nil) }))
         await store.load(actor: "owner", day: "2026-10-22")
         let old = Task { await store.loadItems(region: "wien") }; while resume == nil { await Task.yield() }
         await store.loadItems(region: "tirol")
@@ -40,7 +41,7 @@ import Testing
             reads += 1
             if reads == 1 { return await withCheckedContinuation { resume = $0 } }
             throw AppError.network
-        }, runs: { _,_ in .init(runs: [], cursor: nil) }))
+        }, runs: { _,_,_ in .init(runs: [], cursor: nil) }))
         await store.load(actor: "owner", day: "2026-10-23")
         let first = Task { await store.loadItems(region: nil) }
         while resume == nil { await Task.yield() }
@@ -59,9 +60,23 @@ import Testing
 
     @Test func failureKeepsKnownOverviewAndHasExplicitRetryState() async {
         var fail = false
-        let store = PublicationControlStore(api: .init(overview: { _,day in if fail { throw AppError.network }; return overview(day) }, items: { _,_,_,_ in throw AppError.network }, runs: { _,_ in throw AppError.network }))
+        let store = PublicationControlStore(api: .init(overview: { _,day in if fail { throw AppError.network }; return overview(day) }, items: { _,_,_,_ in throw AppError.network }, runs: { _,_,_ in throw AppError.network }))
         await store.load(actor: "owner", day: "2026-10-22"); fail = true
         await store.load(actor: "owner", day: "2026-10-22"); #expect(store.overview != nil && store.error != nil && !store.loading)
         await store.loadItems(region: nil); await store.loadRuns(); #expect(store.itemsError != nil && store.runsError != nil && !store.loadingItems && !store.loadingRuns)
     }
+    @Test(arguments: [FunctionsErrorCode.permissionDenied.rawValue, FunctionsErrorCode.unauthenticated.rawValue, FunctionsErrorCode.failedPrecondition.rawValue])
+    func accessRejectionClearsRetainedOwnerData(code: Int) async {
+        var denied = false
+        var pageReads = 0
+        let store = PublicationControlStore(api: .init(overview: { _,day in
+            if denied { throw NSError(domain: FunctionsErrorDomain, code: code) }
+            return overview(day)
+        }, items: { _,_,_,_ in pageReads += 1; return .init(items: [], cursor: nil, total: 0) }, runs: { _,_,_ in .init(runs: [], cursor: nil) }))
+        await store.load(actor: "owner", day: "2026-10-27"); #expect(store.overview != nil)
+        denied = true; await store.load(actor: "owner", day: "2026-10-27")
+        #expect(store.overview == nil && store.items.isEmpty && store.runs.isEmpty && store.error != nil && !store.loading)
+        await store.loadItems(region: nil); #expect(pageReads == 0)
+    }
+
 }

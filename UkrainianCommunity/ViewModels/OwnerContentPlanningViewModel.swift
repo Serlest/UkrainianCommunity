@@ -26,6 +26,7 @@ final class OwnerContentPlanningViewModel: ObservableObject {
 
     private let repository: OwnerContentDraftRepository
     private var activeUserID: String?
+    private(set) var contextGeneration = UUID()
     private var publicationAttemptIDs: [String: String] = [:]
     private var publicationLeases: [String: OwnerContentPublicationLease] = [:]
 
@@ -39,6 +40,7 @@ final class OwnerContentPlanningViewModel: ObservableObject {
 
     func start(userID: String) {
         guard activeUserID != userID else { return }
+        contextGeneration = UUID()
         activeUserID = userID
         resetAllSections()
         actionDraftIDs.removeAll()
@@ -49,6 +51,7 @@ final class OwnerContentPlanningViewModel: ObservableObject {
     }
 
     func stop() {
+        contextGeneration = UUID()
         activeUserID = nil
         resetAllSections()
         actionDraftIDs.removeAll()
@@ -60,6 +63,7 @@ final class OwnerContentPlanningViewModel: ObservableObject {
 
     func load(_ section: OwnerContentPlanningSection, userID: String, force: Bool = false) async {
         start(userID: userID)
+        let token = contextGeneration
         var state = snapshot(for: section)
         guard !state.isLoading, !state.isLoadingNextPage else { return }
         guard force || !state.hasLoaded else { return }
@@ -74,7 +78,7 @@ final class OwnerContentPlanningViewModel: ObservableObject {
                 limit: Self.pageSize,
                 after: nil
             )
-            guard !Task.isCancelled, activeUserID == userID else { return }
+            guard !Task.isCancelled, contextGeneration == token, activeUserID == userID else { return }
             sections[section] = OwnerContentPlanningSectionSnapshot(
                 items: page.items,
                 nextCursor: page.nextCursor,
@@ -85,10 +89,10 @@ final class OwnerContentPlanningViewModel: ObservableObject {
                 error: nil
             )
         } catch is CancellationError {
-            guard activeUserID == userID else { return }
+            guard contextGeneration == token, activeUserID == userID else { return }
             sections[section]?.isLoading = false
         } catch {
-            guard activeUserID == userID else { return }
+            guard contextGeneration == token, activeUserID == userID else { return }
             sections[section]?.isLoading = false
             sections[section]?.hasLoaded = true
             sections[section]?.error = (error as? AppError) ?? .unknown
@@ -105,6 +109,7 @@ final class OwnerContentPlanningViewModel: ObservableObject {
         currentItemID: String
     ) async {
         guard let activeUserID else { return }
+        let token = contextGeneration
         var state = snapshot(for: section)
         guard state.hasLoaded, state.hasMore,
               !state.isLoading, !state.isLoadingNextPage,
@@ -122,7 +127,7 @@ final class OwnerContentPlanningViewModel: ObservableObject {
                 limit: Self.pageSize,
                 after: cursor
             )
-            guard !Task.isCancelled, self.activeUserID == activeUserID else { return }
+            guard !Task.isCancelled, contextGeneration == token, self.activeUserID == activeUserID else { return }
             var updated = snapshot(for: section)
             let existingIDs = Set(updated.items.map(\.id))
             updated.items.append(contentsOf: page.items.filter { !existingIDs.contains($0.id) })
@@ -132,10 +137,10 @@ final class OwnerContentPlanningViewModel: ObservableObject {
             updated.error = nil
             sections[section] = updated
         } catch is CancellationError {
-            guard self.activeUserID == activeUserID else { return }
+            guard contextGeneration == token, self.activeUserID == activeUserID else { return }
             sections[section]?.isLoadingNextPage = false
         } catch {
-            guard self.activeUserID == activeUserID else { return }
+            guard contextGeneration == token, self.activeUserID == activeUserID else { return }
             sections[section]?.isLoadingNextPage = false
             sections[section]?.error = (error as? AppError) ?? .unknown
         }
@@ -143,12 +148,16 @@ final class OwnerContentPlanningViewModel: ObservableObject {
 
     func fetchDraftForDeepLink(_ draftID: String) async -> OwnerContentDraft? {
         guard let activeUserID else { return nil }
+        let token = contextGeneration
         deepLinkError = nil
         do {
-            return try await repository.fetchDraft(userID: activeUserID, draftID: draftID)
+            let draft = try await repository.fetchDraft(userID: activeUserID, draftID: draftID)
+            guard contextGeneration == token, self.activeUserID == activeUserID, !Task.isCancelled else { return nil }
+            return draft
         } catch is CancellationError {
             return nil
         } catch {
+            guard contextGeneration == token, self.activeUserID == activeUserID, !Task.isCancelled else { return nil }
             deepLinkError = (error as? AppError) ?? .unknown
             return nil
         }
@@ -164,6 +173,7 @@ final class OwnerContentPlanningViewModel: ObservableObject {
 
     func beginPublishing(_ draft: OwnerContentDraft) async -> OwnerContentPublicationLease? {
         guard let activeUserID else { return nil }
+        let token = contextGeneration
         actionErrorMessage = nil
         if let existingLease = publicationLeases[draft.id], existingLease.expiresAt > Date() {
             return OwnerContentPublicationLease(
@@ -186,13 +196,16 @@ final class OwnerContentPlanningViewModel: ObservableObject {
                 draftID: draft.id,
                 attemptID: attemptID
             )
+            guard contextGeneration == token, self.activeUserID == activeUserID, !Task.isCancelled else { return nil }
             publicationLeases[draft.id] = lease
             actionDraftIDs.remove(draft.id)
             return lease
         } catch is CancellationError {
+            guard contextGeneration == token, self.activeUserID == activeUserID else { return nil }
             actionDraftIDs.remove(draft.id)
             return nil
         } catch {
+            guard contextGeneration == token, self.activeUserID == activeUserID else { return nil }
             actionDraftIDs.remove(draft.id)
             actionErrorMessage = AppStrings.ContentPlanning.publicationBeginFailed
             return nil
@@ -211,6 +224,7 @@ final class OwnerContentPlanningViewModel: ObservableObject {
             actionErrorMessage = AppStrings.ContentPlanning.updateFailed
             return false
         }
+        let token = contextGeneration
         actionDraftIDs.insert(draft.id)
         actionErrorMessage = nil
         let linkedPublication = ContentPlanningPublicationResult(
@@ -235,15 +249,18 @@ final class OwnerContentPlanningViewModel: ObservableObject {
                 draftID: draft.id,
                 publication: linkedPublication
             )
+            guard contextGeneration == token, self.activeUserID == activeUserID, !Task.isCancelled else { return false }
             clearPublicationAttempt(draft.id)
             removeDraftFromAllSections(draft.id)
             invalidate(publication.isScheduled ? .scheduled : .history)
             actionDraftIDs.remove(draft.id)
             return true
         } catch is CancellationError {
+            guard contextGeneration == token, self.activeUserID == activeUserID else { return false }
             actionDraftIDs.remove(draft.id)
             return false
         } catch {
+            guard contextGeneration == token, self.activeUserID == activeUserID else { return false }
             actionDraftIDs.remove(draft.id)
             actionErrorMessage = AppStrings.ContentPlanning.updateFailed
             return false
@@ -252,6 +269,7 @@ final class OwnerContentPlanningViewModel: ObservableObject {
 
     func failPublishing(_ draft: OwnerContentDraft, message: String) async {
         guard let activeUserID, let lease = publicationLeases[draft.id] else { return }
+        let token = contextGeneration
         do {
             try await repository.failPublication(
                 userID: activeUserID,
@@ -259,25 +277,30 @@ final class OwnerContentPlanningViewModel: ObservableObject {
                 leaseID: lease.leaseID,
                 message: message
             )
+            guard contextGeneration == token, self.activeUserID == activeUserID, !Task.isCancelled else { return  }
             clearPublicationAttempt(draft.id)
             removeDraftFromAllSections(draft.id)
             invalidate(.attention)
         } catch {
+            guard contextGeneration == token, self.activeUserID == activeUserID else { return  }
             actionErrorMessage = AppStrings.ContentPlanning.updateFailed
         }
     }
 
     func archive(_ draft: OwnerContentDraft) async -> Bool {
         guard let activeUserID else { return false }
+        let token = contextGeneration
         actionDraftIDs.insert(draft.id)
         actionErrorMessage = nil
         do {
             try await repository.archive(userID: activeUserID, draftID: draft.id)
+            guard contextGeneration == token, self.activeUserID == activeUserID, !Task.isCancelled else { return false }
             removeDraftFromAllSections(draft.id)
             invalidate(.history)
             actionDraftIDs.remove(draft.id)
             return true
         } catch {
+            guard contextGeneration == token, self.activeUserID == activeUserID else { return false }
             actionDraftIDs.remove(draft.id)
             actionErrorMessage = AppStrings.ContentPlanning.updateFailed
             return false
@@ -286,14 +309,17 @@ final class OwnerContentPlanningViewModel: ObservableObject {
 
     func delete(_ draft: OwnerContentDraft) async -> Bool {
         guard let activeUserID else { return false }
+        let token = contextGeneration
         actionDraftIDs.insert(draft.id)
         actionErrorMessage = nil
         do {
             try await repository.delete(userID: activeUserID, draftID: draft.id)
+            guard contextGeneration == token, self.activeUserID == activeUserID, !Task.isCancelled else { return false }
             removeDraftFromAllSections(draft.id)
             actionDraftIDs.remove(draft.id)
             return true
         } catch {
+            guard contextGeneration == token, self.activeUserID == activeUserID else { return false }
             actionDraftIDs.remove(draft.id)
             actionErrorMessage = AppStrings.ContentPlanning.deleteFailed
             return false
