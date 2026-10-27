@@ -24,12 +24,18 @@ struct LegalTextChange: Identifiable, Equatable {
     let added: Bool
     static func compare(old: String, new: String) -> [LegalTextChange] {
         let before = old.components(separatedBy: "\n"), after = new.components(separatedBy: "\n")
-        return after.difference(from: before).map { change in
-            switch change {
-            case .insert(let offset, let text, _): return Self(id: "add-\(offset)", text: text, added: true)
-            case .remove(let offset, let text, _): return Self(id: "remove-\(offset)", text: text, added: false)
-            }
-        }.filter { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        let difference = after.difference(from: before)
+        // CollectionDifference enumerates removals backwards for applying edits.
+        // A reader needs each document's paragraph order, not mutation order.
+        let removals = difference.compactMap { change -> (Int, String)? in
+            if case let .remove(offset, text, _) = change { return (offset, text) }
+            return nil
+        }.sorted { $0.0 < $1.0 }.map { Self(id: "remove-\($0.0)", text: $0.1, added: false) }
+        let additions = difference.compactMap { change -> (Int, String)? in
+            if case let .insert(offset, text, _) = change { return (offset, text) }
+            return nil
+        }.sorted { $0.0 < $1.0 }.map { Self(id: "add-\($0.0)", text: $0.1, added: true) }
+        return (removals + additions).filter { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     }
 }
 

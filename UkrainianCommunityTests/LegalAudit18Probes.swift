@@ -211,3 +211,12 @@ extension LegalAudit18RecoveryTests {
         #expect(LegalQueryScope(auth, query: "management") != key)
     }
 }
+
+
+extension LegalAudit18RecoveryTests {
+    @Test func comparisonKeepsRemovedAndAddedParagraphsInTheirOriginalReadingOrder() {
+        let changes = LegalTextChange.compare(old: "First old paragraph\nUnchanged\nLast old paragraph", new: "First new paragraph\nUnchanged\nLast new paragraph")
+        #expect(changes.filter { !$0.added }.map(\.text) == ["First old paragraph", "Last old paragraph"])
+        #expect(changes.filter(\.added).map(\.text) == ["First new paragraph", "Last new paragraph"])
+    }
+}

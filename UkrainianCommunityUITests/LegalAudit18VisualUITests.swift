@@ -124,3 +124,33 @@ extension LegalAudit18VisualUITests {
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 5))
     }
 }
+
+extension LegalAudit18VisualUITests {
+    @MainActor func testCloseSaveCancelAndDiscardCancellationPreserveTheDraft() {
+        let app = launch("uk", largest: false)
+        let entry = app.buttons["profile.owner.legalDocuments"]; reach(entry, app); entry.tap()
+        let edit = app.buttons["legal.manage.edit.privacy"]; reach(edit, app); edit.tap()
+        app.buttons["legal.edit.actions"].tap(); app.buttons["legal.edit.publish"].tap()
+        XCTAssertFalse(app.buttons["legal.edit.confirmPublish"].exists)
+        let missingSummary = app.staticTexts["Перед публікацією опишіть зміни німецькою та українською."]
+        XCTAssertTrue(missingSummary.waitForExistence(timeout: 5))
+        let german = app.textFields["legal.edit.summary.de"]; reach(german, app)
+        german.tap(); german.typeText("Close-save fixture")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.35)).tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        back(app)
+        let closeSave = app.buttons["legal.edit.closeSave"]; XCTAssertTrue(closeSave.waitForExistence(timeout: 5))
+        app.buttons["Скасувати"].firstMatch.tap()
+        XCTAssertEqual(german.value as? String, "Close-save fixture")
+        back(app); XCTAssertTrue(closeSave.waitForExistence(timeout: 5)); closeSave.tap()
+        XCTAssertTrue(edit.waitForExistence(timeout: 10)); reach(edit, app); edit.tap()
+        XCTAssertEqual(german.value as? String, "Close-save fixture")
+        app.buttons["legal.edit.actions"].tap(); app.buttons["legal.edit.discard"].tap()
+        XCTAssertTrue(app.buttons["legal.edit.confirmDiscard"].waitForExistence(timeout: 5))
+        capture(app, "discard-confirmation-before-cancellation")
+        app.buttons["Скасувати"].firstMatch.tap()
+        XCTAssertEqual(german.value as? String, "Close-save fixture")
+        back(app); reach(edit, app); edit.tap()
+        XCTAssertEqual(german.value as? String, "Close-save fixture")
+    }
+}
