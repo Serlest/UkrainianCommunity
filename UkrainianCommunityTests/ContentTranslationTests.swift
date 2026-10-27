@@ -26,3 +26,12 @@ struct LegalTranslationSessionTests {
         #expect(!preview.isCurrent(userID: "fixture", organizationID: nil, sources: ["Source"], targets: ["Target"], authorizationRevision: 2, authority: ProfileAccessIdentity(user: demoted)))
     }
 }
+
+
+struct TranslationDirectionTests {
+    @Test func identicalTextsCannotHideAChangeOfTranslationDirection() {
+        let preview = ContentTranslationPreview(userID: "fixture", organizationID: nil, sources: ["UAC"], previousTargets: ["UAC"], indices: [0], translations: ["Übersetzung"], sourceLanguage: .german)
+        #expect(preview.isCurrent(userID: "fixture", organizationID: nil, sources: ["UAC"], targets: ["UAC"], sourceLanguage: .german))
+        #expect(!preview.isCurrent(userID: "fixture", organizationID: nil, sources: ["UAC"], targets: ["UAC"], sourceLanguage: .ukrainian))
+    }
+}

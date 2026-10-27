@@ -89,6 +89,8 @@ extension LegalAudit18VisualUITests {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.35)).tap()
             XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
         }
+        let originalGermanTitle = app.textFields["legal.edit.title"].value as? String
+        XCTAssertNotNil(originalGermanTitle)
         let translate = app.buttons["translation.legal"]; reach(translate, app); translate.tap()
         let apply = app.buttons["translation.apply"]; XCTAssertTrue(apply.waitForExistence(timeout: 8))
         XCTAssertFalse(apply.isEnabled); capture(app, "translation-review-before-confirmation")
@@ -106,6 +108,12 @@ extension LegalAudit18VisualUITests {
         XCTAssertTrue((title.value as? String ?? "").contains("Audit18"))
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.35)).tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        reach(translate, app); translate.tap(); XCTAssertTrue(apply.waitForExistence(timeout: 8))
+        XCTAssertTrue((app.textViews.firstMatch.value as? String ?? "").hasPrefix("DE: "))
+        app.buttons["Скасувати"].firstMatch.tap()
+        reach(picker, app); picker.buttons.element(boundBy: 0).tap(); reach(title, app)
+        XCTAssertEqual(title.value as? String, originalGermanTitle)
+        picker.buttons.element(boundBy: 1).tap()
         let save = app.buttons["legal.edit.save"]; save.tap()
         expectation(for: NSPredicate(format: "enabled == false"), evaluatedWith: save); waitForExpectations(timeout: 10)
         app.buttons["legal.edit.actions"].tap(); app.buttons["legal.edit.publish"].tap()

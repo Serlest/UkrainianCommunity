@@ -21,11 +21,13 @@ struct ContentTranslationPreview: Identifiable {
     var translations: [String]
     var authorizationRevision: Int? = nil
     var authority: ProfileAccessIdentity? = nil
-    func isCurrent(userID: String?, organizationID: String?, sources: [String], targets: [String], authorizationRevision: Int? = nil, authority: ProfileAccessIdentity? = nil) -> Bool {
+    var sourceLanguage: AppLanguage? = nil
+    func isCurrent(userID: String?, organizationID: String?, sources: [String], targets: [String], authorizationRevision: Int? = nil, authority: ProfileAccessIdentity? = nil, sourceLanguage: AppLanguage? = nil) -> Bool {
         self.userID == userID && self.organizationID == organizationID
             && self.sources == sources && previousTargets == targets
             && (self.authorizationRevision == nil || self.authorizationRevision == authorizationRevision)
             && (self.authority == nil || self.authority == authority)
+            && (self.sourceLanguage == nil || self.sourceLanguage == sourceLanguage)
     }
 }
 
@@ -110,7 +112,7 @@ struct ContentTranslationButton: View {
             NavigationStack { ContentTranslationReview(draft: draft, fields: fields, targetLanguage: targetLanguage, collapsesLongSource: kind == "legal") { result in
                 guard result.isCurrent(userID: authState.user?.id, organizationID: organizationId,
                                        sources: fields.map(\.source), targets: fields.map { $0.target.wrappedValue },
-                                       authorizationRevision: authState.authorizationRevision, authority: ProfileAccessIdentity(user: authState.user)),
+                                       authorizationRevision: authState.authorizationRevision, authority: ProfileAccessIdentity(user: authState.user), sourceLanguage: sourceLanguage),
                       kind != "legal" || LegalAccessScope(authState).allowsOwner else {
                     error = EditorTranslationStrings.changed; return false
                 }
@@ -119,6 +121,7 @@ struct ContentTranslationButton: View {
             } }
         }
         .onChange(of: LegalAccessScope(authState)) { _, _ in requestID = UUID(); task?.cancel(); preview = nil; busy = false }
+        .onChange(of: sourceLanguage) { _, _ in requestID = UUID(); task?.cancel(); preview = nil; busy = false; error = nil }
         .onChange(of: organizationId) { _, _ in task?.cancel(); preview = nil; busy = false }
         .onDisappear { requestID = UUID(); task?.cancel(); busy = false }
     }
@@ -141,7 +144,7 @@ struct ContentTranslationButton: View {
                       userID == authState.user?.id, organizationID == organizationId else { return }
                 preview = ContentTranslationPreview(userID: userID, organizationID: organizationID,
                                                     sources: sources, previousTargets: targets,
-                                                    indices: indices, translations: result, authorizationRevision: scope.authorizationRevision, authority: scope.identity)
+                                                    indices: indices, translations: result, authorizationRevision: scope.authorizationRevision, authority: scope.identity, sourceLanguage: sourceLanguage)
             } catch {
                 guard !Task.isCancelled, requestID == id, scope == LegalAccessScope(authState) else { return }
                 self.error = (error as NSError).code == FunctionsErrorCode.resourceExhausted.rawValue ? EditorTranslationStrings.limit : EditorTranslationStrings.error
