@@ -1,8 +1,8 @@
 {
   "auditDate": "2026-10-23",
   "totalBlocks": 19,
-  "completedBlocks": 12,
-  "remainingBlocks": 7,
+  "completedBlocks": 13,
+  "remainingBlocks": 6,
   "nextBlock": 19,
   "blocks": [
     {
@@ -198,10 +198,8 @@
     {
       "number": 12,
       "name": "Отзывы, жалобы и поддержка",
-      "status": "verified_pending_user_testflight_acceptance",
-      "openChecks": [
-        "F12-45"
-      ],
+      "status": "verification_closed_physical_exchange_and_push_confirmed_pending_user_acceptance",
+      "openChecks": [],
       "inventory": "Docs/Verification/FeedbackSupportInventory20261026.json",
       "authorizedByUser": "2026-10-26: Ок, тогде переходи к следующему пункту",
       "physicalAcceptance": "User explicitly chose to verify the TestFlight build himself",
@@ -213,17 +211,17 @@
       "serverRulesChanged": true,
       "serverFunctionsChanged": false,
       "closedChecks": [
-        "F12-FINAL-SOURCE-CI"
+        "F12-FINAL-SOURCE-CI",
+        "F12-45"
       ],
-      "testFlightBuild": "1.2.1 (124)"
+      "testFlightBuild": "1.2.1 (124)",
+      "physicalAcceptanceReport": "Docs/Verification/PhysicalAcceptance11to19Progress20261027.json"
     },
     {
       "number": 13,
       "name": "Уведомления и оповещения",
-      "status": "verified_pending_user_testflight_acceptance",
-      "openChecks": [
-        "N13-57"
-      ],
+      "status": "verification_closed_physical_permissions_and_push_confirmed_pending_user_acceptance",
+      "openChecks": [],
       "inventory": "Docs/Verification/NotificationsInventory20261026.json",
       "authorizedByUser": "Вперед. Думаю что после этого я проверю детально оповещения и уведомления.",
       "physicalAcceptance": "User will verify after block13",
@@ -237,10 +235,12 @@
       "serverFunctionsChanged": true,
       "serverIndexesChanged": false,
       "closedChecks": [
-        "N13-FINAL-SOURCE-CI"
+        "N13-FINAL-SOURCE-CI",
+        "N13-57"
       ],
       "testFlightBuild": "1.2.1 (125)",
-      "deliveryReport": "Docs/Verification/TestFlight12520261026.json"
+      "deliveryReport": "Docs/Verification/TestFlight12520261026.json",
+      "physicalAcceptanceReport": "Docs/Verification/PhysicalAcceptance11to19Progress20261027.json"
     },
     {
       "number": 14,
@@ -698,12 +698,12 @@
   "nextNewBlock": null,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "Continue actual iPhone notification permission/foreground/lock scenarios; Mac remains second actor only.",
+  "nextAction": "Continue actual iPhone banner dimensions, carousel, editor/countdown and orientation checks; Mac remains peer only.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,
     "remainingScenarioGroups": 0,
-    "fullyClosedBlocks": 11,
+    "fullyClosedBlocks": 13,
     "block10Report": "Docs/Verification/ModerationAudit20261025.json",
     "block10ScenarioChecks": 32,
     "block11Report": "Docs/Verification/UserManagementAudit20261025.json",
@@ -770,6 +770,6 @@
     },
     "physicalBoundary": "User acceptance of signed TestFlight129 on real iPhone remains pending."
   },
-  "currentBlock": 13,
-  "physicalAcceptanceCurrentBlock": 13
+  "currentBlock": 14,
+  "physicalAcceptanceCurrentBlock": 14
 }

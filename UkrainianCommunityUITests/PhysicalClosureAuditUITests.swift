@@ -644,3 +644,45 @@ extension PhysicalClosureAuditUITests {
         captureForeground(app, "physical-p12-owner-reply-saved")
     }
 }
+
+extension PhysicalClosureAuditUITests {
+    func testP13InstalledNotificationFiltersAndExistingPreferences() {
+        let app = XCUIApplication(); app.activate()
+        if app.textViews["feedback.reply.text"].firstMatch.exists {
+            XCTAssertTrue((app.textViews["feedback.reply.text"].firstMatch.value as? String ?? "").isEmpty)
+            app.buttons.matching(NSPredicate(format: "label IN %@", ["Готово", "Fertig", "Done"])).firstMatch.tap()
+        }
+        openProfile(app)
+        let owner = app.staticTexts["Serlest"].firstMatch
+        reveal(owner, app, towardTop: true); XCTAssertTrue(owner.exists)
+        let notifications = app.buttons["profile.notifications.open"].firstMatch
+        reveal(notifications, app); notifications.tap()
+        let filter = app.buttons["notificationInbox.filter"].firstMatch
+        XCTAssertTrue(filter.waitForExistence(timeout: 20))
+        XCTAssertTrue(app.tabBars.firstMatch.waitForNonExistence(timeout: 5), "Owning stack must hide tabs on the actual phone")
+        captureForeground(app, "physical-p13-installed-inbox-no-root-tabs")
+        for labels in [["Непрочитані", "Ungelesen"], ["Архів", "Archiv"], ["Усі", "Alle"]] {
+            filter.tap()
+            let option = app.buttons.matching(NSPredicate(format: "label IN %@", labels)).firstMatch
+            XCTAssertTrue(option.waitForExistence(timeout: 5)); option.tap()
+            XCTAssertTrue(filter.waitForExistence(timeout: 10))
+            XCTAssertTrue(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: filter)], timeout: 20) == .completed)
+            XCTAssertFalse(app.buttons["notificationInbox.retry"].exists)
+            captureForeground(app, "physical-p13-filter-" + labels[1])
+        }
+        returnFromPushedScreens(app)
+        let settings = app.buttons["profile.settings.open"].firstMatch
+        reveal(settings, app); settings.tap()
+        let enabled = app.switches["notifications.enabled"].firstMatch
+        reveal(enabled, app)
+        XCTAssertTrue(enabled.isHittable)
+        XCTAssertTrue(["0", "1"].contains(enabled.value as? String ?? ""))
+        XCTAssertFalse(app.buttons["notifications.retry"].exists)
+        captureForeground(app, "physical-p13-existing-notification-preferences")
+        let reminders = app.switches["notifications.reminders"].firstMatch
+        reveal(reminders, app)
+        XCTAssertTrue(["0", "1"].contains(reminders.value as? String ?? ""))
+        captureForeground(app, "physical-p13-existing-reminders-and-test-action")
+        // Read-only: retain preferences and permissions. Never mark all real notices read.
+    }
+}

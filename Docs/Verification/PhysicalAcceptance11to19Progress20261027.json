@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "status": "in_progress",
-  "updatedAt": "2026-10-27T19:05:55.600707+00:00",
+  "updatedAt": "2026-10-27T19:30:22.554829+00:00",
   "scope": "Only outstanding physical checks from blocks11–19; retain existing source/emulator/simulator evidence. Each remaining scenario is observed step by step.",
   "userConstraints": [
     "Primary iPhone is the visual/interaction acceptance device.",
@@ -46,7 +46,7 @@
     {
       "block": 13,
       "name": "Уведомления и оповещения",
-      "status": "in_progress",
+      "status": "passed_remaining_signed_device_notification_checks",
       "remainingBeforeThisRun": [
         "N13-57"
       ],
@@ -55,7 +55,7 @@
     {
       "block": 14,
       "name": "Баннеры",
-      "status": "queued",
+      "status": "in_progress",
       "remainingBeforeThisRun": [
         "B14-72-DEVICE-MATRIX",
         "B14-79"
@@ -148,6 +148,11 @@
       "result": "passed_remaining_conditions",
       "evidence": "feedbackRoundTrip",
       "boundary": "Retains earlier44 scenario evidence; this is not a claim of new physical execution for every role or every language."
+    },
+    {
+      "id": "N13-57",
+      "result": "passed_remaining_conditions",
+      "evidence": "notificationPhysicalAcceptance"
     }
   ],
   "feedbackRoundTrip": {
@@ -194,7 +199,8 @@
         "build/physical-acceptance11-19-20261027/p12-followup3-push-destination.png",
         "build/physical-acceptance11-19-20261027/p12-followup3-owner-notice.json",
         "build/physical-acceptance11-19-20261027/p12-followup3-push-receipt.json"
-      ]
+      ],
+      "systemPreviewBoundary": "iPhone global notification setting Show Previews is Never (Vorschauen zeigen: Nie), observed in actual Settings. Generic Mitteilung native text is expected privacy behavior, not proof of missing payload or a UAC localization defect."
     },
     "reviewedImages": [
       "build/physical-acceptance11-19-20261027/p12-owner-reply-attachments/11B12F38-F5F6-47CA-BC02-D70EF9F64992.png",
@@ -255,8 +261,75 @@
     "Use only controlled test records for messages/status changes. Keep real user content, permissions and production publication unchanged."
   ],
   "notCompleted": [
-    "Blocks13–19 remain open; block12 remaining F12-45 signed read and APNs/tap conditions are now observed.",
+    "Blocks14–19 remain open. Outstanding conditions for blocks11–13 recorded individually above.",
     "Full physical role/OS accessibility matrix remains open until individually observed.",
     "No claim that all tests or all19 blocks are physically complete."
-  ]
+  ],
+  "notificationPermissionCheck": {
+    "authorization": "User approved temporarily disabling UAC notifications in iOS and restoring initial state, 2026-10-27.",
+    "status": "restored_original_settings_observed_warning_disappeared",
+    "originalState": {
+      "allowNotifications": true,
+      "lockScreen": true,
+      "notificationCenter": true,
+      "banners": true,
+      "bannerStyle": "temporary",
+      "sounds": true,
+      "badges": true,
+      "watchForwarding": true,
+      "showPreviews": "Never (global default)"
+    },
+    "evidence": [
+      "build/physical-acceptance11-19-20261027/p13-system-original-settings.png",
+      "build/physical-acceptance11-19-20261027/p13-system-uac-denied.png",
+      "build/physical-acceptance11-19-20261027/P13FiltersAndDeniedPreferences.xcresult",
+      "build/physical-acceptance11-19-20261027/p13-denied-preferences-attachments/2E9B59FA-18BB-4907-BAA2-F29046A163C1.png",
+      "build/physical-acceptance11-19-20261027/p13-system-restored-settings.png",
+      "build/physical-acceptance11-19-20261027/p13-restored-warning-cleared.png"
+    ],
+    "driverBoundary": "First native driver reached exact UAC settings and captured baseline, but its center-row tap did not change the toggle. Not accepted as a pass. Temporary denial and restoration were performed through the actual observed trailing control in Device Hub, with OFF/ON screenshots. Unreliable one-off OS mutation driver removed; committed physical test retains read-only filters/preferences checks.",
+    "result": "With iOS permission OFF, existing in-app push preference remains ON and explicit system-denied warning plus Open iPhone Settings button appeared. That button opened exact UAC system notification settings. Restored Allow Notifications ON; original three alert destinations, sounds, badges, Watch forwarding, temporary banner and Never previews retained. Returned via system UAC breadcrumb; warning disappeared without app restart."
+  },
+  "sourceCI": {
+    "headSha": "e6145ce68e229c436f3b232a8c0ba8fbd3562fa3",
+    "runID": 40566011225,
+    "status": "in_progress",
+    "conclusion": null,
+    "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40566011225",
+    "boundary": "Hosted validation is pending, not passed. Local route/access unit tests passed2; signed physical regression passed1 and native push tap was observed separately."
+  },
+  "notificationPhysicalAcceptance": {
+    "status": "passed_remaining_N13-57_conditions",
+    "readOnlyUI": {
+      "artifact": "build/physical-acceptance11-19-20261027/P13FiltersAndDeniedPreferences.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "observed": "All/unread/archive loaded with no retry error; no tabs in inbox; current preferences and reminders read from existing owner account."
+    },
+    "foreground": {
+      "sent": "Own diagnostic test from UAC settings at20:23",
+      "observed": "Server-accepted confirmation, then fresh UAC system Notification Center item, tapped into notification inbox. Diagnostic push intentionally creates no inbox row. Transient banner was not captured; native list delivery/tap is observed.",
+      "evidence": [
+        "build/physical-acceptance11-19-20261027/p13-foreground-test-result.png",
+        "build/physical-acceptance11-19-20261027/p13-foreground-test-native-center.png"
+      ]
+    },
+    "background": "Real banner+badge and native center exact-feedback tap in block12; retained above.",
+    "locked": {
+      "userConfirmedLock": true,
+      "sent": "Exactly one LOCK-1 controlled Mac message at20:27",
+      "userConfirmation": "Уведомление пришло, открылось LOCK-1",
+      "agentObservedAfterUnlock": "Exact LOCK-1 visible in the controlled feedback conversation on physical iPhone.",
+      "evidence": [
+        "build/physical-acceptance11-19-20261027/p13-lock-message-opened.png",
+        "build/physical-acceptance11-19-20261027/p13-user-lock-message.json",
+        "build/physical-acceptance11-19-20261027/p13-lock-owner-notice.json",
+        "build/physical-acceptance11-19-20261027/p13-lock-push-receipt.json"
+      ],
+      "boundary": "Device Hub is black while actually locked. Lock-screen receipt/tap comes from direct user confirmation, then agent inspected actual destination after unlock."
+    },
+    "permissions": "System denial, exact Settings link, restoration and warning clearance observed as recorded in notificationPermissionCheck.",
+    "scopeBoundary": "Retains earlier56 source/emulator/simulator scenario groups. Does not claim new physical execution for each role. No first-ever prompt reset or new registration; existing authorized device plus denied/restored settings used with explicit user approval. No broadcast campaign sent."
+  }
 }
