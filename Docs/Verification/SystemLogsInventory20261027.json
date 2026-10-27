@@ -1,0 +1,288 @@
+{
+  "schemaVersion": 1,
+  "block": 17,
+  "totalBlocks": 19,
+  "name": "Журнал системы и серверные процессы",
+  "stage": "audit_before_implementation",
+  "createdAt": "2026-10-27T10:00:35.682232+00:00",
+  "sourceHead": "15df85b6",
+  "scope": "Existing functions/windows; control-publication UI belongs to block16; notification-center administration belongs to12/13. No new standalone dashboard invented.",
+  "surfaces": [
+    {
+      "id": "entry_owner",
+      "surface": "Вход владельца: профиль → журнал",
+      "roles": "owner",
+      "path": "ProfileViews.swift:1199; ProfileAccessPolicy.allows",
+      "evidenceAndLimits": "source + baseline owner simulator",
+      "status": "verified",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "entry_admin",
+      "surface": "Вход администратора: ограниченный журнал",
+      "roles": "appAdmin",
+      "path": "ProfileViews.swift:1247; SystemLogsAccessMode",
+      "evidenceAndLimits": "source + query integration +19 security rules tests; admin-specific pixels open",
+      "status": "open",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "entry_denied",
+      "surface": "Гость, пользователь, роли организаций, ограниченный аккаунт",
+      "roles": "others",
+      "path": "ProfileAccessPolicy; requireVerifiedActiveUser; firestore.rules",
+      "evidenceAndLimits": "source policy + denied ordinary/anonymous/MFA emulator cases; full physical matrix open",
+      "status": "open",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "root",
+      "surface": "Начальная загрузка, пусто, ошибка, сохранённая выдача, обновление",
+      "roles": "owner/admin",
+      "path": "SystemLogsDashboardView → SystemLogsViewModel.queryChanged/refresh",
+      "evidenceAndLimits": "28 baseline passes; 7 red contract probes",
+      "status": "open",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "search",
+      "surface": "Поиск по всему журналу, локализованные названия операций, клавиатура",
+      "roles": "owner/admin",
+      "path": "AppSearchField → operationAliases → listSystemLogs → journal index / bounded scan",
+      "evidenceAndLimits": "source + emulator search/cursor tests; keyboard-specific audit open",
+      "status": "open",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "metrics",
+      "surface": "Сводные карточки и переход по показателю",
+      "roles": "owner/admin",
+      "path": "overviewMetrics → applyMetric → queryFilter",
+      "evidenceAndLimits": "unit + standard/maxAX pixels; filtered/loaded scope explicit in findings",
+      "status": "open",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "sections",
+      "surface": "Меню разделов с различиями ролей",
+      "roles": "owner/admin",
+      "path": "visibleSections → queryFilter.section",
+      "evidenceAndLimits": "source + journalMatches; dynamic all menu values open",
+      "status": "open",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "quick",
+      "surface": "Быстрые фильтры: непроверенные/критические/сегодня/7 дней",
+      "roles": "owner/admin",
+      "path": "SystemLogsFilterBar → selectedFilters",
+      "evidenceAndLimits": "source + unit; period-boundary red probe",
+      "status": "open",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "sort",
+      "surface": "5 сортировок и продолжение страницы",
+      "roles": "owner/admin",
+      "path": "SystemLogSortOption → queryJournal.position",
+      "evidenceAndLimits": "source + stable nanosecond cursor integration",
+      "status": "open",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "advanced",
+      "surface": "Окно: период/просмотренность/уровни/категории/результат, сброс, Готово",
+      "roles": "owner/admin",
+      "path": "SystemLogsAdvancedFilterSheet → observed model",
+      "evidenceAndLimits": "uk/light + de/dark standard sheet top/bottom; no draft: selections apply immediately",
+      "status": "open",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "pagination",
+      "surface": "Следующая страница, редкие совпадения, ошибка и повтор, истечение",
+      "roles": "owner/admin",
+      "path": "loadNextPage → listSystemLogs (250 scan,100 result)",
+      "evidenceAndLimits": "unit sparse pages + emulator account/role/query-bound cursor; expired recovery red",
+      "status": "open",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "actions",
+      "surface": "Меню обновления, массового просмотра и очистки",
+      "roles": "owner/admin / clear owner only",
+      "path": "actionsMenu → refresh/markVisibleReviewed/clearAllLogs",
+      "evidenceAndLimits": "unit and rules; confirmation UI separately",
+      "status": "open",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "row",
+      "surface": "Карточка, контекстное меню и действия доступности",
+      "roles": "owner/admin / delete owner only",
+      "path": "SystemLogsListView → row → detail route",
+      "evidenceAndLimits": "baseline + largest pixels; delete race red",
+      "status": "open",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "detail",
+      "surface": "Подробности: действие, воздействие, причина, этап и инструкция",
+      "roles": "owner/admin",
+      "path": "SystemLogDetailRoute → refreshLogDetail → exact server get",
+      "evidenceAndLimits": "uk/de standard and maxAX fixture UI; deletion exact-read red",
+      "status": "open",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "actor",
+      "surface": "Исполнитель: исторические поля и отдельный текущий профиль",
+      "roles": "owner/admin",
+      "path": "SystemLogActorSection → LiveSystemLogActorIdentityResolver → UserManagementReads",
+      "evidenceAndLimits": "source + existing identity tests; resolver error has no in-place retry",
+      "status": "open",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "technical",
+      "surface": "Раскрытие классификации, устройства, метаданных, корреляции",
+      "roles": "owner/admin",
+      "path": "SystemLogDetailView.technicalSections",
+      "evidenceAndLimits": "uk/de UI + manual screenshot review",
+      "status": "verified",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "copy",
+      "surface": "Копирование технических данных и визуальный отклик",
+      "roles": "owner/admin",
+      "path": "copyText → UIPasteboard",
+      "evidenceAndLimits": "uk/de copy-feedback UI; clipboard content contract not independently asserted this audit",
+      "status": "open",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "review",
+      "surface": "Просмотренность одного/выбранных загруженных, частичная ошибка",
+      "roles": "owner/admin",
+      "path": "markReviewed → Firestore exact fields/batch400",
+      "evidenceAndLimits": "unit + rules; real production rows not changed",
+      "status": "open",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "delete",
+      "surface": "Удаление записи и очистка журнала, подтверждения/отмена",
+      "roles": "owner only",
+      "path": "delete/clear callable → verified owner + auditLog",
+      "evidenceAndLimits": "real emulator handlers + rules; desired stale read race fails; production unchanged",
+      "status": "open",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "push_route",
+      "surface": "Push/inbox → точный журнал, пропавшая запись, смена роли",
+      "roles": "owner only",
+      "path": "notifyJournalIssue → central inbox push → openSystemLog",
+      "evidenceAndLimits": "Auth+Firestore integration, route unit, actual existing source→inbox→complete receipt match; fresh physical APNs open",
+      "status": "open",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "ingest",
+      "surface": "Техническое событие: автор, причина, стадия, повторы/квота",
+      "roles": "signed active verified user",
+      "path": "classifier → queue → writeClientDiagnostic",
+      "evidenceAndLimits": "parse/redaction unit + actual emulator handler idempotency/quota/principal tests",
+      "status": "verified",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "outbox",
+      "surface": "Offline/restart, редактирование секретов, смена аккаунта, предел/срок",
+      "roles": "signed user",
+      "path": "SystemLogDeliveryQueue → stable eventID → diagnostic receipt",
+      "evidenceAndLimits": "3 baseline tests;200 envelopes/48h; live example occurred16:08 received19:01 and delivered notice",
+      "status": "verified",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "index",
+      "surface": "Поддержание индекса журнала и отказоустойчивый ограниченный перебор",
+      "roles": "server",
+      "path": "maintainSystemLogSearchIndex / journalIndexState",
+      "evidenceAndLimits": "integration updates/idempotency + deployed TS/JS exact + Eventarc route",
+      "status": "verified",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "retention",
+      "surface": "Сроки записей, квитанций, курсоров, ежедневная очистка",
+      "roles": "server",
+      "path": "cleanupExpiredData / systemLogRetentionDays",
+      "evidenceAndLimits": "source matrix90/365/730/1095; scheduler successful03:00UTC; no manual destructive run",
+      "status": "open",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "alerts",
+      "surface": "Получатели/дедупликация15мин/приватный текст push",
+      "roles": "server → owners",
+      "path": "notifySystemLogIssue / durablePushDelivery",
+      "evidenceAndLimits": "18 Auth+Firestore tests incl sender stub;5 existing inbox notices,4 complete receipts,1 older deleted notice no receipt",
+      "status": "verified",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "cloud",
+      "surface": "Мониторинг HTTP5xx, retry storm, Storage, расписаний",
+      "roles": "operator",
+      "path": "6 actual Cloud Monitoring policies +15 Scheduler jobs",
+      "evidenceAndLimits": "read-only actual configuration;14 enabled latest status0,1 intentionally paused; absence monitoring covers7/14 enabled",
+      "status": "verified",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    },
+    {
+      "id": "observer",
+      "surface": "Долгоживущий локальный мост отчётов",
+      "roles": "operator",
+      "path": "LaunchAgent com.serlest.uac.publication-control → publicationControlSync",
+      "evidenceAndLimits": "running periodic actual successful checks09:40–09:52UTC, no errors; no restart/config mutation",
+      "status": "verified",
+      "verificationScope": "Evidence is limited to the specific source/runtime/fixture contract described; no physical-device acceptance implied."
+    }
+  ],
+  "acceptanceMatrix": {
+    "roles": [
+      "app owner",
+      "app admin",
+      "organization owner",
+      "organization admin",
+      "organization editor",
+      "ordinary user",
+      "restricted user",
+      "guest"
+    ],
+    "appearanceObserved": [
+      "uk light standard",
+      "de dark standard",
+      "uk light maximum AX",
+      "de dark maximum AX"
+    ],
+    "physicalDevice": "not exercised during this audit",
+    "unclosedVariants": [
+      "administrator-specific journal pixels",
+      "maximum AX advanced sheet + technical lower sections/confirmations",
+      "all-role real device transitions",
+      "keyboard/search slow-response video",
+      "reduce transparency / increased contrast",
+      "fresh APNs lock-screen and tap"
+    ]
+  },
+  "rolePolicy": {
+    "appOwner": "full journal; review,clear/delete; exact owner alert destination",
+    "appAdmin": "flag-scoped non-security journal; review; no clear/delete; no owner-alert route",
+    "organizationOwnerAdminEditor": "No independent system-journal entitlement; only app-global role can grant it",
+    "ordinaryRestrictedGuest": "No journal browsing or review; direct server access denied by active-user/role/MFA/rules checks. Full UI variant acceptance remains open."
+  }
+}

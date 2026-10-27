@@ -394,8 +394,14 @@
     {
       "number": 17,
       "name": "Журнал системы и серверные процессы",
-      "status": "pending",
-      "openChecks": []
+      "status": "audited_findings_awaiting_implementation",
+      "openChecks": [
+        "10 recorded finding groups plus remaining visual/device matrix; current audit is not implementation acceptance."
+      ],
+      "inventory": "Docs/Verification/SystemLogsInventory20261027.json",
+      "report": "Docs/Verification/SystemLogsAudit20261027.json",
+      "productionChanged": false,
+      "testFlightChanged": false
     },
     {
       "number": 18,
@@ -507,13 +513,13 @@
     "block13AuthorizedByUser": "2026-10-26: Вперед. Думаю что после этого я проверю детально оповещения и уведомления."
   },
   "schemaVersion": 2,
-  "blocksWithImplementedFixes": 14,
+  "blocksWithImplementedFixes": 16,
   "blocksReopenedForCompletion": 0,
-  "notStartedBlocks": 5,
-  "nextNewBlock": 15,
+  "notStartedBlocks": 2,
+  "nextNewBlock": 18,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "Review block15 findings and implement the approved improvements; do not start16 until15 is verified/accepted.",
+  "nextAction": "Implement approved block17 findings after review. Blocks18–19 remain unstarted. Physical acceptance and TestFlight129 review for previous blocks remain separate.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,
@@ -585,5 +591,5 @@
     },
     "physicalBoundary": "User acceptance of signed TestFlight129 on real iPhone remains pending."
   },
-  "currentBlock": 16
+  "currentBlock": 17
 }

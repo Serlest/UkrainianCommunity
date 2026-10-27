@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "block": 17,
+  "totalBlocks": 19,
+  "status": "audited_findings_awaiting_implementation",
+  "createdAt": "2026-10-27T10:00:35.682232+00:00",
+  "sourceHead": "15df85b6",
+  "inventory": "Docs/Verification/SystemLogsInventory20261027.json",
+  "findings": [
+    {
+      "id": "P17-F01",
+      "priority": "high",
+      "title": "Пустой экран до начала загрузки",
+      "evidence": "queryChanged waits300ms while isLoading=false and logs=[]; initialDebouncedQueryMustShowLoadingInsteadOfEmpty fails.",
+      "proposal": "Immediate initial loading; debounce only changed search; distinct unrequested/loading/empty/error.",
+      "status": "open"
+    },
+    {
+      "id": "P17-F02",
+      "priority": "high",
+      "title": "Старые приватные данные после удаления или отказа",
+      "evidence": "refreshLogDetail nil leaves cached row/fallback; explicit permission-denied refresh retains rows. Two red probes. Push-destination load also leaves previous log on catch.",
+      "proposal": "Withdraw data/actions on confirmed deletion or authorization loss, preserve known rows only for recoverable connectivity failures; fence route/detail/session generations.",
+      "status": "open"
+    },
+    {
+      "id": "P17-F03",
+      "priority": "medium",
+      "title": "Не восстанавливается истёкшая страница",
+      "evidence": "Server cursor expiry1h returns aborted; loadNextPage retry reuses exact expired cursor indefinitely. Red probe.",
+      "proposal": "Localized refresh-required recovery and correct first-page restart; retain exact cursor for transient network failure.",
+      "status": "open"
+    },
+    {
+      "id": "P17-F04",
+      "priority": "medium",
+      "title": "Поздняя загрузка возвращает удалённую строку",
+      "evidence": "deleteLog does not invalidate pending list response; completedDeleteCannotBeUndoneByOldListResponse fails.",
+      "proposal": "Guard mutations against pending refresh/page/detail results and verify after reopen.",
+      "status": "open"
+    },
+    {
+      "id": "P17-F05",
+      "priority": "medium",
+      "title": "В периодах лишний календарный день",
+      "evidence": "7 days starts startOfToday-7 (8 calendar dates incl today);30 uses-30 (31 dates). Seven-date boundary probe fails.",
+      "proposal": "Consistent inclusive periods today plus6/29 previous dates; test midnight,DST and combined quick/advanced filters.",
+      "status": "open"
+    },
+    {
+      "id": "P17-F06",
+      "priority": "medium",
+      "title": "Некоторые серверные причины становятся общей ошибкой",
+      "evidence": "readableErrorMessage matches English description text, not typed Functions codes. permissionDenied code7 with standard NSError text becomes generic; red probe.",
+      "proposal": "Typed auth/permission/network/cursor handling without asserting invented causes; localized retry directions.",
+      "status": "open"
+    },
+    {
+      "id": "P17-F07",
+      "priority": "medium",
+      "title": "Лишние чтения при фильтрации и пагинации",
+      "evidence": "queryJournal reads250 candidates even for small result limit; category/date/review/severity filters mostly applied after read; initial sparse scan can call8 pages=2000 candidate reads, plus auth/index overhead. scanned reports processed docs, not full fetched count.",
+      "proposal": "Push selective filters into indexed server query where feasible; distinguish fetched/processed counts, cap work, avoid repeat empty-page traversal; benchmark isolated large fixture.",
+      "status": "open"
+    },
+    {
+      "id": "P17-F08",
+      "priority": "medium",
+      "title": "Нарушена компоновка крупного текста",
+      "evidence": "Actual maximum-AX uk/de screenshots show icon/number overlaps and severe chip/title/date truncation; fixed icon surfaces combined with scaling fonts and adaptive chip widths. Standard de metric subtitle also clipped.",
+      "proposal": "AX stacked full-width labels/chips and properly sized icons, compact secondary copy; recheck every nested window, themes, contrast and hit areas.",
+      "status": "open"
+    },
+    {
+      "id": "P17-F09",
+      "priority": "low",
+      "title": "Названия и пояснения противоречат содержимому",
+      "evidence": "Admin journal title is Журнал модерації but includes errors/organizations/users. Loaded metrics note also says search only applies to loaded entries, although listSystemLogs searches whole journal.",
+      "proposal": "Name limited journal Журнал подій or Журнал адміністратора; state precise counter scope and whole-journal search; remove repeated explanations.",
+      "status": "open"
+    },
+    {
+      "id": "P17-F10",
+      "priority": "medium",
+      "title": "Отслеживается отсутствие запуска не всех задач",
+      "evidence": "Actual no-success policy covers7 of14 enabled jobs.7 enabled lack absence coverage: migrateLegacyContentMedia,rollupBannerMeasurementReports,cleanupStaleFeaturedBannerOrphans,cleanupExpiredData,cleanupUnverifiedAccounts,cleanupStaleContentMediaOrphans,cleanupAnnouncements. Per-attempt failure logging does not detect a job never running.",
+      "proposal": "Extend schedule-appropriate missing-success coverage with timezone/deploy grace; preserve intentional photo-cleanup pause and gates. Verify saved policies and subsequent natural executions.",
+      "status": "open"
+    }
+  ],
+  "verification": {
+    "baselineIOS": {
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "artifact": "build/audit-system17-20261027/Baseline.xcresult"
+    },
+    "serverHandlersAuthFirestore": {
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0,
+      "log": "build/audit-system17-20261027/server-auth-tests.log"
+    },
+    "firestoreRules": {
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0,
+      "log": "build/audit-system17-20261027/rules-tests.log"
+    },
+    "nestedVisualUI": {
+      "passed": 2,
+      "failed": 0,
+      "artifact": "build/audit-system17-20261027/NestedVisual.xcresult",
+      "observed": "uk/light +de/dark standard filters/detail/technical/copy; both largest dashboard/row/detail. Test name contains Review but does not exercise review mutation; not claimed."
+    },
+    "desiredContractProbes": {
+      "passed": 0,
+      "failed": 7,
+      "meaning": "Intentional red audit probes exposing current product defects; not committed into active test targets. Product not changed.",
+      "artifact": "build/audit-system17-20261027/FinalAuditProbes.xcresult"
+    },
+    "confirmationUI": {
+      "passed": 1,
+      "failed": 0,
+      "artifact": "build/audit-system17-20261027/Confirmations.xcresult",
+      "scope": "clear + single delete confirmations, outside/cancel dismissal, rows retained; fixtures only"
+    },
+    "driverCorrections": "First max UI driver waited for lazy rows before scrolling and did not horizontally reveal filters; corrected and NestedVisual passed. Native confirmation popover can omit Cancel and dismiss outside; initial failed selector is not counted as product failure. All failed artifacts retained.",
+    "probeSources": [
+      {
+        "file": "build/audit-system17-20261027/SystemLogAudit17Probes.swift",
+        "sha256": "d4878a6aff3a202a4b43aeb59600671ce3fbb9324f02bd6bbfd8c2c2b50ea6da"
+      },
+      {
+        "file": "build/audit-system17-20261027/SystemLogAudit17UITests.swift",
+        "sha256": "11e48672086d6c878b1b95d8e8869915e4688d021ad3dc6f58628cbd2d7d3f4a"
+      }
+    ]
+  },
+  "productionReadback": {
+    "sourceAndRuntime": "build/audit-system17-20261027/deployed-proof.json",
+    "meaning": "Exact TS+compiled JS of each7 relevant handlers and auth/permissions matches current local source; unrelated older journalQuery export in other deployed packages is not falsely called active-handler drift. All7 Ready/100% traffic/onDeployUpdatePolicy.",
+    "eventarc": "build/audit-system17-20261027/eventarc-proof.json",
+    "callableGuard": "build/audit-system17-20261027/unauthenticated-readback.json",
+    "actualOwnerJournalRows": 1,
+    "actualJournalNoticeSourceMatch": "Existing network diagnostic received after offline delay matches owner notification with durable receipt complete. This does not prove a fresh physical-device delivery now.",
+    "errorsWindow": "Cloud Logging severity>=ERROR from2026-10-27T00:00Z through initial09:42UTC read:0; not proof of absence of warnings or open incidents.",
+    "scheduler": "build/audit-system17-20261027/scheduler-final.json",
+    "policies": "build/audit-system17-20261027/policies.json",
+    "pausedJob": "cleanupOrganizationPhotoLifecycle was intentionally paused in historical rollout and has separate photoCleanupEnabled/legacyPhotoSweepEnabled gates; no activation made.",
+    "storage": {
+      "observedAt": "2026-10-27T09:40:00Z",
+      "bytes": 1024076038,
+      "MiB": 976.64,
+      "threshold768MiBExceeded": true,
+      "threshold1GiBExceeded": false,
+      "interpretation": "Monitoring threshold, not a bucket capacity/quota claim; no files deleted."
+    }
+  },
+  "improvementApproach": [
+    "Fix correctness and stale data first, then bounded query work and visual adaptation.",
+    "Keep one journal with role-scoped sections; avoid adding a duplicate moderation/publication dashboard.",
+    "Keep exact technical details in disclosure and concise action/impact/retry on front.",
+    "Preserve privacy redaction, owner-only alerts, idempotency, MFA, quotas, retention and old-client compatibility.",
+    "Repeat seven exact red probes after approved implementation, then full regression, nested visual matrix and source-matching CI."
+  ],
+  "boundaries": {
+    "productionMutations": false,
+    "newNotificationsSent": false,
+    "reviewedOrDeletedRealRows": false,
+    "deployed": false,
+    "newTestFlightBuild": false,
+    "physicalIPhoneAcceptance": "pending",
+    "auditDoesNotMeanImplementedOrFullyAccepted": true
+  },
+  "artifactsDirectory": "build/audit-system17-20261027"
+}
