@@ -139,6 +139,9 @@ extension BannerMeasurementReportTests {
         #expect(model.exportReport()?.counts.contains { $0.bannerID == "deleted" } == false)
         #expect(model.exportReport()?.totals == model.visibleReport?.totals)
         model.selectedBannerID = "b"
+        #expect(model.visibleReport == nil)
+        #expect(model.exportReport() == nil)
+        await model.load()
         #expect(model.visibleReport?.totals.clicks == 1)
         #expect(model.displayedBanners.map(\.id) == ["b"])
     }
@@ -240,5 +243,31 @@ extension BannerMeasurementReportTests {
         #expect(report.timeline.map(\.id) == ["2026-10-23"])
         #expect(report.filtered(bannerID: nil, region: nil, section: nil).periodAnchor == after)
         #expect(report.generatedAt == before)
+    }
+}
+
+
+extension BannerMeasurementReportTests {
+    @Test @MainActor func changedQueryCannotExposeOrExportPreviousCountersBeforeLoadingStarts() async {
+        let banner = FeaturedBanner(id: "a", title: "A", actionType: .externalURL,
+            externalURL: "https://example.com", visibleSections: [.home],
+            createdAt: .now, updatedAt: .now, createdBy: "fixture")
+        let model = BannerMeasurementReportViewModel(repository: BannerCatalogMetricsFixture(),
+            bannerRepository: MockFeaturedBannerRepository(banners: [banner]), initialPeriod: .thirtyDays)
+        await model.load()
+        #expect(model.visibleReport?.totals.clicks == 7)
+        model.selectedPeriod = .sevenDays
+        #expect(model.visibleReport == nil)
+        #expect(model.exportReport() == nil)
+        model.selectedPeriod = .thirtyDays
+        #expect(model.visibleReport?.totals.clicks == 7)
+        model.selectedRegion = "tirol"
+        #expect(model.visibleReport?.totals.clicks == 4)
+        model.selectedBannerID = "a"
+        #expect(model.visibleReport == nil)
+        #expect(model.exportReport() == nil)
+        await model.load()
+        #expect(model.visibleReport?.totals.clicks == 4)
+        #expect(model.exportReport()?.totals.clicks == 4)
     }
 }

@@ -10,7 +10,8 @@ final class BannerMeasurementReportViewModel: ObservableObject {
     @Published var selectedRegion: String?
     @Published var selectedSection: FeaturedBannerVisibleSection?
     var visibleReport: BannerMeasurementReport? {
-        report?.filtered(bannerID: fixedBannerID ?? selectedBannerID, region: selectedRegion, section: selectedSection)
+        guard let report, report.period == selectedPeriod, loadedBannerID == effectiveBannerID else { return nil }
+        return report.filtered(bannerID: effectiveBannerID, region: selectedRegion, section: selectedSection)
     }
 
     @Published var selectedPeriod: AnalyticsPeriod
