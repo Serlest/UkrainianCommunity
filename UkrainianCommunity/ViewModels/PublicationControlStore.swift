@@ -101,7 +101,8 @@ nonisolated private struct PublicationControlRequest: Encodable {
     private var generation = UUID()
     private var itemGeneration = UUID(), runGeneration = UUID()
     private var actor: String?, day = "", region: String?, runRegion: String?
-    private var hasLoadedItems = false, hasLoadedRuns = false
+    @Published private(set) var hasLoadedItems = false
+    @Published private(set) var hasLoadedRuns = false
     private var itemRetry: (cursor: String?, append: Bool)?
     private var runRetry: (cursor: String?, append: Bool)?
     private var loadedAt: Date?

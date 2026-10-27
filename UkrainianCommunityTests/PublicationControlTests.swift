@@ -79,4 +79,20 @@ import FirebaseFunctions
         await store.loadItems(region: nil); #expect(pageReads == 0)
     }
 
+    @Test func unfetchedAndFailedPagesAreDistinctFromConfirmedEmptyPages() async {
+        var fail = true
+        let store = PublicationControlStore(api: .init(overview: { _,day in overview(day) }, items: { _,_,_,_ in
+            if fail { throw AppError.network }; return .init(items: [], cursor: nil, total: 0)
+        }, runs: { _,_,_ in
+            if fail { throw AppError.network }; return .init(runs: [], cursor: nil)
+        }))
+        await store.load(actor: "owner", day: "2026-10-27")
+        #expect(!store.hasLoadedItems && !store.hasLoadedRuns)
+        await store.loadItems(region: nil); await store.loadRuns()
+        #expect(!store.hasLoadedItems && !store.hasLoadedRuns && store.itemsError != nil && store.runsError != nil)
+        fail = false; await store.loadItems(region: nil); await store.loadRuns()
+        #expect(store.hasLoadedItems && store.hasLoadedRuns && store.items.isEmpty && store.runs.isEmpty)
+        store.reset(); #expect(!store.hasLoadedItems && !store.hasLoadedRuns)
+    }
+
 }

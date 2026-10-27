@@ -181,7 +181,7 @@ async function main() {
   if(watchMode) {
     for(const path of [join(base,"progress-v3/news-scopes/reports"),join(base,"artifacts")])watch(path,{recursive:true},(_,filename)=>{if(filename&&(String(filename).endsWith("/report.json")||path.endsWith("/reports")&&String(filename).endsWith(".json")))schedule();});
   }
-  if(watchMode)setInterval(schedule,60000);
+  if(watchMode)setInterval(sync,60000);
   await sync();
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href)main().catch(error=>{console.error(clean(error.message));process.exitCode=1;});

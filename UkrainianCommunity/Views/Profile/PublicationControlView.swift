@@ -260,8 +260,8 @@ struct PublicationControlView: View {
     private var itemCards: some View {
         LazyVStack(alignment: .leading, spacing: 16) {
             if let error = store.itemsError { InlineMessageCard(style: .error, message: error); Button(PublicationControlText.retry) { Task { await store.loadItems(region: region) } } }
-            if store.loadingItems { ProgressView() }
-            if store.items.isEmpty && !store.loadingItems && store.itemsError == nil { empty(text("За цю дату публікацій немає", "Keine Publikationen an diesem Tag")) }
+            if store.loadingItems || !store.hasLoadedItems && store.items.isEmpty && store.itemsError == nil { ProgressView().accessibilityIdentifier("publicationControl.loading.items") }
+            if store.hasLoadedItems && store.items.isEmpty && !store.loadingItems && store.itemsError == nil { empty(text("За цю дату публікацій немає", "Keine Publikationen an diesem Tag")) }
             ForEach(store.items) { item in
                 Button {
                     guard item.sourceState == "approved", let kind = OwnerContentDraftKind(rawValue: item.kind) else { return }
@@ -358,8 +358,8 @@ struct PublicationControlView: View {
                     }
                 }
             }
-            if store.loadingRuns { ProgressView() }
-            if store.runs.isEmpty && !store.loadingRuns && store.runsError == nil { empty(region == nil ? text("Звітів ще немає", "Noch keine Berichte") : text("За цим регіоном звітів немає", "Für diese Region liegen keine Berichte vor")) }
+            if store.loadingRuns || !store.hasLoadedRuns && store.runs.isEmpty && store.runsError == nil { ProgressView().accessibilityIdentifier("publicationControl.loading.runs") }
+            if store.hasLoadedRuns && store.runs.isEmpty && !store.loadingRuns && store.runsError == nil { empty(region == nil ? text("Звітів ще немає", "Noch keine Berichte") : text("За цим регіоном звітів немає", "Für diese Region liegen keine Berichte vor")) }
             if store.runCursor != nil { Button(text("Завантажити старіші проходи", "Ältere Durchläufe laden")) { Task { await store.loadRuns(region: region, more: true) } }.disabled(store.loadingRuns) }
         }
     }

@@ -110,3 +110,23 @@ test("rejects malformed Firebase CLI output without leaking its contents", async
     {message: "Firebase CLI returned invalid authentication data."}
   );
 });
+
+test("cached CLI tokens use remaining absolute lifetime rather than their original expires_in", async () => {
+  let clock = 1_000_000, calls = 0;
+  const credential = await firebaseCliCredential({runFirebaseLogin: () => validLogin, now: () => clock,
+    loadFirebaseAuth: () => ({getAccessToken: async () => {
+      calls += 1;
+      return {access_token: "access-token-long-enough-for-test", expires_in: 3600, expires_at: calls === 1 ? 1_600_000 : clock + 3_600_000};
+    }})});
+  assert.equal((await credential.getAccessToken()).expires_in, 600);
+  clock += 500_000;
+  assert.equal((await credential.getAccessToken()).expires_in, 100);assert.equal(calls,1);
+  clock += 50_000;
+  assert.equal((await credential.getAccessToken()).expires_in,3600);assert.equal(calls,2);
+});
+
+test("an already expired absolute deadline never becomes a fresh default-hour token", async () => {
+  const credential = await firebaseCliCredential({runFirebaseLogin: () => validLogin, now: () => 1000,
+    loadFirebaseAuth: () => ({getAccessToken: async () => ({access_token:"access-token-long-enough-for-test",expires_in:3600,expires_at:1})})});
+  await assert.rejects(credential.getAccessToken(), /expired access token/);
+});

@@ -40,16 +40,21 @@ export async function firebaseCliCredential(dependencies = {}) {
     accountEmail: account.user.email,
     async getAccessToken() {
       if (cachedToken && cachedUntil - refreshSafetyWindowMilliseconds > now()) {
-        return cachedToken;
+        return {...cachedToken, expires_in: Math.max(0, Math.floor((cachedUntil - now()) / 1000))};
       }
       const refreshed = await firebaseAuth.getAccessToken(refreshToken, []);
       const accessToken = refreshed?.access_token;
       if (typeof accessToken !== "string" || accessToken.length < 20) {
         throw new Error("Firebase CLI access token is unavailable.");
       }
-      const expiresIn = positiveNumber(refreshed?.expires_in) ?? defaultTokenLifetimeSeconds;
+      const issuedLifetime = positiveNumber(refreshed?.expires_in) ?? defaultTokenLifetimeSeconds;
+      // Firebase CLI can return an already cached token: expires_in is its original
+      // lifetime, while expires_at is the actual absolute deadline (milliseconds).
+      const absoluteExpiry = positiveNumber(refreshed?.expires_at);
+      cachedUntil = Math.min(now() + issuedLifetime * 1000, absoluteExpiry ?? Infinity);
+      const expiresIn = Math.floor((cachedUntil - now()) / 1000);
+      if (expiresIn <= 0) throw new Error("Firebase CLI returned an expired access token.");
       cachedToken = {access_token: accessToken, expires_in: expiresIn};
-      cachedUntil = now() + expiresIn * 1000;
       return cachedToken;
     },
   };
