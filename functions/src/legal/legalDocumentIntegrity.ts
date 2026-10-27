@@ -7,7 +7,7 @@ export function legalSHA256(value: string): string {
 
 /** Same immutable-content contract as the strict iOS reader, including historical seeded hashes. */
 export function hasValidPublishedLegalContent(
-  type: "terms" | "privacy", version: string, pointer: DocumentData, document: DocumentData
+  type: "terms" | "privacy" | "organizationRules", version: string, pointer: DocumentData, document: DocumentData
 ): boolean {
   const parts = /^([0-9]{4})\.([1-9][0-9]?)$/.exec(version);
   if (!parts || pointer.activeVersion !== version || (pointer.status !== undefined && pointer.status !== "published")

@@ -1,9 +1,10 @@
-import {FieldValue, Timestamp} from "firebase-admin/firestore";
+import {Timestamp} from "firebase-admin/firestore";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
-import {requireVerifiedActiveUser} from "../auth/context";
+import {assertActiveUser, assertPrivilegedMFA, hasCurrentLegalAcknowledgements, requireVerifiedAuth} from "../auth/context";
 import {db} from "../firebase/admin";
-import {isOwner} from "../permissions/userPermissions";
+import {isOwner, userPermissionSnapshotFromData} from "../permissions/userPermissions";
+import {hasValidPublishedLegalContent} from "./legalDocumentIntegrity";
 
 interface AcceptOrganizationRulesRequest {
   organizationId: string;
@@ -32,7 +33,7 @@ const unpublishedOrganizationStatuses = ["pendingReview", "needsRevision", "reje
 export const acceptOrganizationRules = onCall(
   callableOptions,
   async (request): Promise<AcceptOrganizationRulesResponse> => {
-    const auth = await requireVerifiedActiveUser(request);
+    const auth = requireVerifiedAuth(request);
     const input = parseRequest(request.data);
     const documentReference = db.collection("legalDocuments").doc("organizationRules");
     const versionReference = documentReference.collection("versions").doc(input.version);
@@ -42,17 +43,26 @@ export const acceptOrganizationRules = onCall(
       .where("submittedByUserId", "==", auth.uid)
       .where("moderationStatus", "in", unpublishedOrganizationStatuses)
       .limit(maximumUnpublishedOrganizationRequests + 1);
-    let committedAt = new Date();
-
-    await db.runTransaction(async (transaction) => {
-      const [documentSnapshot, versionSnapshot, proofSnapshot, requestSnapshot] = await Promise.all([
+    const acceptedAt = await db.runTransaction(async (transaction) => {
+      const [userSnapshot, termsSnapshot, privacySnapshot, documentSnapshot, versionSnapshot, proofSnapshot, requestSnapshot] = await Promise.all([
+        transaction.get(db.doc(`users/${auth.uid}`)),
+        transaction.get(db.doc("legalDocuments/terms")),
+        transaction.get(db.doc("legalDocuments/privacy")),
         transaction.get(documentReference),
         transaction.get(versionReference),
         transaction.get(proofReference),
         transaction.get(requestQuery),
       ]);
 
-      if (!isOwner(auth.permissions)) {
+      if (!userSnapshot.exists) throw new HttpsError("permission-denied", "User profile does not exist.");
+      const permissions = userPermissionSnapshotFromData(auth.uid, userSnapshot.data());
+      assertActiveUser(permissions);
+      assertPrivilegedMFA(auth.token, permissions);
+      if (!hasCurrentLegalAcknowledgements(permissions, {terms: termsSnapshot.get("activeVersion"), privacy: privacySnapshot.get("activeVersion")})) {
+        throw new HttpsError("failed-precondition", "Current legal documents must be acknowledged.");
+      }
+
+      if (!isOwner(permissions)) {
         const otherRequestCount = requestSnapshot.docs.filter(
           (document) => document.id !== input.organizationId
         ).length;
@@ -65,40 +75,41 @@ export const acceptOrganizationRules = onCall(
         }
       }
 
-      if (!documentSnapshot.exists || documentSnapshot.data()?.activeVersion !== input.version) {
-        throw new HttpsError("failed-precondition", "Requested organization rules are not active.");
+      const pointer = documentSnapshot.data(), versionData = versionSnapshot.data();
+      if (!pointer || !versionData || !hasValidPublishedLegalContent("organizationRules", input.version, pointer, versionData)) {
+        throw new HttpsError("failed-precondition", "Organization rules are not active or their integrity could not be verified.");
       }
-      const versionData = versionSnapshot.data();
-      if (!versionSnapshot.exists || versionData?.status !== "published") {
-        throw new HttpsError("failed-precondition", "Organization rules are not published.");
-      }
-
+      const contentHash = versionData.contentHash as string;
       const existing = proofSnapshot.data();
+      // This endpoint reserves a new creation ID; editing/transferred organizations
+      // does not use it. A different account must never take over that reservation.
+      if (proofSnapshot.exists && existing?.userId !== auth.uid) {
+        throw new HttpsError("permission-denied", "Organization proof belongs to another account.");
+      }
       if (
         existing?.userId === auth.uid &&
         existing?.version === input.version &&
         existing?.organizationName === input.organizationName &&
+        existing?.contentHash === contentHash &&
+        existing?.acceptedAt instanceof Timestamp &&
         existing?.expiresAt instanceof Timestamp &&
         existing.expiresAt.toMillis() > Date.now()
       ) {
-        committedAt = existing.acceptedAt instanceof Timestamp ?
-          existing.acceptedAt.toDate() :
-          committedAt;
-        return;
+        return existing.acceptedAt.toDate().toISOString();
       }
 
-      committedAt = new Date();
+      const committedAt = Timestamp.now();
       const expiresAt = Timestamp.fromMillis(
-        committedAt.getTime() + proofValidityDays * 24 * 60 * 60 * 1_000
+        committedAt.toMillis() + proofValidityDays * 24 * 60 * 60 * 1_000
       );
       const evidence = {
         userId: auth.uid,
         documentType: "organizationRules",
         version: input.version,
-        acceptedAt: FieldValue.serverTimestamp(),
+        acceptedAt: committedAt,
         appVersion: input.appVersion ?? null,
         locale: input.locale ?? null,
-        contentHash: typeof versionData?.contentHash === "string" ? versionData.contentHash : null,
+        contentHash,
         acceptedFromPlatform: input.acceptedFromPlatform ?? "ios",
         organizationId: input.organizationId,
         organizationName: input.organizationName,
@@ -109,12 +120,13 @@ export const acceptOrganizationRules = onCall(
         expiresAt,
       });
       transaction.set(logReference, evidence);
+      return committedAt.toDate().toISOString();
     });
 
     return {
       organizationId: input.organizationId,
       version: input.version,
-      acceptedAt: committedAt.toISOString(),
+      acceptedAt,
     };
   }
 );
