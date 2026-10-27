@@ -28,6 +28,12 @@ struct BannerMeasurementReport {
     struct DayRow: Identifiable {
         let id: String
         let totals: BannerMeasurementTotals
+
+        var utcDate: Date? {
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+            return AnalyticsFirestoreSchema.date(forDailyDocumentID: id, calendar: calendar)
+        }
     }
 
     struct BannerRow: Identifiable {

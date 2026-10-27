@@ -3,6 +3,26 @@ import Testing
 @testable import UkrainianCommunity
 
 struct BannerMeasurementReportTests {
+    @Test func chartDaysRetainUTCDateAndAllDailyCountersAcrossDST() throws {
+        let anchor = try #require(ISO8601DateFormatter().date(from: "2026-10-27T20:00:00Z"))
+        let report = BannerMeasurementReport(period: .thirtyDays, counts: [
+            .init(day: "2026-10-25", bannerID: "a", section: .home, impressions: 107, clicks: 1)
+        ], generatedAt: anchor, periodAnchor: anchor)
+        let timeline = report.timeline
+        #expect(timeline.count == 30)
+        #expect(timeline.first?.id == "2026-09-28")
+        #expect(timeline.last?.id == "2026-10-27")
+        var utc = Calendar(identifier: .gregorian); utc.timeZone = TimeZone(secondsFromGMT: 0)!
+        for day in timeline {
+            let date = try #require(day.utcDate)
+            #expect(utc.component(.hour, from: date) == 0)
+            #expect(AnalyticsFirestoreSchema.dailyDocumentID(for: date, calendar: utc) == day.id)
+        }
+        let measured = try #require(timeline.first { $0.id == "2026-10-25" })
+        #expect(measured.totals.impressions == 107)
+        #expect(measured.totals.clicks == 1)
+    }
+
     @Test func shardsAreSummedWithoutMixingBannersOrSections() {
         let counts = [
             BannerMeasurementDailyCount(day: "2026-10-11", bannerID: "a", section: .home,

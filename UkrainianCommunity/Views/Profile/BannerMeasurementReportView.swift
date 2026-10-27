@@ -184,22 +184,44 @@ struct BannerAnalyticsValueRow: View {
 
 struct BannerAnalyticsTrendView: View {
     let report: BannerMeasurementReport
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.locale) private var locale
+    private let utc = TimeZone(secondsFromGMT: 0)!
+
+    private var dayLabelStyle: Date.FormatStyle {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = utc
+        return Date.FormatStyle(locale: locale, calendar: calendar, timeZone: utc)
+            .day(.twoDigits).month(.twoDigits)
+    }
+
     var body: some View {
         OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.byDay) {
             Chart(report.timeline) { day in
-                BarMark(x: .value("UTC", day.id), y: .value(AppStrings.BannerReport.impressions, day.totals.impressions))
+                if let date = day.utcDate {
+                BarMark(x: .value("UTC", date, unit: .day), y: .value(AppStrings.BannerReport.impressions, day.totals.impressions))
                     .foregroundStyle(by: .value("metric", AppStrings.BannerReport.impressions))
                     .position(by: .value("metric", AppStrings.BannerReport.impressions))
-                BarMark(x: .value("UTC", day.id), y: .value(AppStrings.BannerReport.clicks, day.totals.clicks))
+                BarMark(x: .value("UTC", date, unit: .day), y: .value(AppStrings.BannerReport.clicks, day.totals.clicks))
                     .foregroundStyle(by: .value("metric", AppStrings.BannerReport.clicks))
                     .position(by: .value("metric", AppStrings.BannerReport.clicks))
+                }
             }
             .chartForegroundStyleScale([AppStrings.BannerReport.impressions: AppTheme.accentPrimaryForeground,
                                         AppStrings.BannerReport.clicks: AppTheme.accentSupportForeground])
-            .chartXAxis { AxisMarks(values: report.timeline.enumerated().compactMap { index, day in
-                index % max(1, (report.timeline.count + 3) / 4) == 0 ? day.id : nil
-            }) { value in AxisValueLabel { if let day = value.as(String.self) { Text(String(day.suffix(5))).fixedSize() } } } }
-            .frame(height: 160).accessibilityLabel(AppStrings.BannerReport.byDay)
+            // A date scale lets Charts choose sparse ticks. Categorical string
+            // days produced all30 labels on the physical phone despite sampled values.
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: dynamicTypeSize.isAccessibilitySize ? 2 : 4)) { value in
+                    AxisValueLabel {
+                        if let date = value.as(Date.self) { Text(date, format: dayLabelStyle) }
+                    }
+                }
+            }
+            .environment(\.timeZone, utc)
+            .environment(\.calendar, dayLabelStyle.calendar)
+            .frame(height: dynamicTypeSize.isAccessibilitySize ? 240 : 160)
+            .accessibilityLabel(AppStrings.BannerReport.byDay)
             DisclosureGroup(AppStrings.BannerReport.dailyDetails) {
                 ForEach(report.days) { BannerAnalyticsValueRow(title: $0.id, totals: $0.totals) }
             }.tint(AppTheme.accentPrimaryForeground)
