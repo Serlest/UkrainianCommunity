@@ -15,13 +15,23 @@ enum DonationConfigRepositories {
     private var config = DonationConfig.defaults
     private let scenario = ProcessInfo.processInfo.environment["UITestProjectSupport"] ?? ""
     private var firstSave = true
+    private var readAttempts = 0
     init() {
         if ["enabled", "conflict", "unconfirmed"].contains(scenario) {
             config.isEnabled = true; config.donationURL = "https://example.org/support19"
             config.sourceRevision = "fixture-v1"; config.updatedBy = "owner-1"
         }
     }
-    func fetchDonationConfig() async throws -> DonationConfig? { config }
+    func fetchDonationConfig() async throws -> DonationConfig? {
+        if scenario == "readRecovery" {
+            readAttempts += 1
+            // Parent and editor may coalesce their first request. Keep both possible
+            // initial reads offline; the bounded UI retry then returns real fixture data.
+            try await Task.sleep(for: .seconds(2))
+            if readAttempts <= 2 { throw AppError.network }
+        }
+        return config
+    }
     func saveDonationConfig(_ input: DonationConfig, updatedBy userID: String) async throws -> DonationConfig {
         if scenario == "conflict", firstSave {
             firstSave = false; config.titleUK = "Серверна версія19"; config.sourceRevision = "fixture-v2"

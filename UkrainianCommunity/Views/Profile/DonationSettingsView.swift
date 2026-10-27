@@ -43,6 +43,7 @@ struct DonationSettingsView: View {
                                        message: DonationLocalization.ownerOnlyMessage(for: language))
                     } else if !hasDraft && (isPreparing || viewModel.isLoading) {
                         LoadingStateCard(title: nil).frame(maxWidth: .infinity, minHeight: 120)
+                            .accessibilityIdentifier("donation.edit.loading")
                     } else if !hasDraft {
                         ErrorStateCard(systemImage: "heart.slash", title: ProjectSupportText.title,
                                        message: DonationLocalization.loadFailed(for: language), retryTitle: AppStrings.Action.retry) {

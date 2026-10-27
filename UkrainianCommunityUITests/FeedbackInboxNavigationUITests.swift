@@ -392,10 +392,9 @@ final class OwnerProfileAuditUITests: XCTestCase {
             XCTAssertEqual(field.value as? String, value)
             return
         }
-        field.press(forDuration: 1.2)
-        let selectAll = app.menuItems.matching(NSPredicate(format: "label IN %@", ["Select All", "Alles auswählen", "Вибрати все", "Вибрати всі"])).firstMatch
-        XCTAssertTrue(selectAll.waitForExistence(timeout: 3), app.debugDescription)
-        selectAll.tap()
+        // Use the public iOS keyboard command to select the complete value.
+        // The context menu may offer only a word-level Select action on this OS.
+        field.typeKey("a", modifierFlags: .command)
         field.typeText(XCUIKeyboardKey.delete.rawValue + value)
         if !value.isEmpty { XCTAssertEqual(field.value as? String, value) }
     }

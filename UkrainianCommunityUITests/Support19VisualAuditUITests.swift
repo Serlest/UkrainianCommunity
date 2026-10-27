@@ -22,7 +22,12 @@ final class Support19VisualAuditUITests: XCTestCase {
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout:5))
     }
     @MainActor func testMaximumEditorPreviewKeyboardAndClose() {
-        let lang=ProcessInfo.processInfo.environment["Support19Language"] ?? "uk"
+        maximumEditorPreviewKeyboardAndClose(language: ProcessInfo.processInfo.environment["Support19Language"] ?? "uk")
+    }
+    @MainActor func testMaximumGermanEditorPreviewKeyboardAndClose() {
+        maximumEditorPreviewKeyboardAndClose(language: "de")
+    }
+    @MainActor private func maximumEditorPreviewKeyboardAndClose(language lang: String) {
         let app=XCUIApplication();app.launchArguments=["-ui-testing","-UIPreferredContentSizeCategoryName","UICTContentSizeCategoryAccessibilityXXXL"]
         app.launchEnvironment=["UITestForceOwnerSession":"1","UITestResetUserSettings":"1","UITestResetAppLock":"1","UITestFeedbackInbox":"1","UITestAppLanguage":lang,"UITestAppAppearance":lang == "uk" ? "light":"dark"]
         app.launch();let profile=app.tabBars.buttons.element(boundBy:4);XCTAssertTrue(profile.waitForExistence(timeout:20));profile.tap()
@@ -109,5 +114,29 @@ extension Support19VisualAuditUITests {
         reach(reload,app);capture(app,"unconfirmed-save");reload.tap();app.buttons["donation.confirm.reload"].tap()
         reach(title,app);XCTAssertTrue((title.value as? String)?.contains("UNCERTAIN19")==true);XCTAssertFalse(app.buttons["donation.edit.save"].isEnabled)
         XCTAssertFalse(reload.exists)
+    }
+}
+
+extension Support19VisualAuditUITests {
+    @MainActor func testInitialOfflineStateAndRetryNeverExposeDefaultDraftAsSaved() {
+        let app = startSupportScenario("readRecovery")
+        let entry = app.buttons["profile.owner.donationSettings"]; reach(entry,app); entry.tap()
+        let loading = app.descendants(matching:.any).matching(identifier:"donation.edit.loading").firstMatch
+        XCTAssertTrue(loading.waitForExistence(timeout:5))
+        XCTAssertFalse(app.buttons["donation.edit.save"].exists)
+        XCTAssertFalse(app.staticTexts["donation.saved.visibility"].exists)
+        capture(app,"initial-loading")
+        let failure = app.staticTexts["Не вдалося завантажити налаштування підтримки."]
+        XCTAssertTrue(failure.waitForExistence(timeout:6)); capture(app,"initial-offline-error")
+        for _ in 0..<2 {
+            if app.buttons["donation.edit.save"].exists { break }
+            let retry = app.buttons["Спробувати ще раз"].firstMatch
+            XCTAssertTrue(retry.waitForExistence(timeout:5)); retry.tap()
+            _ = app.buttons["donation.edit.save"].waitForExistence(timeout:4)
+        }
+        let save = app.buttons["donation.edit.save"]
+        XCTAssertTrue(save.waitForExistence(timeout:5)); XCTAssertFalse(save.isEnabled)
+        XCTAssertFalse(failure.exists); XCTAssertTrue(app.staticTexts["donation.saved.visibility"].exists)
+        capture(app,"read-recovered")
     }
 }
