@@ -35,9 +35,7 @@ struct SeasonalScene: UIViewRepresentable {
     private let cameraNode = SCNNode()
     private var pumpkinNodes:[(SCNNode,SCNMaterial,SCNLight,SeasonalElement)] = []
     private var webNode:SCNNode?
-    private var spiderNode:SCNNode?
-    private var spiderLegs:[SCNNode]=[]
-    private var silkNode:SCNNode?
+    private var spiders:[(root:SCNNode,legs:[SCNNode],silk:SCNNode,pendulum:SeasonalPendulum)]=[]
     private var bats:[(root:SCNNode,wings:[SCNNode])]=[]
     private var elements:[SeasonalElement]=[]
     private var theme:SeasonalTheme?
@@ -46,7 +44,6 @@ struct SeasonalScene: UIViewRepresentable {
     private var link:CADisplayLink?
     private let target=SeasonalDisplayTarget()
     private let motion=SeasonalMotion()
-    private var pendulum=SeasonalPendulum()
     private var elapsed=0.0,lastTime=0.0
 
     override init(frame:CGRect) {
@@ -82,7 +79,7 @@ struct SeasonalScene: UIViewRepresentable {
         let geometryChanged=elements.map { $0.id+"|"+$0.artwork.rawValue } != theme.elements.map { $0.id+"|"+$0.artwork.rawValue }
         elements=theme.elements
         if geometryChanged || changedIdentity {
-            buildObjects();elapsed=0;pendulum=SeasonalPendulum()
+            buildObjects();elapsed=0
         } else {
             // Size, glow and motion sliders update transforms/materials, never regenerate meshes.
             for index in pumpkinNodes.indices {
@@ -112,16 +109,19 @@ struct SeasonalScene: UIViewRepresentable {
     }
 
     private func buildObjects() {
-        world.childNodes.forEach{$0.removeFromParentNode()};pumpkinNodes=[];webNode=nil;spiderNode=nil;silkNode=nil;bats=[];spiderLegs=[]
+        world.childNodes.forEach{$0.removeFromParentNode()};pumpkinNodes=[];webNode=nil;bats=[];spiders=[]
         for element in elements where element.artwork == .pumpkin {
             let p=SeasonalSceneArtwork.pumpkin();world.addChildNode(p.root);pumpkinNodes.append((p.root,p.ember,p.light,element))
         }
         if elements.contains(where:{$0.artwork == .web}) {
             let web=SeasonalSceneArtwork.web();world.addChildNode(web);webNode=web
-            let spider=SeasonalSceneArtwork.spider();world.addChildNode(spider.root);spiderNode=spider.root;spiderLegs=spider.legs
-            let g=SCNCylinder(radius:0.25,height:1);g.radialSegmentCount=5
-            let m=SCNMaterial();m.lightingModel = .constant;g.firstMaterial=m
-            let silk=SCNNode(geometry:g);world.addChildNode(silk);silkNode=silk
+            for _ in 0..<SeasonalChoreography.spiderCount {
+                let spider=SeasonalSceneArtwork.spider();world.addChildNode(spider.root)
+                let g=SCNCylinder(radius:0.25,height:1);g.radialSegmentCount=5
+                let m=SCNMaterial();m.lightingModel = .constant;g.firstMaterial=m
+                let silk=SCNNode(geometry:g);world.addChildNode(silk)
+                spiders.append((spider.root,spider.legs,silk,SeasonalPendulum()))
+            }
         }
         if elements.contains(where:{$0.artwork == .bat}) {
             for _ in 0..<SeasonalChoreography.batCount {
@@ -146,32 +146,46 @@ struct SeasonalScene: UIViewRepresentable {
         }
         let top=Double(placement.webTop),center=Double(bounds.width)/2
         let webElement=elements.first{$0.artwork == .web}
-        let webScale=(webElement?.size ?? 44)/44
+        let webScale=min((webElement?.size ?? 44)/44*1.22,Double(bounds.width)/300)
+        // The upper anchors never rotate. The mesh bends below the cutout on the GPU.
         webNode?.position=SCNVector3(center,-top,22);webNode?.scale=SCNVector3(webScale,webScale,webScale)
         let webStrength=animated ? (webElement?.sway ?? 0)*intensity : 0
-        webNode?.eulerAngles=SCNVector3(max(-0.12,min(0.12,sin(elapsed*0.48)*0.09*webStrength+input.y*0.16*webStrength)),
-                                      input.x*0.12*webStrength,
-                                      max(-0.14,min(0.14,sin(elapsed*0.65)*0.20*webStrength+input.x*0.35*webStrength)))
-        webNode?.enumerateChildNodes { node,_ in node.geometry?.materials.forEach {
-            $0.diffuse.contents=dark ? UIColor(white:0.69,alpha:0.84):UIColor(white:0.20,alpha:0.78)
-            $0.emission.contents=UIColor(white:0.12,alpha:1);$0.emission.intensity=(webElement?.glow ?? false) ? 0.035:0
-        } }
-        let spiderProgress=animated && (webElement?.sway ?? 0)>0 ? SeasonalChoreography.spiderProgress(at:elapsed,preview:preview) : nil
-        spiderNode?.isHidden=spiderProgress == nil;silkNode?.isHidden=spiderProgress == nil
-        if let progress=spiderProgress {
-            pendulum.step(delta:delta,tilt:input.gravityX*(webElement?.sway ?? 0)*2,acceleration:input.acceleration,intensity:intensity*(webElement?.sway ?? 0))
-            let anchor=webNode?.convertPosition(SCNVector3(8,-88,0),to:world) ?? SCNVector3(center,-top,33)
-            let length=10+max(30,Double(placement.descent)-88*webScale)*progress,angle=pendulum.angle
+        let bend=max(-1,min(1,(sin(elapsed*0.65)*0.55+input.x*1.5)*webStrength))
+        webNode?.enumerateChildNodes { node,_ in
+            node.morpher?.setWeight(CGFloat(max(0,bend)),forTargetAt:0)
+            node.morpher?.setWeight(CGFloat(max(0,-bend)),forTargetAt:1)
+            node.geometry?.materials.forEach {
+                $0.diffuse.contents=dark ? UIColor(white:0.69,alpha:0.84):UIColor(white:0.20,alpha:0.78)
+                $0.emission.contents=UIColor(white:0.12,alpha:1);$0.emission.intensity=(webElement?.glow ?? false) ? 0.035:0
+            }
+        }
+        for index in spiders.indices {
+            let progress=animated && (webElement?.sway ?? 0)>0
+                ? SeasonalChoreography.spiderProgress(at:elapsed,preview:preview,index:index):1
+            if animated {
+                spiders[index].pendulum.step(delta:delta,tilt:input.gravityX*(webElement?.sway ?? 0)*2,
+                    acceleration:input.acceleration*(index==0 ? 1:0.72),intensity:intensity*(webElement?.sway ?? 0))
+            }
+            let tapered=SeasonalWebShape.tapered(SeasonalWebShape.attachments[index])
+            let point=SeasonalWebShape.displaced(tapered,amount:bend)
+            let anchor=webNode?.convertPosition(SCNVector3(point.x,point.y,0),to:world) ?? SCNVector3(center,-top,33)
+            let restingDepth=Double(placement.descent)*(index==0 ? 1:0.82)
+            let length=8+max(18,restingDepth+Double(point.y)*webScale)*progress
+            let angle=animated ? spiders[index].pendulum.angle:0
             let x=Double(anchor.x)+sin(angle)*length,y=Double(-anchor.y)+cos(angle)*length
-            spiderNode?.position=SCNVector3(x,-y,34);spiderNode?.eulerAngles.z=Float(angle)
-            spiderNode?.scale=SCNVector3(1.6*webScale,1.6*webScale,1.6*webScale)
+            let spider=spiders[index]
+            spider.root.position=SCNVector3(x,-y,34);spider.root.eulerAngles.z=Float(angle)
+            let scale=(index==0 ? 1.6:1.15)*webScale
+            spider.root.scale=SCNVector3(scale,scale,scale)
             let end=SCNVector3(x-sin(angle)*6,-y+cos(angle)*6,33),start=SCNVector3(anchor.x,anchor.y,33)
             let dx=end.x-start.x,dy=end.y-start.y,len=sqrt(dx*dx+dy*dy)
-            (silkNode?.geometry as? SCNCylinder)?.height=CGFloat(len)
-            silkNode?.position=SCNVector3((start.x+end.x)/2,(start.y+end.y)/2,33)
-            silkNode?.simdOrientation=simd_quatf(from:SIMD3<Float>(0,1,0),to:SIMD3<Float>(dx,dy,0)/max(len,0.001))
-            silkNode?.geometry?.firstMaterial?.diffuse.contents=dark ? UIColor(white:0.77,alpha:0.8):UIColor(white:0.24,alpha:0.68)
-            for (i,leg) in spiderLegs.enumerated() { leg.eulerAngles.z=Float(sin(elapsed*2.6+Double(i))*0.045*intensity) }
+            (spider.silk.geometry as? SCNCylinder)?.height=CGFloat(len)
+            spider.silk.position=SCNVector3((start.x+end.x)/2,(start.y+end.y)/2,33)
+            spider.silk.simdOrientation=simd_quatf(from:SIMD3<Float>(0,1,0),to:SIMD3<Float>(dx,dy,0)/max(len,0.001))
+            spider.silk.geometry?.firstMaterial?.diffuse.contents=dark ? UIColor(white:0.77,alpha:0.8):UIColor(white:0.24,alpha:0.68)
+            for (i,leg) in spider.legs.enumerated() {
+                leg.eulerAngles.z=animated ? Float(sin(elapsed*(index==0 ? 2.6:2.1)+Double(i))*0.045*intensity):0
+            }
         }
         let batElement=elements.first{$0.artwork == .bat}
         for (index,bat) in bats.enumerated() {

@@ -46,6 +46,18 @@ import UIKit
         XCTAssertTrue(bell.waitForExistence(timeout:10));XCTAssertEqual(bell.frame.minY,baseline,accuracy:1)
         on.terminate()
     }
+    func testTwoSpidersStayVisibleAfterFormerDisappearance() throws {
+        let app=launch(scope:"home")
+        let bell=app.buttons["seasonal.fixture.bell"]
+        XCTAssertTrue(bell.waitForExistence(timeout:15))
+        Thread.sleep(forTimeInterval:18)
+        XCTAssertTrue(bell.isHittable)
+        shot("SeasonalPair-AfterFormer16SecondCutoff")
+        Thread.sleep(forTimeInterval:17)
+        XCTAssertTrue(bell.isHittable)
+        shot("SeasonalPair-DuringBatGroup")
+        app.terminate()
+    }
     func testLightAndDarkActualArtworkAndEditor() throws {
         for appearance in ["light","dark"] {
             let app=launch(scope:"home",appearance:appearance)

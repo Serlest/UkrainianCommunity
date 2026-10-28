@@ -106,20 +106,33 @@ import UIKit
             let i=ray % angles.count,a=angles[i],r=fraction*lengths[i]
             return SCNVector3(hub.x+cos(a)*112*r,hub.y-sin(a)*82*r,0)
         }
+        var vertices:[SCNVector3]=[],normals:[SCNVector3]=[],indices:[Int32]=[]
+        func tube(_ a:SCNVector3,_ b:SCNVector3,_ radius:CGFloat) {
+            let av=SIMD3<Float>(a.x,a.y,a.z),bv=SIMD3<Float>(b.x,b.y,b.z)
+            let direction=simd_normalize(bv-av)
+            let u=simd_normalize(simd_cross(direction,SIMD3<Float>(0,0,1)))
+            let v=simd_cross(direction,u),base=Int32(vertices.count)
+            for end in [av,bv] { for side in 0..<5 {
+                let angle=Float(side)/5 * .pi*2,n=cos(angle)*u+sin(angle)*v
+                let point=end+n*Float(radius)
+                vertices.append(SCNVector3(point));normals.append(SCNVector3(n))
+            } }
+            for side in 0..<5 {
+                let a=base+Int32(side),b=base+Int32((side+1)%5)
+                indices += [a,b,a+5,b,b+5,a+5]
+            }
+        }
         func curve(_ a:SCNVector3,_ b:SCNVector3,_ sag:Double,_ radius:CGFloat) {
-            // Keep the top strands inside the cutout corridor, clear of clock/battery.
             func tapered(_ p:SCNVector3) -> SCNVector3 {
-                let depth=min(1,max(0,(-Double(p.y)-38)/62))
-                let width=0.52+0.48*depth*depth*(3-2*depth)
-                return SCNVector3(p.x*Float(width),p.y,p.z)
+                let point=SeasonalWebShape.tapered(CGPoint(x:Double(p.x),y:Double(p.y)))
+                return SCNVector3(Float(point.x),Float(point.y),p.z)
             }
             var previous=tapered(a)
             for step in 1...6 {
                 let t=Double(step)/6,bend=sin(t * .pi)*sag
-                let next=SCNVector3(Double(a.x)+(Double(b.x-a.x))*t,
-                                    Double(a.y)+(Double(b.y-a.y))*t-bend, sin(t * .pi)*0.6)
-                let mapped=tapered(next)
-                root.addChildNode(strand(from:previous,to:mapped,radius:radius,material:silk));previous=mapped
+                let next=SCNVector3(Double(a.x)+Double(b.x-a.x)*t,
+                                    Double(a.y)+Double(b.y-a.y)*t-bend,sin(t * .pi)*0.6)
+                let mapped=tapered(next);tube(previous,mapped,radius);previous=mapped
             }
         }
         for ray in angles.indices { curve(SCNVector3(hub.x,hub.y,0),point(ray,1.12),1.2,0.36) }
@@ -133,11 +146,22 @@ import UIKit
         } }
         curve(point(2,1.12),SCNVector3(80,-112,0),2.8,0.23)
         curve(point(5,1.12),SCNVector3(-73,-116,0),1.9,0.22)
-        // The spider's attachment is visibly joined to the lower lattice.
-        curve(point(3,0.86),SCNVector3(8,-88,0),1.1,0.29)
-        let mesh=root.flattenedClone()
-        let container=SCNNode();container.name="web";container.addChildNode(mesh)
-        return container
+        for (index,attachment) in SeasonalWebShape.attachments.enumerated() {
+            curve(point(index==0 ? 5:2,0.92),SCNVector3(attachment.x,attachment.y,0),1.1,0.29)
+        }
+        func geometry(_ points:[SCNVector3]) -> SCNGeometry {
+            let g=SCNGeometry(sources:[SCNGeometrySource(vertices:points),SCNGeometrySource(normals:normals)],
+                              elements:[SCNGeometryElement(indices:indices,primitiveType:.triangles)])
+            g.firstMaterial=silk;return g
+        }
+        let mesh=SCNNode(geometry:geometry(vertices))
+        let morph=SCNMorpher();morph.calculationMode = .additive
+        morph.targets=[1.0,-1.0].map { amount in geometry(vertices.map { vertex in
+            let p=SeasonalWebShape.displaced(CGPoint(x:Double(vertex.x),y:Double(vertex.y)),amount:amount)
+            return SCNVector3(Float(p.x),Float(p.y),vertex.z)
+        }) }
+        mesh.morpher=morph;root.addChildNode(mesh)
+        return root
     }
 
     static func spider() -> (root:SCNNode,legs:[SCNNode]) {

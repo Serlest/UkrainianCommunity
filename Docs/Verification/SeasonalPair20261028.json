@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-28",
+  "scope": "Persistent two-spider scene and larger web pinned around system cutout",
+  "changes": [
+    "One-time staggered descent; two sizes/depths; both remain across bat cycles",
+    "Static presentation retains both spiders",
+    "Default web enlarged 22% with viewport cap",
+    "Upper vertices remain fixed; two precomputed GPU morph targets deform lower strands; attachments use the same point transform"
+  ],
+  "verification": {
+    "simulator": "UAC Adaptive Phone iOS 27.0",
+    "tests": {
+      "passed": 11,
+      "failed": 0,
+      "skipped": 0,
+      "result": "build/seasonal-pair-20261028/Verification.xcresult"
+    },
+    "visualReview": "All eight home/editor and post-cutoff UI captures reviewed in light/dark",
+    "actualNewsRootRecording": "pending",
+    "productionWrites": false,
+    "physicalDevice": "Not performed; user will verify tilt, aesthetics and smoothness on iPhone"
+  },
+  "delivery": {
+    "build": 135,
+    "status": "archive in progress"
+  }
+}

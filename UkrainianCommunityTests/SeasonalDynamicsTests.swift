@@ -50,11 +50,6 @@ struct SeasonalDynamicsTests {
                 #expect(p.x.isFinite && p.y.isFinite)
                 for other in points { #expect(hypot(p.x-other.x,p.y-other.y)>10) }
                 points.append(p)
-                for tick in 0..<680 {
-                    let t=Double(tick)/10
-                    #expect(SeasonalChoreography.spiderProgress(at:t,preview:preview)==nil ||
-                            SeasonalChoreography.batProgress(at:t,preview:preview,index:index)==nil)
-                }
                 let end=SeasonalFlightPath.point(at:1,size:size,top:0,preview:preview,index:index)
                 #expect(end.x>size.width && end.y<0)
             }
@@ -82,19 +77,38 @@ struct SeasonalDynamicsTests {
         p.step(delta:.nan,tilt:0,acceleration:0,intensity:1)
         #expect(p.angle==angle)
     }
-    @Test func spiderAndBatNeverOverlapAndFlightIsInfrequent() {
-        for preview in [true,false] {
-            for tick in 0..<1360 {
+    @Test func spidersDescendOnceAndRemainAcrossAllFormerCycleBoundaries() {
+        #expect(SeasonalChoreography.spiderCount==2)
+        for preview in [true,false] { for index in 0..<2 {
+            var previous=0.0
+            for tick in 0...1400 {
                 let t=Double(tick)/10
-                let spider=SeasonalChoreography.spiderProgress(at:t,preview:preview)
-                let bat=SeasonalChoreography.batProgress(at:t,preview:preview)
-                #expect(spider==nil || bat==nil)
-                if let spider { #expect((0...1).contains(spider)) }
-                if let bat { #expect((0...1).contains(bat)) }
+                let progress=SeasonalChoreography.spiderProgress(at:t,preview:preview,index:index)
+                #expect((0...1).contains(progress))
+                #expect(progress>=previous)
+                previous=progress
+                if t>=9 { #expect(progress==1) }
             }
-        }
-        #expect(SeasonalChoreography.spiderProgress(at:8,preview:false)==1)
+            #expect(SeasonalChoreography.spiderProgress(at:3600,preview:preview,index:index)==1)
+        } }
+        #expect(SeasonalChoreography.spiderProgress(at:3,preview:false,index:0) >
+                SeasonalChoreography.spiderProgress(at:3,preview:false,index:1))
         #expect(SeasonalChoreography.batProgress(at:20,preview:false)==nil)
         #expect(SeasonalChoreography.batProgress(at:33,preview:false) != nil)
+    }
+    @Test func upperWebIsPinnedAndLowerAttachmentsFollowBoundedBend() {
+        for x in stride(from:-120.0,through:120,by:20) {
+            for y in stride(from:-42.0,through:30,by:12) {
+                let point=CGPoint(x:x,y:y)
+                for amount in [-1.0,0,1] { #expect(SeasonalWebShape.displaced(point,amount:amount)==point) }
+            }
+        }
+        for point in SeasonalWebShape.attachments {
+            let base=SeasonalWebShape.tapered(point)
+            let left=SeasonalWebShape.displaced(base,amount:-1),right=SeasonalWebShape.displaced(base,amount:1)
+            #expect(left.x<base.x && right.x>base.x)
+            #expect(abs(right.x-left.x)<18.1)
+            #expect(abs(right.y-left.y)<=3)
+        }
     }
 }

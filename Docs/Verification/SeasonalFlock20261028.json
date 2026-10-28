@@ -52,8 +52,10 @@
     "version": "1.2.1",
     "archive": "succeeded",
     "upload": "succeeded",
-    "appleProcessing": "PROCESSING",
-    "notes": "Automatic metadata helper waiting for Apple build visibility",
-    "evidence": "TestFlight134.json"
+    "appleProcessing": "VALID",
+    "notes": "uk, de-DE, en-US confirmed",
+    "evidence": "TestFlight134.json",
+    "internalBuildState": "IN_BETA_TESTING",
+    "group": "Beta Tester"
   }
 }
