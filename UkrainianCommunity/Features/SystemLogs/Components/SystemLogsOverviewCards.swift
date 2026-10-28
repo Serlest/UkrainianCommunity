@@ -3,6 +3,7 @@ import SwiftUI
 struct SystemLogsOverviewCards: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     let metrics: [SystemLogOverviewMetric]
+    var isAwaitingData = false
     var onSelect: ((SystemLogOverviewMetric) -> Void)?
 
     var body: some View {
@@ -14,8 +15,8 @@ struct SystemLogsOverviewCards: View {
                     metricCard(metric)
                 }
                 .buttonStyle(.plain)
-                .disabled(onSelect == nil)
-                .accessibilityHint(onSelect == nil ? "" : AppStrings.SystemLogs.metricFilterHint)
+                .disabled(onSelect == nil || isAwaitingData)
+                .accessibilityHint(onSelect == nil || isAwaitingData ? "" : AppStrings.SystemLogs.metricFilterHint)
             }
         }
     }
@@ -33,9 +34,10 @@ struct SystemLogsOverviewCards: View {
                     )
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(metric.value)
+                    Text(isAwaitingData ? "—" : metric.value)
                         .font(.title3.weight(.bold))
                         .foregroundStyle(AppTheme.textPrimary)
+                        .accessibilityLabel(isAwaitingData ? AppStrings.Common.loading : metric.value)
 
                     Text(metric.title)
                         .font(.caption.weight(.semibold))

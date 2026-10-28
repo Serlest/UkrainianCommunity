@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SystemLogsDashboardView: View {
     @EnvironmentObject private var authState: AuthState
+    @Environment(\.dynamicTypeSize) private var typeSize
     @StateObject private var viewModel: SystemLogsViewModel
     @FocusState private var isSearchFocused: Bool
     @State private var isConfirmingClear = false
@@ -41,12 +42,16 @@ struct SystemLogsDashboardView: View {
             searchBar
         } metrics: {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                if viewModel.isSessionCurrent {
-                SystemLogsOverviewCards(metrics: viewModel.overviewMetrics) { metric in
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        viewModel.applyMetric(id: metric.id)
+                if viewModel.isSessionCurrent, !viewModel.accessDenied,
+                   viewModel.hasLoadedInitialPage || viewModel.errorMessage == nil {
+                    SystemLogsOverviewCards(
+                        metrics: viewModel.overviewMetrics,
+                        isAwaitingData: viewModel.logs.isEmpty && (viewModel.isLoading || !viewModel.hasLoadedInitialPage)
+                    ) { metric in
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            viewModel.applyMetric(id: metric.id)
+                        }
                     }
-                }
                 }
                 Text(AppStrings.SystemLogs.loadedMetricsNote)
                     .font(.caption2.weight(.medium))
@@ -135,12 +140,13 @@ struct SystemLogsDashboardView: View {
             )
 
             if viewModel.hasActiveFilters {
-                HStack(spacing: 8) {
+                filterScopeLayout {
                     Label(LocalizationStore.localizedString("system_logs.query.scope", defaultValue: "Пошук і фільтри застосовано до всього журналу", table: "SystemLogJournal"), systemImage: "line.3.horizontal.decrease.circle.fill")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                    Spacer(minLength: 8)
+                    if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
 
                     Button(AppStrings.SystemLogs.resetFilters) {
                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -151,6 +157,12 @@ struct SystemLogsDashboardView: View {
                 }
             }
         }
+    }
+
+    private var filterScopeLayout: AnyLayout {
+        typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(spacing: 8))
     }
 
     private var actionsMenu: some View {
@@ -235,7 +247,7 @@ struct SystemLogsDashboardView: View {
                 }
                 DashboardSectionHeader(
                     title: AppStrings.SystemLogs.records,
-                    subtitle: "\(viewModel.visibleLogs.count) \(AppStrings.SystemLogs.recordsCountSuffix)"
+                    subtitle: viewModel.visibleLogs.count.formatted()
                 )
 
                 if viewModel.groupedVisibleLogs.isEmpty {
@@ -244,7 +256,7 @@ struct SystemLogsDashboardView: View {
                     ForEach(viewModel.groupedVisibleLogs) { group in
                         DashboardSectionHeader(
                             title: group.title,
-                            subtitle: "\(group.logs.count) \(AppStrings.SystemLogs.recordsCountSuffix)"
+                            subtitle: "\(AppStrings.SystemLogs.records): \(group.logs.count.formatted())"
                         )
                         logsList(group.logs)
                     }

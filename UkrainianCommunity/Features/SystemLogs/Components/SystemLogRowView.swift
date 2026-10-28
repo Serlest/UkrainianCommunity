@@ -60,16 +60,24 @@ struct SystemLogRowView: View {
     }
 
     private var metadataLine: some View {
-        HStack(spacing: 6) {
+        metadataLayout {
             Text(log.actorDisplayName ?? SystemLogDisplayFormatting.actorRoleTitle(log.actorRole))
             if log.targetTitle != nil || (log.targetType != .none && log.targetType != .unknown) {
-                Image(systemName: "arrow.right").font(.caption2.weight(.semibold))
+                Image(systemName: typeSize.isAccessibilitySize ? "arrow.down" : "arrow.right")
+                    .font(.caption2.weight(.semibold))
+                    .accessibilityHidden(true)
                 Text(log.targetTitle ?? SystemLogDisplayFormatting.targetTypeTitle(log.targetType))
             }
         }
         .font(.caption.weight(.medium))
         .foregroundStyle(AppTheme.textSecondary)
         .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
+    }
+
+    private var metadataLayout: AnyLayout {
+        typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
+            : AnyLayout(HStackLayout(spacing: 6))
     }
 
     @ViewBuilder
