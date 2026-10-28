@@ -36,6 +36,20 @@ private final class LegalManagementRepositoryStub: LegalDocumentRepository {
 
 @MainActor
 struct LegalDocumentManagementTests {
+    @Test func historicalPublishedIdentifierCompatibilityDoesNotPermitLegacyWrites() {
+        for number in [202602, 202603, 202604] {
+            let legacy = "2026.\(number)"
+            #expect(FirestoreLegalDocumentRepository.hasReadableVersionIdentifier(legacy, versionNumber: number))
+            #expect(!LegalDocumentDraft.hasConsistentVersionIdentifier(legacy, versionNumber: number))
+        }
+        #expect(FirestoreLegalDocumentRepository.hasReadableVersionIdentifier("2026.15", versionNumber: 202615))
+        for (identifier, number) in [("2025.202604", 202604), ("2026.202603", 202604),
+                                     ("2026.202600", 202600), ("2026.0202604", 202604),
+                                     ("2026.202604/other", 202604), ("0.4", 4)] {
+            #expect(!FirestoreLegalDocumentRepository.hasReadableVersionIdentifier(identifier, versionNumber: number))
+        }
+    }
+
     @Test func changeSummaryKeepsLanguagesSeparateAndReadsOlderSummaries() {
         var summary = LegalChangeSummary(raw: nil)
         summary.german = "Neue Frist"

@@ -154,7 +154,7 @@ struct FirestoreLegalDocumentRepository: LegalDocumentRepository {
               }) else { throw AppError.notFound }
         let document = decodeDocument(type: type, version: version, data: data)
         guard document.status != .draft, document.version == version,
-              LegalDocumentDraft.hasConsistentVersionIdentifier(document.version, versionNumber: document.versionNumber),
+              Self.hasReadableVersionIdentifier(document.version, versionNumber: document.versionNumber),
               Self.hasValidContentHashes(document), expectedHash == nil || document.contentHash == expectedHash else { throw AppError.validationFailed }
         return document
     }
@@ -170,7 +170,7 @@ struct FirestoreLegalDocumentRepository: LegalDocumentRepository {
             guard document.status == .published || document.status == .archived else { return nil }
             guard document.version == snapshot.documentID,
                   snapshot.get("documentType") as? String == type.rawValue,
-                  LegalDocumentDraft.hasConsistentVersionIdentifier(document.version, versionNumber: document.versionNumber),
+                  Self.hasReadableVersionIdentifier(document.version, versionNumber: document.versionNumber),
                   Self.hasValidContentHashes(document) else { throw AppError.validationFailed }
             return document
         }
@@ -443,6 +443,16 @@ struct FirestoreLegalDocumentRepository: LegalDocumentRepository {
     private static func matchesWhenExpectedPresent<T: Equatable>(_ value: T?, expected: T?) -> Bool {
         guard let expected else { return true }
         return value == expected
+    }
+
+    /// Early immutable publications used year.fullVersionNumber (2026.202604).
+    /// Permit that exact historical read shape; draft creation/publication stays strict.
+    static func hasReadableVersionIdentifier(_ version: String, versionNumber: Int) -> Bool {
+        if LegalDocumentDraft.hasConsistentVersionIdentifier(version, versionNumber: versionNumber) { return true }
+        let year = versionNumber / 100
+        let minor = versionNumber % 100
+        guard year > 0, (1..<100).contains(minor) else { return false }
+        return version == "\(year).\(versionNumber)"
     }
 
     static func hasValidContentHashes(_ document: LegalDocument, allowIncomplete: Bool = false) -> Bool {
