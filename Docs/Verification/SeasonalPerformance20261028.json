@@ -36,7 +36,12 @@
     },
     "scrollBaseline": "build/seasonal-performance-20261028/BaselineScroll.xcresult",
     "scrollAfter": "build/seasonal-performance-20261028/SynchronizedVerification.xcresult",
-    "fullSimulatorVerification": "pending",
+    "fullSimulatorVerification": {
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0,
+      "result": "build/seasonal-performance-20261028/FinalVerification.xcresult"
+    },
     "realDevice": "Unavailable via devicectl; no measured physical FPS or final device acceptance",
     "productionWrites": false,
     "scrollMetrics": {
@@ -137,10 +142,46 @@
       "result": "build/seasonal-performance-20261028/SynchronizedVerification.xcresult"
     },
     "visualReview": "All 12 UI captures reviewed: light/dark native root/editor, legacy PNG, maximum German keyboard/date, retained pair, returned scrolling header",
-    "actualRootVerification": "pending"
+    "actualRootVerification": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "result": "build/seasonal-performance-20261028/ActualRoot.xcresult",
+      "scope": "public schedule in loopback, local opt-out, return from background and five actual tab roots"
+    },
+    "actualRootFixtureLimits": "Images and recent directory data intentionally unseeded; these captures are not production content acceptance",
+    "finalVisualReview": "12 final UI captures and five actual root captures reviewed; actual News video reviewed at 6/12/18/24/30/38/42/64/68 seconds",
+    "actualRootVideo": "build/seasonal-performance-20261028/final-news-flight.mp4",
+    "manualPresetScrollVideo": "build/seasonal-performance-20261028/scroll-compositor.mp4; preset actions did not provide useful measurable visible-header travel, not used as coupling proof",
+    "controlledHeaderDragVerification": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "result": "build/seasonal-performance-20261028/HeaderDrag.xcresult",
+      "video": "build/seasonal-performance-20261028/header-drag.mp4",
+      "scope": "60-row fixture, actual slow coordinate drag, asserts header really leaves screen and returns to original position",
+      "tracking": {
+        "samples": 31,
+        "logoTravelPixels": 114.99999999999999,
+        "relativeBottomRangePixels": 1
+      },
+      "interpretation": "115-pixel visible logo travel, 1-pixel relative bottom-edge range including idle body animation/rounding; simulator evidence only"
+    },
+    "sourceCI": {
+      "run": 40720915120,
+      "status": "completed",
+      "conclusion": "success"
+    }
   },
   "delivery": {
     "build": 136,
-    "status": "pending"
+    "version": "1.2.1",
+    "status": "VALID / IN_BETA_TESTING",
+    "group": "Beta Tester",
+    "notesLocales": [
+      "en-US",
+      "uk",
+      "de-DE"
+    ]
   }
 }

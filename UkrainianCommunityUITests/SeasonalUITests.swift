@@ -58,6 +58,23 @@ import UIKit
         shot("SeasonalPair-DuringBatGroup")
         app.terminate()
     }
+    func testHeaderScrollActuallyMovesAndReturns() throws {
+        let app=launch(scope:"scroll")
+        let bell=app.buttons["seasonal.fixture.bell"]
+        XCTAssertTrue(bell.waitForExistence(timeout:15));let baseline=bell.frame.minY
+        let start=app.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.45))
+        let end=app.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.7))
+        // A real slow drag supplies visible intermediate frames for the companion video.
+        start.press(forDuration:0.05,thenDragTo:end,withVelocity:.slow,thenHoldForDuration:1)
+        app.swipeUp();app.swipeUp()
+        XCTAssertFalse(bell.isHittable,"The long feed must actually scroll, rather than measuring no-op swipes")
+        shot("SeasonalHeader-ScrolledOut")
+        for _ in 0..<6 where !bell.isHittable { app.swipeDown() }
+        XCTAssertTrue(bell.isHittable)
+        XCTAssertEqual(bell.frame.minY,baseline,accuracy:1)
+        shot("SeasonalHeader-RestoredAfterRealScroll")
+        app.terminate()
+    }
     func testSeasonalScrollPerformance() throws {
         let app=launch(scope:"scroll")
         XCTAssertTrue(app.buttons["seasonal.fixture.bell"].waitForExistence(timeout:15))

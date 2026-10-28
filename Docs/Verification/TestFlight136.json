@@ -1,0 +1,55 @@
+{
+  "checkedAt": "2026-10-28T16:31:16.954109+00:00",
+  "version": "1.2.1",
+  "build": 136,
+  "sourceCommit": "aac50213af20412dcffe2aa1fc1bfa406bd66363",
+  "processingState": "VALID",
+  "internalBuildState": "IN_BETA_TESTING",
+  "groups": [
+    "Beta Tester"
+  ],
+  "notesLocales": [
+    "en-US",
+    "uk",
+    "de-DE"
+  ],
+  "archive": "ARCHIVE SUCCEEDED; final archive-delivery.log, version/encryption exemption and app dSYM UUID match verified. Earlier provisional archives were not uploaded.",
+  "upload": "EXPORT SUCCEEDED; Apple VALID, Beta Tester membership and all localized notes confirmed",
+  "verification": "Final 16 checks passed without failures/skips; separate actual-root five-tab test and controlled header-drag test passed. Source CI success. Final captures and drag video reviewed.",
+  "sourceGitHub": {
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "Change classification and static checks",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "iOS build and unit checks",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Firebase affected checks",
+        "status": "completed",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "Firebase and rules",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "iOS build and unit tests",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "sourceGitHubURL": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40720915120",
+  "scope": "Internal TestFlight only. No production theme-data writes or public App Store release. Prior physical audit remains paused.",
+  "physicalAcceptance": "Phone unavailable; actual device frame pacing, tilt and aesthetics remain for user verification. Simulator timings are not phone FPS.",
+  "vendorSymbols": "Known missing prebuilt FirebaseFirestoreInternal, absl, grpc, grpcpp and openssl_grpc dSYM export warnings remain; app dSYM verified matching. Upload accepted.",
+  "postReleaseTestOnlyChange": "A coordinate-drag UI test was added after the app binary was archived; app source remains aac50213. Test passed and companion video reviewed."
+}
