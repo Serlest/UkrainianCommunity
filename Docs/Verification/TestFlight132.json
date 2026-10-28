@@ -1,0 +1,29 @@
+{
+  "checkedAt": "2026-10-28T11:57:19.786912+00:00",
+  "version": "1.2.1",
+  "build": 132,
+  "sourceCommit": "b76edf22a86def5cf6565c24eb14f08e7538283b",
+  "processingState": "VALID",
+  "internalBuildState": "IN_BETA_TESTING",
+  "groups": [
+    "Beta Tester"
+  ],
+  "notesLocales": [
+    "en-US",
+    "de-DE",
+    "uk"
+  ],
+  "archive": "build/testflight-132/archive-final.log; ARCHIVE SUCCEEDED; signature/version/encryption exemption verified",
+  "upload": "build/testflight-132/export-account.log; EXPORT SUCCEEDED",
+  "symbols": "Application executable/dSYM UUIDs match. Export reported missing dSYM for third-party prebuilt openssl_grpc; upload accepted.",
+  "verification": "SeasonalDepth20261028.json: 17 logic/model tests, 6 UI cases, separate actual ContentView root followup; two UI cases repeated on final 132 source. Pixel evidence reviewed.",
+  "sourceGitHub": {
+    "conclusion": "",
+    "jobs": [],
+    "status": "pending"
+  },
+  "sourceGitHubURL": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40683054407",
+  "physicalDevice": "User will check iPhone motion, realism, smoothness and energy behavior. Physical audit remains paused. No physical device operated.",
+  "productionThemeData": "No theme library/public presentation changed in production. Existing saved themes are compatible.",
+  "releaseScope": "Internal TestFlight only; public App Store unchanged."
+}
