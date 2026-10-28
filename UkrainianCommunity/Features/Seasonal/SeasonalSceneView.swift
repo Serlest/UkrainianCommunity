@@ -38,6 +38,15 @@ struct SeasonalScene: UIViewRepresentable {
     private var bats:[(root:SCNNode,wings:[SCNNode])]=[]
     private var elements:[SeasonalElement]=[]
     private var theme:SeasonalTheme?
+    private var hangingElement:SeasonalElement? {
+        elements.first { $0.zone == .hanging } ?? (theme?.isComposedScene == true ? nil:elements.first{$0.artwork == .web})
+    }
+    private var hangingFrames:[UIImage]=[]
+    private var lastHangingFrame = -1
+    private var hangingMoves:Bool {
+        guard let hanger=hangingElement else { return false }
+        return hanger.motionStrength>0 && (hanger.zone == nil || hanger.effectiveMotion == .swing)
+    }
     private var materialSignature:String?
     private var placement=SeasonalScenePlacement()
     private var animated=false, dark=false, preview=false
@@ -86,7 +95,7 @@ struct SeasonalScene: UIViewRepresentable {
         let restartClock=animated && link == nil
         guard themeChanged || self.placement != placement || animationChanged || self.dark != dark || self.preview != preview || restartClock else { return }
         let changedIdentity=self.theme?.id != theme.id
-        let geometryChanged=themeChanged && elements.map { $0.id+"|"+$0.artwork.rawValue } != theme.elements.map { $0.id+"|"+$0.artwork.rawValue }
+        let geometryChanged=themeChanged && (elements.map { $0.id+"|"+$0.artwork.rawValue+"|"+($0.zone?.rawValue ?? "") } != theme.elements.map { $0.id+"|"+$0.artwork.rawValue+"|"+($0.zone?.rawValue ?? "") } || zip(elements,theme.elements).contains{$0.pngFrames != $1.pngFrames})
         self.theme=theme;self.placement=placement;self.dark=dark;self.preview=preview
         if themeChanged { elements=theme.elements }
         if geometryChanged || changedIdentity {
@@ -100,7 +109,7 @@ struct SeasonalScene: UIViewRepresentable {
         updateMaterialAppearance()
         self.animated=animated
         if animationChanged || themeChanged || restartClock {
-            motion.setEnabled(animated && theme.reactsToTilt && theme.elements.contains{$0.artwork == .web && $0.motionStrength > 0})
+            motion.setEnabled(animated && theme.reactsToTilt && hangingMoves)
         }
         if themeChanged {
             // Bloom/HDR stay in the tiny header pumpkin viewport, not the full-screen web.
@@ -133,17 +142,33 @@ struct SeasonalScene: UIViewRepresentable {
 
     private func buildObjects() {
         materialSignature=nil
-        world.childNodes.forEach{$0.removeFromParentNode()};pumpkinNodes=[];bats=[];spiders=[]
+        world.childNodes.forEach{$0.removeFromParentNode()};pumpkinNodes=[];bats=[];spiders=[];hangingFrames=[];lastHangingFrame = -1
         for element in elements where element.artwork == .pumpkin {
             let p=SeasonalSceneArtwork.pumpkin();world.addChildNode(p.root);pumpkinNodes.append((p.root,p.ember,p.light,element))
         }
-        if elements.contains(where:{$0.artwork == .web}) {
-            for _ in 0..<SeasonalChoreography.spiderCount {
-                let spider=SeasonalSceneArtwork.spider();spider.root.name="seasonal.spider.\(spiders.count)";world.addChildNode(spider.root)
+        if let hanger=hangingElement {
+            if hanger.artwork == .image { hangingFrames=SeasonalSceneImages.frames(hanger) }
+            let nativeSpider=hanger.artwork == .web || hanger.artwork == .spider
+            let count=nativeSpider || hanger.artwork == .glassBauble ? 2:1
+            for index in 0..<count {
+                let root:SCNNode,legs:[SCNNode]
+                if nativeSpider {
+                    let spider=SeasonalSceneArtwork.spider();root=spider.root;legs=spider.legs
+                    root.name="seasonal.spider.\(index)"
+                } else {
+                    root=SCNNode();legs=[];root.name="seasonal.hanging.\(index)"
+                    if let image=SeasonalSceneImages.image(hanger) {
+                        let plane=SCNPlane(width:image.size.width/max(1,image.size.height),height:1)
+                        let material=SCNMaterial();material.lightingModel = .constant;material.diffuse.contents=image
+                        material.isDoubleSided=true;material.transparencyMode = .aOne;plane.firstMaterial=material
+                        root.geometry=plane
+                    }
+                }
+                world.addChildNode(root)
                 let g=SCNCylinder(radius:0.25,height:1);g.radialSegmentCount=5
                 let m=SCNMaterial();m.lightingModel = .constant;g.firstMaterial=m
                 let silk=SCNNode(geometry:g);world.addChildNode(silk)
-                spiders.append((spider.root,spider.legs,silk,SeasonalPendulum()))
+                spiders.append((root,legs,silk,SeasonalPendulum()))
             }
         }
         if elements.contains(where:{$0.artwork == .bat}) {
@@ -156,11 +181,14 @@ struct SeasonalScene: UIViewRepresentable {
     /// Theme/material properties change on configuration, never during each animation tick.
     private func updateMaterialAppearance() {
         let glow=elements.first{$0.artwork == .bat}?.glow ?? false
-        let signature="\(dark)|\(glow)"
+        let signature="\(dark)|\(glow)|\(hangingElement?.accentHex ?? "")|"+pumpkinNodes.map{$0.3.accentHex ?? ""}.joined(separator:"|")
         guard signature != materialSignature else { return }
         materialSignature=signature
+        for pumpkin in pumpkinNodes {
+            pumpkin.1.diffuse.contents=pumpkin.3.accentColor; pumpkin.1.emission.contents=pumpkin.3.accentColor; pumpkin.2.color=pumpkin.3.accentColor
+        }
         for spider in spiders {
-            spider.silk.geometry?.firstMaterial?.diffuse.contents=dark ? UIColor(white:0.77,alpha:0.8):UIColor(white:0.24,alpha:0.68)
+            spider.silk.geometry?.firstMaterial?.diffuse.contents=(hangingElement?.artwork == .glassBauble || hangingElement?.artwork == .keychain) ? hangingElement?.accentColor:(dark ? UIColor(white:0.77,alpha:0.8):UIColor(white:0.24,alpha:0.68))
         }
         for bat in bats { bat.root.enumerateChildNodes { node,_ in node.geometry?.materials.forEach {
             $0.emission.contents=UIColor(red:0.12,green:0.07,blue:0.035,alpha:1);$0.emission.intensity=glow ? 0.025:0
@@ -170,17 +198,19 @@ struct SeasonalScene: UIViewRepresentable {
     private func draw(delta:Double) {
         guard let theme else { return }
         let input=animated && theme.reactsToTilt && !spiders.isEmpty ? motion.sample() : SeasonalMotionSample()
-        let moved=abs(input.acceleration)>0.025 || abs(input.x-lastMotion.x)>0.003 || abs(input.y-lastMotion.y)>0.003
+        let moved=abs(input.acceleration)>0.025 || abs(input.x-lastMotion.x)>0.003 || abs(input.y-lastMotion.y)>0.003 || abs(input.gravityX-lastMotion.gravityX)>0.003
         if moved { fastMotionUntil=elapsed+0.8 }
         lastMotion=input
-        let swinging=spiders.contains{abs($0.pendulum.velocity)>0.003}
-        let hasWeb=elements.contains{$0.artwork == .web && $0.motionStrength>0}
+        let swinging=hangingMoves && spiders.contains{abs($0.pendulum.velocity)>0.003}
+        let hasWeb=hangingMoves
         let hasBat=elements.contains{$0.artwork == .bat && $0.sway>0}
         let arriving=hasWeb && elapsed<9
         let flying=hasBat && (0..<SeasonalChoreography.batCount).contains{
             SeasonalChoreography.batProgress(at:elapsed,preview:preview,index:$0) != nil
         }
-        let active=elapsed<fastMotionUntil || swinging || arriving || flying
+        let spriteAnimating=animated && hangingFrames.count>1 && hangingElement?.effectiveMotion != .still
+        let spriteFrame=spriteAnimating ? Int(elapsed/(hangingElement?.frameDuration ?? 0.2)) % hangingFrames.count:nil
+        let active=elapsed<fastMotionUntil || swinging || arriving || flying || (spriteFrame != nil && spriteFrame != lastHangingFrame)
         if animated {
             let rate=SeasonalFramePacing.rate(at:elapsed,hasWeb:hasWeb,hasBat:hasBat,preview:preview,moving:elapsed<fastMotionUntil || swinging)
             if link?.preferredFramesPerSecond != rate { link?.preferredFramesPerSecond=rate }
@@ -189,11 +219,14 @@ struct SeasonalScene: UIViewRepresentable {
         // Poll gravity at the calm clock rate, but do not redraw an unmoving full-window
         // scene. The final active frame still hides departed bats and settles the legs.
         let wasActive=previouslyActive;previouslyActive=active
-        guard needsRedraw || !animated || active || wasActive || pumpkinNodes.contains(where:{$0.3.glow}) else { return }
+        guard needsRedraw || !animated || active || wasActive || pumpkinNodes.contains(where:{$0.3.glow && $0.3.motionStyle != .still}) else { return }
         needsRedraw=false;renderedFrameCount += 1
         SCNTransaction.begin();SCNTransaction.animationDuration=0;SCNTransaction.disableActions=true
         defer { SCNTransaction.commit() }
         let intensity=theme.intensity
+        if let frame=spriteFrame {
+            if frame != lastHangingFrame { for item in spiders { item.root.geometry?.firstMaterial?.diffuse.contents=hangingFrames[frame] };lastHangingFrame=frame }
+        }
         for (index,p) in pumpkinNodes.enumerated() {
             let scale=p.3.size * 0.53 * Double(placement.objectScale)
             p.0.scale=SCNVector3(scale,scale,scale)
@@ -203,27 +236,35 @@ struct SeasonalScene: UIViewRepresentable {
             p.1.diffuse.intensity=CGFloat(candle);p.1.emission.intensity=CGFloat(candle*0.8);p.2.intensity=CGFloat(candle*20)
         }
         let top=Double(placement.webTop)
-        let webElement=elements.first{$0.artwork == .web}
+        let webElement=hangingElement
+        let nativeSpider=webElement?.artwork == .web || webElement?.artwork == .spider
         let webScale=min((webElement?.size ?? 44)/44,Double(bounds.width)/300)
         for index in spiders.indices {
-            let progress=(animated || elapsed>0) && (webElement?.motionStrength ?? 0)>0
+            let progress=(animated || elapsed>0) && hangingMoves
                 ? SeasonalChoreography.spiderProgress(at:elapsed,preview:preview,index:index):1
-            if animated {
+            if animated && hangingMoves {
                 spiders[index].pendulum.step(delta:delta,tilt:input.gravityX*(webElement?.motionStrength ?? 0)*2,
                     acceleration:input.acceleration*(index==0 ? 1:0.72),intensity:intensity*(webElement?.motionStrength ?? 0))
             }
-            let point=SeasonalDecorationGeometry.spiderAnchor(index:index,width:bounds.width,top:top,
-                safeTop:preview ? 38:Double(window?.safeAreaInsets.top ?? 0),elementSize:webElement?.size ?? 44)
+            let safeTop=preview ? 38:Double(window?.safeAreaInsets.top ?? 0)
+            let attachmentSize=elements.first{$0.artwork == .web}?.size ?? 34
+            let point:CGPoint
+            if nativeSpider {
+                point=SeasonalDecorationGeometry.spiderAnchor(index:index,width:bounds.width,top:top,safeTop:safeTop,elementSize:attachmentSize)
+            } else {
+                point=CGPoint(x:bounds.width/2+(spiders.count == 1 ? 18:(index == 0 ? 6:30)),y:top+max(18,safeTop-12))
+            }
             let anchor=SCNVector3(point.x,-point.y,33)
-            let restingDepth=top+Double(placement.descent)*(index==0 ? 1:0.82)
+            let restingDepth=top+Double(placement.descent)*(nativeSpider ? (index==0 ? 1:0.82):(index==0 ? 0.82:0.65))
             let length=8+max(24,restingDepth-point.y)*progress
-            let angle=(animated || elapsed>0) ? spiders[index].pendulum.angle:0
+            let angle=(animated || elapsed>0) && hangingMoves ? spiders[index].pendulum.angle*(nativeSpider ? 1:0.55):0
             let x=Double(anchor.x)+sin(angle)*length,y=Double(-anchor.y)+cos(angle)*length
             let spider=spiders[index]
             spider.root.position=SCNVector3(x,-y,34);spider.root.eulerAngles.z=Float(angle)
-            let scale=(index==0 ? 1.6:1.15)*webScale
+            let scale=nativeSpider ? (index==0 ? 1.6:1.15)*webScale:(webElement?.size ?? 32)*(index==0 ? 1.65:1.4)
             spider.root.scale=SCNVector3(scale,scale,scale)
-            let end=SCNVector3(x-sin(angle)*6,-y+cos(angle)*6,33),start=SCNVector3(anchor.x,anchor.y,33)
+            let tip=nativeSpider ? 6:Float(scale*0.45)
+            let end=SCNVector3(x-sin(angle)*Double(tip),-y+cos(angle)*Double(tip),33),start=SCNVector3(anchor.x,anchor.y,33)
             let dx=end.x-start.x,dy=end.y-start.y,len=sqrt(dx*dx+dy*dy)
             (spider.silk.geometry as? SCNCylinder)?.height=CGFloat(len)
             spider.silk.position=SCNVector3((start.x+end.x)/2,(start.y+end.y)/2,33)

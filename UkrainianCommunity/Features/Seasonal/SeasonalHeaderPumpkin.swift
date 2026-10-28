@@ -13,20 +13,26 @@ struct SeasonalHeaderPumpkin:View {
     @State private var lowPower=ProcessInfo.processInfo.isLowPowerModeEnabled
 
     private var localTheme:SeasonalTheme {
-        var result=theme;result.elements.removeAll{$0.artwork != .pumpkin};return result
+        var result=theme;result.elements=theme.headerElements;return result
     }
     private var animated:Bool {
         visible && scenePhase == .active && !reduceMotion && !lowPower && !typeSize.isAccessibilitySize
-            && localTheme.elements.contains{$0.glow}
+            && localTheme.elements.contains{$0.motionStyle != .still && ($0.effectiveMotion != .glow || $0.glow) && ($0.effectiveMotion != .still || $0.pngFrames.count>1)}
     }
     var body:some View {
-        GeometryReader { geometry in
-            let count=localTheme.elements.count
-            SeasonalScene(theme:localTheme,
-                placement:SeasonalScenePlacement(pumpkin:CGPoint(x:geometry.size.width/2+8,y:geometry.size.height/2),objectScale:min(1,geometry.size.width/40)),
-                animated:animated,dark:scheme == .dark)
-                .frame(width:geometry.size.width+16+CGFloat(max(0,count-1))*12,height:geometry.size.height)
-                .offset(x:-8)
+        Group {
+            if let element=localTheme.elements.first,element.artwork != .pumpkin {
+                SeasonalHeaderImage(element:element,animated:animated,intensity:theme.intensity)
+            } else {
+                GeometryReader { geometry in
+                    let count=localTheme.elements.count
+                    SeasonalScene(theme:localTheme,
+                        placement:SeasonalScenePlacement(pumpkin:CGPoint(x:geometry.size.width/2+8,y:geometry.size.height/2),objectScale:min(1,geometry.size.width/40)),
+                        animated:animated,dark:scheme == .dark)
+                        .frame(width:geometry.size.width+16+CGFloat(max(0,count-1))*12,height:geometry.size.height)
+                        .offset(x:-8)
+                }
+            }
         }
         .allowsHitTesting(false).accessibilityHidden(true)
         .onAppear { visible=true }

@@ -13,6 +13,68 @@ import UIKit
     private func shot(_ name: String) {
         let attachment=XCTAttachment(screenshot:XCUIApplication().screenshot());attachment.name=name;attachment.lifetime = .keepAlways;add(attachment)
     }
+    func testFullScreenPreviewAcrossTabsReturnsToEditor() throws {
+        for scope in ["editor","editor-gta","editor-christmas","editor-newyear"] {
+            let app=launch(scope:scope)
+            let open=app.buttons["seasonal.preview.fullScreen"]
+            XCTAssertTrue(open.waitForExistence(timeout:15));XCTAssertTrue(open.isHittable)
+            if scope.contains("christmas") || scope.contains("newyear") { app.buttons["Темний"].firstMatch.tap() }
+            open.tap()
+            let close=app.buttons["seasonal.preview.close"]
+            XCTAssertTrue(close.waitForExistence(timeout:10));XCTAssertTrue(close.isHittable)
+            let events=app.tabBars.buttons["Події"]
+            XCTAssertTrue(events.isHittable);events.tap();XCTAssertTrue(events.isSelected)
+            app.swipeUp();XCTAssertTrue(close.isHittable)
+            shot("Seasonal-FullScreen-"+scope+"-Events")
+            close.tap()
+            XCTAssertTrue(open.waitForExistence(timeout:5))
+            XCTAssertTrue(app.buttons["seasonal.editor.apply"].isEnabled)
+            app.terminate()
+        }
+    }
+
+    func testZoneReplacementAndImageImportCancellationKeepDraft() throws {
+        let app=launch(scope:"editor")
+        XCTAssertTrue(app.buttons["seasonal.editor.apply"].waitForExistence(timeout:15))
+        let enabled=app.switches["seasonal.zone.brand.enabled"]
+        for _ in 0..<14 where !enabled.exists || !enabled.isHittable { app.swipeUp() }
+        XCTAssertTrue(enabled.isHittable);enabled.coordinate(withNormalizedOffset:CGVector(dx:0.92,dy:0.5)).tap();XCTAssertEqual(enabled.value as? String,"0")
+        enabled.coordinate(withNormalizedOffset:CGVector(dx:0.92,dy:0.5)).tap();XCTAssertEqual(enabled.value as? String,"1")
+        let artwork=app.buttons["seasonal.zone.brand.artwork"]
+        XCTAssertTrue(artwork.isHittable);artwork.tap()
+        app.buttons["Різдвяна снігова куля"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["seasonal.editor.apply"].isEnabled)
+        shot("SeasonalZones-Brand-Replaced")
+        artwork.tap();app.buttons["Власна анімація PNG"].firstMatch.tap()
+        XCTAssertFalse(app.buttons["seasonal.editor.apply"].isEnabled)
+        app.buttons["seasonal.zone.brand.import"].tap()
+        let browser=app.buttons.matching(NSPredicate(format:"label MATCHES %@","^(Browse|Durchsuchen|Огляд)$")).firstMatch
+        XCTAssertTrue(browser.waitForExistence(timeout:15))
+        // The browser uses the system locale, independently of the Ukrainian editor.
+        // A stable first-match query avoids binding a stale remote-extension index.
+        let cancel=app.buttons.matching(NSPredicate(format:"label MATCHES %@","^(Abbrechen|Cancel|Close|Schließen|Закрити)$")).firstMatch
+        XCTAssertTrue(cancel.waitForExistence(timeout:10));cancel.tap()
+        XCTAssertTrue(browser.waitForNonExistence(timeout:10))
+        XCTAssertTrue(artwork.waitForExistence(timeout:5));XCTAssertEqual(app.alerts.count,0)
+        for _ in 0..<6 where !artwork.isHittable { app.swipeUp() }
+        XCTAssertTrue(artwork.isHittable)
+        artwork.tap();app.buttons["Гарбуз"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["seasonal.editor.apply"].isEnabled)
+        shot("SeasonalZones-CancelImport-Restored")
+        app.terminate()
+    }
+    func testWinterSnowContinuesOnDetailWithoutHeaderDecorations() throws {
+        let app=launch(scope:"christmas",appearance:"dark")
+        XCTAssertTrue(app.buttons["seasonal.fixture.bell"].waitForExistence(timeout:15))
+        let open=app.buttons["Відкрити"]
+        for _ in 0..<3 where !open.isHittable { app.swipeUp() }
+        XCTAssertTrue(open.isHittable);open.tap()
+        XCTAssertTrue(app.staticTexts["seasonal.fixture.detail"].waitForExistence(timeout:10))
+        XCTAssertFalse(app.buttons["seasonal.fixture.bell"].isHittable)
+        Thread.sleep(forTimeInterval:2);shot("SeasonalWinter-Detail-Snow-And-Navigation")
+        app.terminate()
+    }
+
     func testPreparedScenesLightDarkAndSharedHeaderGeometry() throws {
         let baselineApp=launch(scope:"gta",effects:false)
         XCTAssertTrue(baselineApp.buttons["seasonal.fixture.bell"].waitForExistence(timeout:15))

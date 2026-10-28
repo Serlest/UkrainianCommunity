@@ -37,13 +37,21 @@ struct SeasonalDecorationLayer: View {
 
     private var animated: Bool {
         visible && scenePhase == .active && !reduceMotion && !lowPower && !typeSize.isAccessibilitySize
-            && theme.elements.contains { $0.motionStrength>0 || $0.glow || $0.pngFrames.count>1 }
+            && theme.visibleElements.contains { $0.motionStrength>0 || $0.glow || $0.pngFrames.count>1 }
     }
-    private var customElements: [SeasonalElement] { theme.elements.filter { $0.artwork == .image } }
+    private var customElements: [SeasonalElement] { theme.visibleElements.filter { $0.artwork == .image && $0.zone == nil } }
 
     private var sceneTheme:SeasonalTheme {
         var result=theme
-        if embedsHeaderPumpkin { result.elements.removeAll{$0.artwork == .pumpkin} }
+        result.elements=theme.visibleElements.filter { element in
+            switch element.artwork {
+            case .pumpkin,.bat,.spider,.keychain,.glassBauble:return true
+            case .web:return !theme.isComposedScene || theme.visibleElements.contains{$0.artwork == .spider}
+            case .image:return element.zone == .hanging
+            default:return false
+            }
+        }
+        if embedsHeaderPumpkin { result.elements.removeAll{$0.isHeader} }
         return result
     }
 
@@ -59,12 +67,12 @@ struct SeasonalDecorationLayer: View {
                 descent: preview ? 116 : 180,
                 objectScale: dock.map { min(1,$0.width/40) } ?? 0.85)
             ZStack(alignment:.topLeading) {
-                if let web = theme.elements.first(where: { $0.artwork == .web }) {
-                    SeasonalStaticDecorations(element: web, top: top, dark: scheme == .dark, preview: preview)
+                if let web = theme.visibleElements.first(where: { $0.artwork == .web }) {
+                    SeasonalStaticDecorations(element: web, top: top, dark: scheme == .dark, preview: preview, includeLeaves: !theme.isComposedScene)
                 }
-                SeasonalAmbientOrnaments(elements:theme.elements,animated:animated,intensity:theme.intensity,preview:preview)
-                if sceneTheme.elements.contains(where:{[SeasonalArtwork.pumpkin,.web,.bat].contains($0.artwork)}) {
-                    SeasonalScene(theme:sceneTheme,placement:placement,animated:animated,dark:scheme == .dark,preview:preview)
+                SeasonalAmbientOrnaments(elements:theme.visibleElements,animated:animated,intensity:theme.intensity,preview:preview)
+                if sceneTheme.elements.contains(where:{[SeasonalArtwork.pumpkin,.web,.bat,.spider,.keychain,.glassBauble].contains($0.artwork) || ($0.artwork == .image && $0.zone == .hanging)}) {
+                    SeasonalScene(theme:sceneTheme,placement:placement,animated:animated && sceneTheme.elements.contains{ $0.motionStrength>0 || ($0.glow && $0.motionStyle != .still) || ($0.pngFrames.count>1 && $0.motionStyle != .still) },dark:scheme == .dark,preview:preview)
                         .frame(width:geometry.size.width,height:geometry.size.height)
                 }
                 if !customElements.isEmpty {
@@ -94,7 +102,13 @@ struct SeasonalPreview: View {
             AppBrandHeader { Image(systemName:"bell").foregroundStyle(AppTheme.accentPrimaryForeground).frame(width:28,height:44) }
                 .padding(.horizontal,12).padding(.top,54)
             RoundedRectangle(cornerRadius:14).fill(AppTheme.accentPrimary.opacity(0.12)).frame(height:58).padding(12)
+            HStack {
+                ForEach(["newspaper.fill","calendar","building.2.fill","books.vertical.fill","person.circle.fill"],id:\.self) { symbol in
+                    Image(systemName:symbol).font(.system(size:13)).frame(maxWidth:.infinity)
+                }
+            }.padding(8).background(.thinMaterial,in:Capsule()).padding(.horizontal,14).padding(.bottom,10)
         }
+        .dynamicTypeSize(.large)
         .environment(\.seasonalHeaderActive,theme.usesHeaderDock)
         .environment(\.seasonalHeaderTheme,theme)
         .overlayPreferenceValue(SeasonalHeaderAnchors.self) { anchors in
@@ -112,22 +126,24 @@ struct SeasonalRootDecoration: ViewModifier {
     @ObservedObject var store: SeasonalStore
     let section: SeasonalSection
     let isEligible: Bool
+    var includesChrome = true
+    var showsNavigationDecoration = true
     @AppStorage("seasonalEffectsEnabled") private var enabled = true
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.dynamicTypeSize) private var typeSize
 
     func body(content: Content) -> some View {
-        TimelineView(.animation(minimumInterval:1,paused:scenePhase != .active)) { context in
+        TimelineView(.animation(minimumInterval:1,paused:scenePhase != .active || !isEligible || !enabled || store.library.themes.isEmpty)) { context in
             let theme = enabled && isEligible && verticalSizeClass != .compact && !typeSize.isAccessibilitySize
-                ? store.library.active(at:context.date,section:section) : nil
+                ? store.library.active(at:context.date,section:section)?.presentation(includesChrome:includesChrome,showsNavigation:showsNavigationDecoration) : nil
             content
                 .environment(\.seasonalHeaderActive,theme?.usesHeaderDock ?? false)
                 .environment(\.seasonalHeaderTheme,theme)
                 .overlayPreferenceValue(SeasonalHeaderAnchors.self) { anchors in
-                    if let theme {
+                    if let theme, !theme.visibleElements.isEmpty {
                         SeasonalDecorationLayer(theme:theme,anchors:anchors,embedsHeaderPumpkin:true)
-                            .ignoresSafeArea(.container,edges:.top)
+                            .ignoresSafeArea(.container,edges:[.top,.bottom])
                     }
                 }
         }

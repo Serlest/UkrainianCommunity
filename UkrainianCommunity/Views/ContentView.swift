@@ -217,10 +217,12 @@ struct ContentView: View {
 
     private func seasonalDecoration(_ section: SeasonalSection, isRoot: Bool) -> SeasonalRootDecoration {
         SeasonalRootDecoration(store: seasonalStore, section: section,
-            isEligible: selectedSeasonalSection == section && isRoot && canExposeRootChrome
+            isEligible: selectedSeasonalSection == section && canExposeRootChrome
                 && !seasonalKeyboardVisible && quickCreation == nil && !isShowingNotificationInbox
                 && contentReportCoordinator.target == nil
-                && notificationPopupCoordinator.activeNotification == nil && !isShowingPasskeyOffer)
+                && notificationPopupCoordinator.activeNotification == nil && !isShowingPasskeyOffer,
+            includesChrome:isRoot,
+            showsNavigationDecoration:section != .profile || profileNavigationPath.last?.hidesRootTabBar != true)
     }
 
     private var directoryAccessKey: String {

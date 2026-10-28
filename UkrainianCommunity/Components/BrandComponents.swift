@@ -165,13 +165,13 @@ struct AppBrandHeader<TrailingContent: View>: View {
             if seasonalHeaderActive {
                 Color.clear.frame(width:38,height:56)
                     .overlay {
-                        if let theme=seasonalHeaderTheme,theme.elements.contains(where:{$0.artwork == .pumpkin}) {
+                        if let theme=seasonalHeaderTheme,theme.headerElements.contains(where:{$0.artwork != .image || $0.zone == .brand}) {
                             SeasonalHeaderPumpkin(theme:theme)
                         }
                     }
                     .anchorPreference(key:SeasonalHeaderAnchors.self,value:.bounds) { anchor in
                         // Only legacy imported artwork needs a moving screen-space anchor.
-                        seasonalHeaderTheme?.elements.contains(where:{$0.artwork == .image}) == true
+                        seasonalHeaderTheme?.visibleElements.contains(where:{$0.artwork == .image && $0.zone == nil}) == true
                             ? [.pumpkin:anchor]:[:]
                     }
             }

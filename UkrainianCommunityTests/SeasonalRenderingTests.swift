@@ -65,21 +65,45 @@ import SceneKit
         XCTAssertLessThan(spider.position.y,y)
     }
 
+    func testPhotographicHangingScenesSettleAndKeepOneBoundedScene() throws {
+        for preset in [SeasonalTheme.gtaVI(),.christmas(),.newYear()] {
+            let window=UIWindow(frame:CGRect(x:0,y:0,width:393,height:852))
+            let view=SeasonalSceneView(frame:window.bounds);window.addSubview(view)
+            var theme=preset;theme.elements.removeAll{$0.zone != .hanging}
+            view.configure(theme:theme,placement:SeasonalScenePlacement(),animated:true,dark:true,preview:false);view.layoutIfNeeded()
+            for i in 0...210 { view.tick(1000+Double(i)/10) }
+            let renderer=try XCTUnwrap(view.subviews.compactMap{$0 as? SCNView}.first)
+            let node=try XCTUnwrap(renderer.scene?.rootNode.childNode(withName:"seasonal.hanging.0",recursively:true))
+            XCTAssertTrue(node.geometry is SCNPlane)
+            XCTAssertTrue(node.geometry?.firstMaterial?.diffuse.contents is UIImage)
+            let settled=view.renderedFrameCount
+            for i in 211...300 { view.tick(1000+Double(i)/10) }
+            XCTAssertEqual(view.renderedFrameCount,settled)
+            view.stop();view.removeFromSuperview()
+        }
+    }
+
     func testPreparedAmbientScenesUseOnlyBoundedCompositorEffects() throws {
         for theme in [SeasonalTheme.gtaVI(),.christmas(),.newYear()] {
             let view=SeasonalAmbientView(frame:CGRect(x:0,y:0,width:393,height:852))
             view.configure(elements:theme.elements,animated:true,intensity:1,preview:false);view.layoutIfNeeded()
             let images=view.subviews.compactMap{$0 as? UIImageView}
-            XCTAssertEqual(images.count,theme.elements.filter{$0.artwork != .snowflake}.count)
+            XCTAssertEqual(images.count,4)
             for image in images {
                 let cg=try XCTUnwrap(image.image?.cgImage)
-                XCTAssertLessThanOrEqual(cg.width,512);XCTAssertLessThanOrEqual(cg.height,512)
+                XCTAssertLessThanOrEqual(cg.width,image.accessibilityIdentifier?.contains("navigation") == true ? 768:512);XCTAssertLessThanOrEqual(cg.height,512)
             }
             let animatedLayers=(view.layer.sublayers ?? []).filter{!($0.animationKeys() ?? []).isEmpty}
-            XCTAssertLessThanOrEqual(animatedLayers.count,6)
+            XCTAssertLessThanOrEqual(animatedLayers.count,26)
+            let snowLayers=(view.layer.sublayers ?? []).filter{$0.name=="seasonal.snow"}
+            XCTAssertLessThanOrEqual(snowLayers.count,20)
+            if theme.elements.contains(where:{$0.artwork == .snowflake}) { XCTAssertGreaterThanOrEqual(snowLayers.count,8) }
+            var particleBudget=0.0
             for emitter in (view.layer.sublayers ?? []).compactMap({$0 as? CAEmitterLayer}) {
-                for cell in emitter.emitterCells ?? [] { XCTAssertLessThanOrEqual(Double(cell.birthRate)*Double(cell.lifetime),6) }
+                for cell in emitter.emitterCells ?? [] { particleBudget += Double(cell.birthRate)*Double(cell.lifetime) }
             }
+            XCTAssertLessThanOrEqual(particleBudget,24)
+
             view.configure(elements:theme.elements,animated:false,intensity:1,preview:false)
             XCTAssertTrue((view.layer.sublayers ?? []).allSatisfy{($0.animationKeys() ?? []).isEmpty && !($0 is CAEmitterLayer)})
             view.stop()

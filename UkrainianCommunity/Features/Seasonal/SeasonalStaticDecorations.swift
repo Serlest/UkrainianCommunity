@@ -51,7 +51,7 @@ import UIKit
 /// Shared screen-space geometry keeps the static web and its first silk thread aligned.
 enum SeasonalDecorationGeometry {
     static func webSide(width: Double, elementSize: Double) -> Double {
-        min(width * 0.30, max(84, min(122, elementSize * 2.75)))
+        min(width * 0.30, max(78, min(122, 78+(elementSize-16)*44/28)))
     }
     static func spiderAnchor(index: Int, width: Double, top: Double, safeTop: Double, elementSize: Double) -> CGPoint {
         if index == 0 {
@@ -70,6 +70,7 @@ struct SeasonalStaticDecorations: View {
     let top: CGFloat
     let dark: Bool
     var preview = false
+    var includeLeaves = true
 
     var body: some View {
         GeometryReader { geometry in
@@ -78,7 +79,7 @@ struct SeasonalStaticDecorations: View {
                 Image(uiImage: SeasonalStaticArtwork.web(dark: dark))
                     .resizable().frame(width: side, height: side)
                     .offset(y: top)
-                if let leaves = SeasonalStaticArtwork.leaves {
+                if includeLeaves, let leaves = SeasonalStaticArtwork.leaves {
                     // Stay in the outer gutter, beyond the text and controls. Clip at the
                     // window edge, not at an article/card boundary, and never participate in layout.
                     Image(uiImage: leaves).resizable().scaledToFit()

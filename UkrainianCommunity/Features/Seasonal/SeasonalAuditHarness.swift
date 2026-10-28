@@ -22,10 +22,11 @@ struct SeasonalAuditHarness: View {
     private static func fixture() -> SeasonalTheme {
         let preset=ProcessInfo.processInfo.environment["UITestSeasonalScope"] ?? "home"
         var theme:SeasonalTheme = switch preset {
-        case "gta": .gtaVI()
-        case "christmas": .christmas()
-        case "newyear": .newYear()
-        default: .halloween()
+        case "gta","editor-gta": .gtaVI()
+        case "christmas","editor-christmas": .christmas()
+        case "newyear","editor-newyear": .newYear()
+        case "legacy": .halloween()
+        default: .halloweenScene()
         }
         if ProcessInfo.processInfo.environment["UITestSeasonalCustomArtwork"] == "1" {
             theme.elements[0].artwork = .image
@@ -43,7 +44,7 @@ struct SeasonalAuditHarness: View {
             if scope == "management" {
                 NavigationStack { SeasonalManagementView(model: model) }
                     .environmentObject(AuthService.shared.authState)
-            } else if scope == "editor" {
+            } else if scope.hasPrefix("editor") {
                 SeasonalThemeEditor(theme: theme) { theme = $0 }
             } else {
                 TabView(selection: $selected) {
@@ -70,15 +71,19 @@ struct SeasonalAuditHarness: View {
                                             Spacer()
                                         }.padding().background(AppTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: 18))
                                     }
-                                    NavigationLink(AppStrings.Action.open) { Text(AppStrings.Action.open).accessibilityIdentifier("seasonal.fixture.detail") }
+                                    NavigationLink(AppStrings.Action.open) {
+                                        Text(AppStrings.Action.open).accessibilityIdentifier("seasonal.fixture.detail")
+                                            .frame(maxWidth:.infinity,maxHeight:.infinity).background { AppBackgroundView() }
+                                            .overlay { if effects && selected == index { SeasonalDecorationLayer(theme:theme.presentation(includesChrome:false),anchors:[:],embedsHeaderPumpkin:true).ignoresSafeArea(.container,edges:[.top,.bottom]) } }
+                                    }
                                     Toggle(SeasonalText.preference, isOn: $effects).accessibilityIdentifier("seasonal.fixture.effects")
                                 }.padding(.horizontal, AppTheme.pageHorizontal)
                             }
                             .background { AppBackgroundView() }
-                            .environment(\.seasonalHeaderActive,effects && theme.usesHeaderDock)
-                            .environment(\.seasonalHeaderTheme,effects ? theme:nil)
+                            .environment(\.seasonalHeaderActive,effects && selected == index && theme.usesHeaderDock)
+                            .environment(\.seasonalHeaderTheme,effects && selected == index ? theme:nil)
                             .overlayPreferenceValue(SeasonalHeaderAnchors.self) { anchors in
-                                if effects { SeasonalDecorationLayer(theme:theme,anchors:anchors,embedsHeaderPumpkin:true).ignoresSafeArea(.container,edges:.top) }
+                                if effects && selected == index { SeasonalDecorationLayer(theme:theme,anchors:anchors,embedsHeaderPumpkin:true).ignoresSafeArea(.container,edges:.top) }
                             }
                         }.tabItem { Label(SeasonalText.section(SeasonalSection.allCases[index]), systemImage: "square.grid.2x2") }.tag(index)
                     }

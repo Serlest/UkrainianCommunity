@@ -1,0 +1,53 @@
+{
+  "mode": "image_gen.imagegen",
+  "assets": [
+    {
+      "name": "vice-header",
+      "asset": "SeasonalViceHeader",
+      "source": "/Users/serlest/.codex/generated_images/01a11559-70e2-7563-bf0b-6b743c40d10a/exec-7c669265-eff5-4a50-951f-7b75b384645e.png",
+      "runtime": "UkrainianCommunity/Assets.xcassets/SeasonalViceHeader.imageset/artwork.png",
+      "prompt": "Photorealistic miniature premium neon palm sculpture for a tiny iPhone header ornament. One elegant curved palm tree with three gracefully drooping fronds, brushed dark chrome trunk, pink neon filaments on one side and cyan on the other, tiny faceted warm sand island base, believable dimensional product photography, balanced centered composition fitting a square, fully visible object with ample transparent margin. Subtle self-shadow only. Truly transparent background. No text, no logos, no frame, no scenery, no rectangular glow cloud. Polished sophisticated tropical Miami nightlife mood, physically realistic glass and metal, readable silhouette at 40 points.",
+      "transparent_background": true
+    },
+    {
+      "name": "vice-keychain",
+      "asset": "SeasonalViceKeychain",
+      "source": "/Users/serlest/.codex/generated_images/01a11559-70e2-7563-bf0b-6b743c40d10a/exec-252204dc-4412-4afb-8560-f3fd3f802f8d.png",
+      "runtime": "UkrainianCommunity/Assets.xcassets/SeasonalViceKeychain.imageset/artwork.png",
+      "prompt": "Photorealistic premium automotive keychain hanging vertically from a tiny ring at the top center. One brushed chrome key and a small pale turquoise enamel palm charm on a silver ring, an elegant muted pink leather tag without any lettering. Entire object visible, compact vertically balanced shape, realistic dimensional thickness, fine material detail, subtle neutral soft lighting, transparent background. No hand, no scenery, no vehicle logo, no text, no rectangular shadow or backdrop. Intended as an original tiny hanging ornament below a phone cutout.",
+      "transparent_background": true
+    },
+    {
+      "name": "christmas-globe",
+      "asset": "SeasonalChristmasGlobe",
+      "source": "/Users/serlest/.codex/generated_images/01a11559-70e2-7563-bf0b-6b743c40d10a/exec-dbaae70a-4ed4-4e73-989d-629cfb74784d.png",
+      "runtime": "UkrainianCommunity/Assets.xcassets/SeasonalChristmasGlobe.imageset/artwork.png",
+      "prompt": "Photorealistic miniature Christmas snow globe as a premium tiny iPhone header ornament. Clear spherical glass globe containing one elegant dark-green fir tree with tiny warm golden lights and a tiny brass star, fine snow resting on its base, small rich walnut and brushed brass pedestal. Believable reflections, clear readable three dimensional silhouette, macro product photography, entire object centered fully visible with generous transparent margin. Truly transparent background, no hand, no text, no scene or backdrop, no rectangular shadow, no glow cloud. Warm restrained European Christmas.",
+      "transparent_background": true
+    },
+    {
+      "name": "newyear-header",
+      "asset": "SeasonalNewYearHeader",
+      "source": "/Users/serlest/.codex/generated_images/01a11559-70e2-7563-bf0b-6b743c40d10a/exec-a4b40658-416a-4ea5-82ef-7542eb978ff9.png",
+      "runtime": "UkrainianCommunity/Assets.xcassets/SeasonalNewYearHeader.imageset/artwork.png",
+      "prompt": "Photorealistic miniature New Year ornament for a premium tiny iPhone header. Two elegant crystal champagne flutes touching gently at a slight inward angle, warm pale gold sparkling liquid, a single small dimensional champagne-gold five point star resting near their thin bases, delicate physical glass reflections and rim highlights. Compact centered balanced composition, full objects completely visible including stems, generous transparent margin, true transparent background. No text, year digits, hands, backdrop, rectangular shadows or glow clouds. Refined realistic product photography, clear silhouette at tiny size.",
+      "transparent_background": true
+    },
+    {
+      "name": "glass-bauble",
+      "asset": "SeasonalGlassBauble",
+      "source": "/Users/serlest/.codex/generated_images/01a11559-70e2-7563-bf0b-6b743c40d10a/exec-e4776a73-0fa7-404e-8416-838777b5b974.png",
+      "runtime": "UkrainianCommunity/Assets.xcassets/SeasonalGlassBauble.imageset/artwork.png",
+      "prompt": "Photorealistic single elegant Christmas bauble hanging on a fine short golden cord from the top center. Clear lightly champagne-tinted glass sphere containing a delicate golden folded five-point star, fine metallic cap, realistic glass thickness and soft warm reflections, tiny trace of white frost on the bottom edge. Entire cord and bauble fully visible with generous transparent margin, vertical composition. Truly transparent background; no text, no backdrop, no hand, no rectangular shadow or glow cloud. Premium macro product photography, excellent readable silhouette for a small hanging iPhone ornament.",
+      "transparent_background": true
+    },
+    {
+      "name": "snow-ledge",
+      "asset": "SeasonalSnowLedge",
+      "source": "/Users/serlest/.codex/generated_images/01a11559-70e2-7563-bf0b-6b743c40d10a/exec-50510eb9-b1bd-43b9-bf09-f8cae375acc4.png",
+      "runtime": "UkrainianCommunity/Assets.xcassets/SeasonalSnowLedge.imageset/artwork.png",
+      "prompt": "Photorealistic horizontal narrow strip of fresh white snow resting along a thin curved ledge, isolated on true transparent background. Very wide shallow composition, about five times wider than tall. Upper surface has gently irregular tiny soft mounds, subtle crystalline grains, cold blue ambient occlusion under the lip, bright clean white top, a few very short rounded snow overhangs below. Elegant believable fresh powder, not cartoon icing, not clouds. Entire strip fully visible with generous transparent margin. No visible ledge object, no text, no background, no large icicles, no glow. Intended as a static thin snow cap above an iPhone tab bar without covering any buttons.",
+      "transparent_background": true
+    }
+  ]
+}

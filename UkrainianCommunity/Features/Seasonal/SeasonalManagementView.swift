@@ -79,10 +79,10 @@ struct SeasonalManagementView: View {
                 model.library.themes += imported.themes.map { theme in
                     var copy = theme; copy.id = UUID().uuidString; copy.isEnabled = false; return copy
                 }
-            } catch { model.message = error.localizedDescription }
+            } catch { if (error as NSError).code != NSUserCancelledError { model.message = error.localizedDescription } }
         }
         .fileExporter(isPresented: $exports, document: exportFile, contentType: .json, defaultFilename: "UAC-seasonal-library") { result in
-            if case .failure(let error) = result { model.message = error.localizedDescription }
+            if case .failure(let error) = result, (error as NSError).code != NSUserCancelledError { model.message = error.localizedDescription }
         }
         .interactiveDismissDisabled(model.hasChanges || model.isSaving)
     }
@@ -125,7 +125,7 @@ struct SeasonalManagementView: View {
                             }
                         }
                         Menu {
-                            Button(SeasonalText.value("presetHalloween", "Halloween")) { editing = .halloween() }
+                            Button(SeasonalText.value("presetHalloween", "Halloween")) { editing = .halloweenScene() }
                             Button(SeasonalText.value("presetGTA", "GTA VI · Vice Nights")) { editing = .gtaVI() }
                             Button(SeasonalText.value("presetChristmas", "Weihnachten")) { editing = .christmas() }
                             Button(SeasonalText.value("presetNewYear", "Neujahr")) { editing = .newYear() }
@@ -153,6 +153,10 @@ struct SeasonalManagementView: View {
                     }.disabled(model.isSaving)
                 }
                 ProfileSectionCard(title: SeasonalText.value("publication", "Für die Community")) {
+                    if model.savedLibrary.themes.contains(where:{$0.isEnabled && $0.isComposedScene}) {
+                        Text(SeasonalText.value("sceneUpdateHint","Dieses Design benötigt die aktualisierte App. Ältere Versionen zeigen die Oberfläche ohne die neuen Dekorationen."))
+                            .font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                    }
                     VStack(alignment: .leading, spacing: 16) {
                         Text(SeasonalText.value("publicationHint", "Veröffentlicht werden nur gespeicherte, eingeschaltete Themen. Beginn und Ende gelten in der gewählten Zeitzone. Bei Überschneidung gewinnt die höhere Priorität."))
                             .font(.footnote).foregroundStyle(AppTheme.textSecondary)

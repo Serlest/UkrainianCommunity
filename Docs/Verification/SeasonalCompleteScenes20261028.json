@@ -1,0 +1,114 @@
+{
+  "date": "2026-10-28",
+  "scope": "Complete reusable Halloween, Vice Nights, Christmas and New Year scenes",
+  "baselineCommit": "217e1e12e9a2b8ea8b29fad0df8c09b5a07800d1",
+  "delivery": {
+    "requested": "Signed local Release installation on the connected iPhone; user will test scenes",
+    "version": "1.2.1",
+    "build": "137",
+    "testFlightUploaded": false,
+    "productionLibraryWritten": false,
+    "publicScheduleChanged": false
+  },
+  "implemented": {
+    "zones": [
+      "brand",
+      "corner",
+      "hanging",
+      "edges",
+      "atmosphere",
+      "navigation"
+    ],
+    "perZone": [
+      "visibility",
+      "compatible artwork",
+      "local PNG import",
+      "size",
+      "compatible animation",
+      "strength",
+      "applicable light color"
+    ],
+    "fourCompleteTemplatesDisabledByDefault": true,
+    "annualReuse": true,
+    "fullScreenPreview": "Read-only production renderer with sample cards, native tabs and sample details; no live content queries or publication",
+    "schema": {
+      "firestoreEnvelope": 1,
+      "legacyJSON": 1,
+      "composedJSON": 2,
+      "olderClients": "Reject format 2 and keep ordinary interface"
+    },
+    "performanceBudgets": {
+      "snowLayersMaximum": 20,
+      "smallLightLayersMaximum": 6,
+      "fullWindowRestingSceneSubmissions": 0,
+      "calmGravityHz": 10,
+      "movingSceneFPSMaximum": 30,
+      "motionSourcesMaximum": 1,
+      "perAnimationFrameDatabaseQueries": 0
+    },
+    "fallbacks": [
+      "Reduced Motion",
+      "Low Power Mode",
+      "inactive/offscreen previews",
+      "accessibility text sizes",
+      "compact-height landscape",
+      "keyboard and authentication suppression"
+    ]
+  },
+  "verification": {
+    "functionalBaseRun": {
+      "result": "Failed",
+      "passedTests": 47,
+      "failedTests": 1,
+      "skippedTests": 0,
+      "totalTestCount": 48,
+      "finishTime": 1793223874.826,
+      "startTime": 1793223511.004
+    },
+    "pngPickerFollowUp": {
+      "result": "Passed",
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "totalTestCount": 1,
+      "finishTime": 1793224254.979,
+      "startTime": 1793224212.256
+    },
+    "resolution": "47 cases passed in the full candidate run; the remaining native-picker driver was corrected and verified separately without production source changes",
+    "isolatedFirebaseSDK": {
+      "result": "Passed",
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "totalTestCount": 1,
+      "finishTime": 1793223910.126,
+      "startTime": 1793223904.379
+    },
+    "releaseConfiguration": "Passed build 137 offline validation; no TestFlight release requested",
+    "priorFailuresPreserved": [
+      "FirstComposition.xcresult: Form toolbar attached to a row, corrected",
+      "CompleteVerification.xcresult: corner geometry and inherited preview identifier corrected; separate Form rows fixed picker interception; switch driver now targets switch thumb"
+    ],
+    "runtimeWarnings": {
+      "invalidFrameDimensions": 0,
+      "remaining": "Seven internal SceneKit QoS diagnostics in the candidate UI run; pre-existing generic Decodable isolation compiler warning in DirectoryEditorAccessStore.swift was not changed by this scene work"
+    },
+    "deviceEvidence": {
+      "install": "build/complete-seasonal-20261028/device-install.json",
+      "launch": "build/complete-seasonal-20261028/device-launch.json",
+      "installedAndLaunched": true
+    },
+    "hostedCI": "Expanded-source GitHub CI will run after this commit; pending at local iPhone delivery. Baseline 217e1e12 run 40756688723 passed.",
+    "physicalAcceptance": "User will check aesthetics, scroll frame pacing and actual tilt on installed candidate; simulator evidence does not establish those outcomes",
+    "localUniqueCasesPassedAfterFollowUp": 49,
+    "skippedCases": 0,
+    "isolatedReadback": "Private library retains four themes with payload format 2; public schedule disabled to an empty format-1 payload; Firestore envelopes stay format 1."
+  },
+  "assets": "Docs/SeasonalCompleteSceneAssets.json",
+  "screenshots": "build/complete-seasonal-20261028/final-images",
+  "limitations": [
+    "New PNG scenes within installed motion vocabulary need no binary. New renderer capabilities still require an app update.",
+    "Local preview does not enable publication for other users.",
+    "No production GCS cleanup or alert-policy changes were made."
+  ]
+}

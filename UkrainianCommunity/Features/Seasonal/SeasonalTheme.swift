@@ -4,10 +4,26 @@ import ImageIO
 /// Data, never downloaded executable code. Unknown versions/effects fail closed.
 struct SeasonalLibrary: Codable, Equatable {
     var schemaVersion = 1
-    var themes: [SeasonalTheme] = []
+    var themes: [SeasonalTheme] = [] {
+        didSet { if schemaVersion == 1 && themes.contains(where: \.isComposedScene) { schemaVersion=2 } }
+    }
+    init(schemaVersion:Int=1,themes:[SeasonalTheme]=[]) {
+        self.schemaVersion=schemaVersion == 1 && themes.contains(where: \.isComposedScene) ? 2:schemaVersion
+        self.themes=themes
+    }
+    private enum CodingKeys:String,CodingKey { case schemaVersion,themes }
+    init(from decoder:Decoder) throws {
+        let container=try decoder.container(keyedBy:CodingKeys.self)
+        let version=try container.decode(Int.self,forKey:.schemaVersion)
+        guard version == 1 || version == 2 else { throw SeasonalError.invalidPackage }
+        let scenes=try container.decode([SeasonalTheme].self,forKey:.themes)
+        guard version == 2 || !scenes.contains(where: \.isComposedScene) else { throw SeasonalError.invalidPackage }
+        schemaVersion=version;themes=scenes
+    }
 
     func validated() throws -> Self {
-        guard schemaVersion == 1, themes.count <= 12,
+        guard (schemaVersion == 1 || schemaVersion == 2), themes.count <= 12,
+              (schemaVersion == 2 || !themes.contains(where: \.isComposedScene)),
               Set(themes.map(\.id)).count == themes.count else { throw SeasonalError.invalidPackage }
         for theme in themes { try theme.validate() }
         return self
@@ -40,6 +56,7 @@ enum SeasonalSection: String, Codable, CaseIterable, Identifiable {
 
 enum SeasonalArtwork: String, Codable, CaseIterable, Identifiable {
     case pumpkin, web, bat, snowflake, star, pine, palm, image
+    case viceHeader, christmasGlobe, newYearHeader, keychain, glassBauble, snowLedge, leaves, spider, sparkle
     var id: String { rawValue }
 }
 
@@ -57,8 +74,12 @@ struct SeasonalElement: Codable, Equatable, Identifiable {
     var glow = false
     /// Independent from legacy web sway: the web is static; only its spiders move.
     var spiderMotion: Double? = nil
+    var zone: SeasonalSceneZone? = nil
+    var motionStyle: SeasonalMotionStyle? = nil
+    var isEnabled: Bool? = nil
+    var accentHex: String? = nil
 
-    var motionStrength: Double { artwork == .web ? (spiderMotion ?? max(0.25, sway)) : sway }
+    var motionStrength: Double { motionStyle == .still ? 0 : (artwork == .web || artwork == .spider ? (spiderMotion ?? max(0.25, sway)) : sway) }
     /// Optional PNG artwork, embedded so a downloaded package works fully offline.
     /// Up to 8 small frames allow new animated artwork without an application build.
     var pngFrames: [String] = []
@@ -69,8 +90,15 @@ struct SeasonalElement: Codable, Equatable, Identifiable {
               sway.isFinite, (0...1).contains(sway), frameDuration.isFinite,
               (0.1...2).contains(frameDuration), pngFrames.count <= 8,
               (artwork == .image ? !pngFrames.isEmpty : pngFrames.isEmpty) else { throw SeasonalError.invalidPackage }
+        guard !artwork.requiresSceneZone || zone != nil else { throw SeasonalError.invalidPackage }
+        if let zone {
+            guard zone.artworks.contains(artwork), motionStyle.map({ motionChoices.contains($0) }) ?? true else { throw SeasonalError.invalidPackage }
+        } else if motionStyle != nil || isEnabled != nil || accentHex != nil { throw SeasonalError.invalidPackage }
+        if let accentHex {
+            guard accentHex.count == 6, accentHex.utf8.allSatisfy({ (48...57).contains($0) || (65...70).contains($0) || (97...102).contains($0) }) else { throw SeasonalError.invalidPackage }
+        }
         if let spiderMotion {
-            guard artwork == .web, spiderMotion.isFinite, (0...1).contains(spiderMotion) else { throw SeasonalError.invalidPackage }
+            guard (artwork == .web || artwork == .spider), spiderMotion.isFinite, (0...1).contains(spiderMotion) else { throw SeasonalError.invalidPackage }
         }
         for frame in pngFrames {
             guard let data = Data(base64Encoded: frame), data.count <= 48_000,
@@ -99,7 +127,7 @@ struct SeasonalTheme: Codable, Equatable, Identifiable {
     var sections = SeasonalSection.allCases
     var elements: [SeasonalElement]
 
-    var usesHeaderDock: Bool { elements.contains { $0.artwork == .pumpkin || $0.artwork == .image } }
+    var usesHeaderDock: Bool { !headerElements.isEmpty }
 
     var validationMessage: String? {
         if name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || name.count > 80 || name.utf8.count > 320 {
@@ -113,6 +141,7 @@ struct SeasonalTheme: Codable, Equatable, Identifiable {
         if elements.filter({ $0.anchor == .leading }).count > 3 || elements.filter({ $0.anchor == .trailing }).count > 3 {
             return SeasonalText.value("positionError", "Pro Seite sind höchstens drei Dekorationen möglich.")
         }
+        if elements.contains(where:{$0.artwork == .image && $0.pngFrames.isEmpty}) { return SeasonalText.value("missingImage","Wählen Sie eine PNG-Grafik für den gewählten Bereich.") }
         return (try? validate()) == nil ? SeasonalText.invalid : nil
     }
 
@@ -134,6 +163,8 @@ struct SeasonalTheme: Codable, Equatable, Identifiable {
         }
         guard elements.filter({ $0.anchor == .leading }).count <= 3,
               elements.filter({ $0.anchor == .trailing }).count <= 3 else { throw SeasonalError.invalidPackage }
+        let slots=elements.compactMap(\.zone)
+        guard slots.isEmpty || (slots.count == elements.count && Set(slots).count == slots.count) else { throw SeasonalError.invalidPackage }
         for element in elements { try element.validate() }
     }
 
@@ -157,9 +188,12 @@ struct SeasonalTheme: Codable, Equatable, Identifiable {
     /// Prepared drafts only: neither enabling nor publication is implicit.
     static func gtaVI(now: Date = Date()) -> Self {
         let start=Date(timeIntervalSince1970:floor(now.timeIntervalSince1970))
-        return Self(name:"GTA VI · Vice Nights",startsAt:start,endsAt:start.addingTimeInterval(14*86400),reactsToTilt:false,
-             elements:[SeasonalElement(artwork:.palm,anchor:.leading,size:38,sway:0,glow:true),
-                       SeasonalElement(artwork:.palm,anchor:.trailing,size:32,sway:0,glow:true)])
+        return Self(name:"GTA VI · Vice Nights",startsAt:start,endsAt:start.addingTimeInterval(14*86400),reactsToTilt:true,
+             elements:[.scene(.viceHeader,.brand,size:40,motion:.glow,glow:true,accent:"FF5AB5"),
+                       .scene(.palm,.corner,size:36),.scene(.keychain,.hanging,size:34,motion:.swing),
+                       .scene(.palm,.edges,size:36,motion:.glow,glow:true,accent:"45E9DF"),
+                       .scene(.sparkle,.atmosphere,size:18,motion:.glow,glow:true,accent:"F8AE78"),
+                       .scene(.palm,.navigation,size:20)])
     }
     static func christmas(now: Date = Date()) -> Self { winter(now:now,newYear:false) }
     static func newYear(now: Date = Date()) -> Self { winter(now:now,newYear:true) }
@@ -170,12 +204,15 @@ struct SeasonalTheme: Codable, Equatable, Identifiable {
         if calendar.component(.month,from:now)==1 { year -= 1 }
         let start=calendar.date(from:DateComponents(year:year,month:12,day:newYear ? 28:15))!
         let end=calendar.date(from:DateComponents(year:newYear ? year+1:year,month:newYear ? 1:12,day:newYear ? 8:28))!
-        let artwork:SeasonalArtwork=newYear ? .star:.pine
-        var ornaments=[SeasonalElement(artwork:artwork,anchor:.leading,size:36,sway:0,glow:true),
-                       SeasonalElement(artwork:artwork,anchor:.trailing,size:30,sway:0,glow:true)]
-        if !newYear { ornaments.append(SeasonalElement(artwork:.snowflake,anchor:.leading,size:18,sway:0.3)) }
+        let ornaments:[SeasonalElement]=[
+            .scene(newYear ? .newYearHeader:.christmasGlobe,.brand,size:40,motion:.glow,glow:true),
+            .scene(newYear ? .star:.pine,.corner,size:38,motion:.glow,glow:true),
+            .scene(.glassBauble,.hanging,size:32,motion:.swing,glow:true,accent:newYear ? "FFD580":"F4C56A"),
+            .scene(newYear ? .star:.pine,.edges,size:32,motion:.glow,glow:true),
+            .scene(.snowflake,.atmosphere,size:18,motion:.snow,sway:0.45),
+            .scene(.snowLedge,.navigation,size:28)]
         return Self(name:newYear ? "New Year · Golden Midnight":"Christmas · Warm Evergreen",startsAt:start,endsAt:end,
-                    repeatsYearly:true,reactsToTilt:false,elements:ornaments)
+                    repeatsYearly:true,reactsToTilt:true,elements:ornaments)
     }
 
     static func halloween(now: Date = Date()) -> Self {

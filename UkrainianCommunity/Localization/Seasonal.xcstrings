@@ -434,16 +434,22 @@
     "seasonal.invalid": {
       "extractionState": "manual",
       "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Das Themenpaket ist ungültig oder zu groß. Unterstützt wird Format 1 bis 240 KB mit kleinen PNG-Grafiken."
-          }
-        },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Пакет теми недійсний або завеликий. Підтримується формат 1 до 240 КБ із невеликими PNG-зображеннями."
+            "value": "Пакет тем пошкоджений або завеликий. Підтримуються формати 1 і 2 до 240 КБ із невеликими PNG-зображеннями."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The theme package is invalid or too large. Formats 1 and 2 support up to 240 KB with small PNG artwork."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Themenpaket ist ungültig oder zu groß. Unterstützt werden Formate 1 und 2 bis 240 KB mit kleinen PNG-Grafiken."
           }
         }
       }
@@ -694,16 +700,22 @@
     "seasonal.preferenceHint": {
       "extractionState": "manual",
       "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dekorationen auf den Hauptseiten. Reduzierte Bewegung und Energiesparen werden berücksichtigt."
-          }
-        },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Прикраси на головних екранах. Враховуються зменшення руху та режим енергозбереження."
+            "value": "Оформлення розділів із підтримкою зменшення руху та енергозбереження."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Section decorations respect Reduced Motion and Low Power Mode."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Dekoration berücksichtigt reduzierte Bewegung und den Stromsparmodus."
           }
         }
       }
@@ -1110,16 +1122,22 @@
     "seasonal.scopeHint": {
       "extractionState": "manual",
       "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "In Unterseiten, Formularen, beim Anmelden und bei geöffneter Tastatur werden die Effekte ausgeblendet. Im Querformat bleiben die Inhalte im Vordergrund."
-          }
-        },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "На вкладених сторінках, у формах, під час входу та з відкритою клавіатурою ефекти приховано. У горизонтальному положенні пріоритет має вміст."
+            "value": "Великі прикраси залишаються на головних сторінках. Сніг може продовжуватися всередині розділів. Під час введення тексту ефекти приховуються."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Large decorations stay on main pages. Snow can continue through details. Effects hide during text entry."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Große Dekorationen bleiben auf Hauptseiten. Schnee kann in Unterseiten weiterlaufen. Bei Tastatureingaben werden Effekte ausgeblendet."
           }
         }
       }
@@ -1397,6 +1415,880 @@
           "stringUnit": {
             "state": "translated",
             "value": "Повторювати щороку"
+          }
+        }
+      }
+    },
+    "seasonal.zone.brand": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Біля логотипа"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beside the logo"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neben dem Logo"
+          }
+        }
+      }
+    },
+    "seasonal.zone.corner": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Верхній кут"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upper corner"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obere Ecke"
+          }
+        }
+      }
+    },
+    "seasonal.zone.hanging": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Підвісні прикраси"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hanging ornaments"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hängende Ornamente"
+          }
+        }
+      }
+    },
+    "seasonal.zone.edges": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Бокові краї"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen edges"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seitenränder"
+          }
+        }
+      }
+    },
+    "seasonal.zone.atmosphere": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Атмосфера екрана"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen atmosphere"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bildschirmatmosphäre"
+          }
+        }
+      }
+    },
+    "seasonal.zone.navigation": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нижня навігація"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bottom navigation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Untere Navigation"
+          }
+        }
+      }
+    },
+    "seasonal.effect.still": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Без руху"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Still"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ruhend"
+          }
+        }
+      }
+    },
+    "seasonal.effect.glow": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "М’яке світіння"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Soft glow"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sanftes Leuchten"
+          }
+        }
+      }
+    },
+    "seasonal.effect.float": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Плавне коливання"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gentle float"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sanftes Schweben"
+          }
+        }
+      }
+    },
+    "seasonal.effect.rotate": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Легке обертання"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gentle rotation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leichte Drehung"
+          }
+        }
+      }
+    },
+    "seasonal.effect.swing": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спуск і реакція на нахил"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descent and tilt"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Absenken und Neigung"
+          }
+        }
+      }
+    },
+    "seasonal.effect.flight": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Рідкісний проліт"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Occasional flight"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gelegentlicher Flug"
+          }
+        }
+      }
+    },
+    "seasonal.effect.snow": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Падаючий сніг"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falling snow"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fallender Schnee"
+          }
+        }
+      }
+    },
+    "seasonal.viceHeader": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Неонова пальма"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neon palm"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neonpalme"
+          }
+        }
+      }
+    },
+    "seasonal.christmasGlobe": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Різдвяна снігова куля"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Christmas snow globe"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weihnachtliche Schneekugel"
+          }
+        }
+      }
+    },
+    "seasonal.newYearHeader": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новорічні келихи"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Year glasses"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neujahrsgläser"
+          }
+        }
+      }
+    },
+    "seasonal.keychain": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Брелок із ключами"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keychain"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schlüsselanhänger"
+          }
+        }
+      }
+    },
+    "seasonal.glassBauble": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скляна прикраса"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glass ornament"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glasornament"
+          }
+        }
+      }
+    },
+    "seasonal.snowLedge": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сніг на панелі"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snow cap"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schneekante"
+          }
+        }
+      }
+    },
+    "seasonal.leaves": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Осіннє листя"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autumn leaves"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Herbstlaub"
+          }
+        }
+      }
+    },
+    "seasonal.spider": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Два павуки"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Two spiders"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zwei Spinnen"
+          }
+        }
+      }
+    },
+    "seasonal.sparkle": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Теплі відблиски"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warm glints"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warme Lichtpunkte"
+          }
+        }
+      }
+    },
+    "seasonal.object": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Об’єкт"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Object"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Objekt"
+          }
+        }
+      }
+    },
+    "seasonal.effect": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Анімація"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Animation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Animation"
+          }
+        }
+      }
+    },
+    "seasonal.choosePNG": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вибрати PNG"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose PNG"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PNG auswählen"
+          }
+        }
+      }
+    },
+    "seasonal.pngHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Прозорі PNG-файли зменшуються на пристрої та зберігаються разом зі сценою."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transparent PNG files are resized locally and saved with the scene."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transparente PNG-Dateien werden lokal verkleinert und mit der Szene gespeichert."
+          }
+        }
+      }
+    },
+    "seasonal.accent": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Колір світла"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Light color"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lichtfarbe"
+          }
+        }
+      }
+    },
+    "seasonal.arrangeZones": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доповнити до повної сцени"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrange as a complete scene"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zu einer vollständigen Szene ergänzen"
+          }
+        }
+      }
+    },
+    "seasonal.addZone": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Додати зону"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add zone"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bereich hinzufügen"
+          }
+        }
+      }
+    },
+    "seasonal.imageError": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося імпортувати зображення"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Image could not be imported"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bild konnte nicht importiert werden"
+          }
+        }
+      }
+    },
+    "seasonal.effect.frames": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кадрова анімація PNG"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PNG frame animation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PNG-Einzelbildanimation"
+          }
+        }
+      }
+    },
+    "seasonal.missingImage": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оберіть PNG-зображення для вибраної зони."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a PNG image for the selected zone."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wählen Sie eine PNG-Grafik für den gewählten Bereich."
+          }
+        }
+      }
+    },
+    "seasonal.openFullPreview": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Переглянути на весь екран"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview full screen"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf dem ganzen Bildschirm ansehen"
+          }
+        }
+      }
+    },
+    "seasonal.closePreview": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Закрити передперегляд"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close preview"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorschau schließen"
+          }
+        }
+      }
+    },
+    "seasonal.fullPreviewHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Передперегляд лише на цьому пристрої. Нічого не публікується."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview on this device only. Nothing is published."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorschau auf diesem Gerät. Es wird nichts veröffentlicht."
+          }
+        }
+      }
+    },
+    "seasonal.sectionNotIncluded": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Для цього розділу ефекти не вибрані або їх приховано для зручності читання."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effects are not selected for this section or are hidden for readability."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für diesen Bereich sind keine Effekte ausgewählt oder die Darstellung ist reduziert."
+          }
+        }
+      }
+    },
+    "seasonal.previewSample": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приклад картки для перевірки читабельності, прокрутки й оформлення."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sample card for checking readability, scrolling and decorations."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beispielkarte zum Prüfen von Lesbarkeit, Scrollen und Dekoration."
+          }
+        }
+      }
+    },
+    "seasonal.sceneUpdateHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Це оформлення потребує оновленого застосунку. Старі версії показуватимуть інтерфейс без нових прикрас."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This design needs the updated app. Older versions show the interface without the new decorations."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Design benötigt die aktualisierte App. Ältere Versionen zeigen die Oberfläche ohne die neuen Dekorationen."
           }
         }
       }

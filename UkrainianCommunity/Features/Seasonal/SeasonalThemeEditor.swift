@@ -1,13 +1,21 @@
 import SwiftUI
+import ImageIO
+import UniformTypeIdentifiers
+import UIKit
 
 struct SeasonalThemeEditor: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.scenePhase) private var scenePhase
     @State private var editingDate: DateField?
     private enum DateField: String, Identifiable { case start, end; var id: String { rawValue } }
     @State private var draft: SeasonalTheme
     @State private var previewScheme: ColorScheme = .light
     @State private var confirmDiscard = false
+    @State private var fullPreview = false
+    @State private var importingArtwork = false
+    @State private var importingElementID: String?
+    @State private var artworkError: String?
     @FocusState private var nameFocused: Bool
     private let original: SeasonalTheme
     private let onApply: (SeasonalTheme) -> Void
@@ -66,10 +74,14 @@ struct SeasonalThemeEditor: View {
             Form {
                 Section(SeasonalText.value("preview", "Vorschau")) {
                     SeasonalPreview(theme: draft).environment(\.colorScheme, previewScheme)
+                        .environment(\.scenePhase,fullPreview ? .inactive:scenePhase)
                     Picker(SeasonalText.value("appearance", "Darstellung"), selection: $previewScheme) {
                         Text(SeasonalText.value("light", "Hell")).tag(ColorScheme.light)
                         Text(SeasonalText.value("dark", "Dunkel")).tag(ColorScheme.dark)
                     }.pickerStyle(.segmented)
+                    Button { nameFocused=false;fullPreview=true } label: {
+                        Label(SeasonalText.value("openFullPreview","Auf dem ganzen Bildschirm ansehen"),systemImage:"arrow.up.left.and.arrow.down.right")
+                    }.accessibilityIdentifier("seasonal.preview.fullScreen")
                     Text(SeasonalText.value("previewHint", "Die Vorschau zeigt das Thema sofort, unabhängig vom Zeitplan. Nur Sie sehen diese Änderungen."))
                         .font(.footnote).foregroundStyle(.secondary)
                 }
@@ -94,7 +106,7 @@ struct SeasonalThemeEditor: View {
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 Section(SeasonalText.value("motion", "Bewegung")) {
-                    if draft.elements.contains(where:{$0.artwork == .web}) {
+                    if draft.elements.contains(where:{$0.artwork == .web || $0.zone == .hanging}) {
                         Toggle(SeasonalText.value("tilt", "Auf die Geräteneigung reagieren"), isOn: $draft.reactsToTilt)
                     }
                     Text(SeasonalText.value("intensity", "Intensität"))
@@ -108,52 +120,70 @@ struct SeasonalThemeEditor: View {
                             if enabled { draft.sections.append(section) } else { draft.sections.removeAll { $0 == section } }
                         }))
                     }
-                    Text(SeasonalText.value("scopeHint", "In Unterseiten, Formularen, beim Anmelden und bei geöffneter Tastatur werden die Effekte ausgeblendet. Im Querformat bleiben die Inhalte im Vordergrund."))
+                    Text(SeasonalText.value("scopeHint", "Große Dekorationen bleiben auf Hauptseiten. Schnee kann in Unterseiten weiterlaufen. Bei Tastatureingaben werden Effekte ausgeblendet."))
                         .font(.footnote).foregroundStyle(.secondary)
                 }
-                Section(SeasonalText.value("artwork", "Dekorationen")) {
-                    ForEach($draft.elements) { $element in
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Text(SeasonalText.artwork(element.artwork)).font(.headline)
-                                Spacer()
-                                Button(role: .destructive) { draft.elements.removeAll { $0.id == element.id } } label: {
-                                    Image(systemName: "trash").frame(width: 44, height: 44).accessibilityLabel(AppStrings.Action.delete)
-                                }.buttonStyle(.borderless).disabled(draft.elements.count <= 1)
-                            }
-                            if [.pumpkin,.web,.bat].contains(element.artwork) {
-                                Text(SeasonalText.value("scenePlacement", "Ruhendes Ecknetz und Herbstlaub. Eine Spinne hängt am Netz, eine am oberen Ausschnitt. Der Kürbis glimmt neben dem Logo; Fledermäuse fliegen selten vorbei."))
-                                    .font(.footnote).foregroundStyle(.secondary)
-                            } else {
-                                Picker(SeasonalText.value("position", "Position"), selection: $element.anchor) {
-                                    Text(SeasonalText.value("leading", "Links")).tag(SeasonalAnchor.leading)
-                                    Text(SeasonalText.value("trailing", "Rechts")).tag(SeasonalAnchor.trailing)
-                                }.pickerStyle(.segmented)
-                            }
-                            Text(SeasonalText.value("size", "Größe"))
-                            Slider(value: $element.size, in: 16...44).accessibilityLabel(SeasonalText.value("size", "Größe"))
-                            if ![SeasonalArtwork.pumpkin,.palm,.pine,.star].contains(element.artwork) {
-                                let motionLabel = element.artwork == .web
-                                    ? SeasonalText.value("spiderMotion", "Schwingen der Spinnen")
-                                    : SeasonalText.value("sway", "Bewegungsstärke")
-                                Text(motionLabel)
-                                Slider(value: Binding(get: { element.motionStrength }, set: { value in
-                                    if element.artwork == .web { element.spiderMotion = value } else { element.sway = value }
-                                }), in: 0...1).accessibilityLabel(motionLabel)
-                            }
-                            if ![SeasonalArtwork.web,.snowflake].contains(element.artwork) {
-                                Toggle(SeasonalText.value("glow", "Leuchten"), isOn: $element.glow)
-                            }
-                        }.padding(.vertical, 6)
-                    }
-                    Menu {
-                        ForEach(SeasonalArtwork.allCases.filter { $0 != .image }) { artwork in
-                            Button(SeasonalText.artwork(artwork)) {
-                                appendArtwork(artwork)
-                            }
+                Group {
+                    if draft.isComposedScene {
+                        ForEach($draft.elements) { $element in
+                            SeasonalZoneEditor(element:$element) { importingElementID=element.id;importingArtwork=true }
                         }
-                    } label: { Label(SeasonalText.value("addArtwork", "Dekoration hinzufügen"), systemImage: "plus").frame(minHeight: 44) }
-                        .disabled(draft.elements.count >= 6)
+                    } else {
+                        Section(SeasonalText.value("artwork", "Dekorationen")) {
+                        Button(SeasonalText.value("arrangeZones","In Szenenbereiche aufteilen")) { draft=draft.arrangedInZones() }
+                        ForEach($draft.elements) { $element in
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Text(SeasonalText.artwork(element.artwork)).font(.headline)
+                                    Spacer()
+                                    Button(role: .destructive) { draft.elements.removeAll { $0.id == element.id } } label: {
+                                        Image(systemName: "trash").frame(width: 44, height: 44).accessibilityLabel(AppStrings.Action.delete)
+                                    }.buttonStyle(.borderless).disabled(draft.elements.count <= 1)
+                                }
+                                if [.pumpkin,.web,.bat].contains(element.artwork) {
+                                    Text(SeasonalText.value("scenePlacement", "Ruhendes Ecknetz und Herbstlaub. Eine Spinne hängt am Netz, eine am oberen Ausschnitt. Der Kürbis glimmt neben dem Logo; Fledermäuse fliegen selten vorbei."))
+                                        .font(.footnote).foregroundStyle(.secondary)
+                                } else {
+                                    Picker(SeasonalText.value("position", "Position"), selection: $element.anchor) {
+                                        Text(SeasonalText.value("leading", "Links")).tag(SeasonalAnchor.leading)
+                                        Text(SeasonalText.value("trailing", "Rechts")).tag(SeasonalAnchor.trailing)
+                                    }.pickerStyle(.segmented)
+                                }
+                                Text(SeasonalText.value("size", "Größe"))
+                                Slider(value: $element.size, in: 16...44).accessibilityLabel(SeasonalText.value("size", "Größe"))
+                                if ![SeasonalArtwork.pumpkin,.palm,.pine,.star].contains(element.artwork) {
+                                    let motionLabel = element.artwork == .web
+                                        ? SeasonalText.value("spiderMotion", "Schwingen der Spinnen")
+                                        : SeasonalText.value("sway", "Bewegungsstärke")
+                                    Text(motionLabel)
+                                    Slider(value: Binding(get: { element.motionStrength }, set: { value in
+                                        if element.artwork == .web { element.spiderMotion = value } else { element.sway = value }
+                                    }), in: 0...1).accessibilityLabel(motionLabel)
+                                }
+                                if ![SeasonalArtwork.web,.snowflake].contains(element.artwork) {
+                                    Toggle(SeasonalText.value("glow", "Leuchten"), isOn: $element.glow)
+                                }
+                            }.padding(.vertical, 6)
+                        }
+                        }
+                    }
+                    if draft.isComposedScene {
+                        Menu {
+                            ForEach(SeasonalSceneZone.allCases.filter { zone in !draft.elements.contains{$0.zone==zone} }) { zone in
+                                Button(zone.title) { draft.elements.append(.scene(zone.artworks[0],zone)) }
+                            }
+                        } label: { Label(SeasonalText.value("addZone","Bereich hinzufügen"),systemImage:"plus") }
+                        .disabled(draft.elements.count>=6)
+                    } else {
+                        Menu {
+                            ForEach(SeasonalArtwork.allCases.filter { $0 != .image && !$0.requiresSceneZone }) { artwork in
+                                Button(SeasonalText.artwork(artwork)) {
+                                    appendArtwork(artwork)
+                                }
+                            }
+                        } label: { Label(SeasonalText.value("addArtwork", "Dekoration hinzufügen"), systemImage: "plus").frame(minHeight: 44) }
+                            .disabled(draft.elements.count >= 6)
+                    }
                 }
                 if let message = draft.validationMessage { Section { Text(message).foregroundStyle(.red) } }
             }
@@ -191,6 +221,21 @@ struct SeasonalThemeEditor: View {
                 }.dynamicTypeSize(typeSize)
                     .presentationDetents(typeSize.isAccessibilitySize ? [.large] : [.medium, .large])
             }
+            .fullScreenCover(isPresented:$fullPreview) { SeasonalFullScreenPreview(theme:draft).preferredColorScheme(previewScheme) }
+            .fileImporter(isPresented:$importingArtwork,allowedContentTypes:[.png]) { result in
+                do {
+                    let url=try result.get(),granted=url.startAccessingSecurityScopedResource()
+                    defer { if granted { url.stopAccessingSecurityScopedResource() } }
+                    guard let index=draft.elements.firstIndex(where:{$0.id==importingElementID}) else { return }
+                    let values=try url.resourceValues(forKeys:[.fileSizeKey]);guard let count=values.fileSize,count<=5_000_000 else { throw SeasonalError.invalidPackage }
+                    draft.elements[index].pngFrames=[try SeasonalPNGImporter.frame(Data(contentsOf:url))]
+                    if !draft.elements[index].motionChoices.contains(draft.elements[index].effectiveMotion) { draft.elements[index].motionStyle=nil }
+                } catch { if (error as NSError).code != NSUserCancelledError { artworkError=error.localizedDescription } }
+                importingElementID=nil
+            }
+            .alert(SeasonalText.value("imageError","Bild konnte nicht importiert werden"),isPresented:Binding(get:{artworkError != nil},set:{if !$0 { artworkError=nil }})) {
+                Button(AppStrings.Common.done) { artworkError=nil }
+            } message: { Text(artworkError ?? "") }
             .interactiveDismissDisabled(draft != original)
         }
     }

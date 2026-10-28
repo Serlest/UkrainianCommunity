@@ -77,7 +77,7 @@ import FirebaseFirestore
 
     @Test func unsafeOrUnsupportedPackagesFailClosed() throws {
         var library = SeasonalLibrary(themes:[.halloween()])
-        library.schemaVersion = 2
+        library.schemaVersion = 3
         #expect(throws:(any Error).self) { try library.encoded() }
         library.schemaVersion = 1
         library.themes[0].elements[0].size = .infinity
@@ -208,18 +208,21 @@ import FirebaseFirestore
 
 @MainActor struct SeasonalPreparedScenesTests {
     @Test func draftsAreReusableBoundedAndNeverEnableThemselves() throws {
-        let themes=[SeasonalTheme.halloween(),.gtaVI(),.christmas(),.newYear()]
+        let themes=[SeasonalTheme.halloweenScene(),.gtaVI(),.christmas(),.newYear()]
         let library=SeasonalLibrary(themes:themes)
         #expect(try SeasonalLibrary.decode(library.encoded()) == library)
         for theme in themes {
             #expect(!theme.isEnabled)
             #expect(theme.sections == SeasonalSection.allCases)
-            #expect(theme.elements.count<=3)
+            #expect(theme.elements.count==6)
+            #expect(theme.isComposedScene)
+            #expect(Set(theme.elements.compactMap(\.zone)) == Set(SeasonalSceneZone.allCases))
             #expect(library.active(at:theme.startsAt,section:.news)==nil)
         }
         #expect(!themes[1].repeatsYearly)
         #expect(themes[2].repeatsYearly && themes[3].repeatsYearly)
-        #expect(!themes[1].usesHeaderDock && !themes[2].usesHeaderDock && !themes[3].usesHeaderDock)
+        let allHaveHeader=themes.allSatisfy(\.usesHeaderDock)
+        #expect(allHaveHeader)
     }
     @Test func annualNewYearKeepsOneWindowAcrossJanuary() throws {
         let now=ISO8601DateFormatter().date(from:"2026-12-31T12:00:00Z")!
@@ -229,5 +232,79 @@ import FirebaseFirestore
         #expect(!scene.contains(ISO8601DateFormatter().date(from:"2027-07-01T12:00:00Z")!))
         let christmas=SeasonalTheme.christmas(now:now)
         #expect(christmas.contains(ISO8601DateFormatter().date(from:"2027-12-25T12:00:00Z")!))
+    }
+}
+
+@MainActor struct SeasonalCompositionTests {
+    @Test func zoneAndEffectContractsRejectAmbiguousPackages() throws {
+        var theme=SeasonalTheme.christmas()
+        theme.elements[1].zone = .brand
+        #expect(throws:(any Error).self) { try theme.validate() }
+        theme = .christmas();theme.elements[0].zone=nil
+        #expect(throws:(any Error).self) { try theme.validate() }
+        theme = .christmas();theme.elements[0].accentHex="GG11FF"
+        #expect(throws:(any Error).self) { try theme.validate() }
+        theme = .christmas();theme.elements[1].motionStyle = .snow
+        #expect(throws:(any Error).self) { try theme.validate() }
+        theme = .christmas();theme.elements[0].zone = .edges;theme.elements[0].artwork = .pine
+        #expect(throws:(any Error).self) { try theme.validate() }
+    }
+    @Test func composedPayloadRequiresRendererTwoAndEnvelopeOneStaysSeparate() throws {
+        var library=SeasonalLibrary()
+        #expect(library.schemaVersion==1)
+        library.themes.append(.christmas())
+        #expect(library.schemaVersion==2)
+        let encoded=try library.encoded()
+        var json=try #require(JSONSerialization.jsonObject(with:encoded) as? [String:Any])
+        #expect(json["schemaVersion"] as? Int==2)
+        json["schemaVersion"]=1
+        let disguised=try JSONSerialization.data(withJSONObject:json)
+        #expect(throws:(any Error).self) { try SeasonalLibrary.decode(disguised) }
+        let legacy=SeasonalLibrary(themes:[.halloween()])
+        #expect(legacy.schemaVersion==1)
+        let same=try SeasonalLibrary.decode(legacy.encoded())==legacy;#expect(same)
+    }
+    @Test func disabledHeaderAndDetailAtmospherePersistWithoutChrome() throws {
+        var theme=SeasonalTheme.newYear();theme.elements[0].isEnabled=false
+        #expect(!theme.usesHeaderDock)
+        let detail=theme.presentation(includesChrome:false)
+        #expect(detail.elements.count==2)
+        #expect(theme.presentation(includesChrome:false,showsNavigation:false).elements.count==1)
+        #expect(!detail.usesHeaderDock)
+        #expect(detail.elements.contains{$0.artwork == .snowflake})
+        #expect(detail.elements.contains{$0.artwork == .snowLedge})
+        let package=SeasonalLibrary(themes:[theme])
+        let roundTrip=try SeasonalLibrary.decode(package.encoded())
+        let match=roundTrip==package;#expect(match)
+    }
+    @Test func upgradingLegacyNativeAndCustomThemesKeepsTheirData() throws {
+        var old=SeasonalTheme.halloween();old.elements[1].sway=0;old.reactsToTilt=false
+        let arranged=old.arrangedInZones()
+        #expect(arranged.id==old.id && arranged.startsAt==old.startsAt && arranged.endsAt==old.endsAt)
+        #expect(!arranged.reactsToTilt)
+        #expect(arranged.elements.first{$0.artwork == .spider}?.spiderMotion==0.25)
+        try arranged.validate()
+        let png=try SeasonalPNGImporter.frame(UIGraphicsImageRenderer(size:CGSize(width:20,height:20)).image{ctx in
+            UIColor.orange.setFill();ctx.cgContext.fillEllipse(in:CGRect(x:2,y:2,width:16,height:16))
+        }.pngData()!)
+        old.elements=[SeasonalElement(artwork:.image,anchor:.leading,pngFrames:[png,png])]
+        let custom=old.arrangedInZones();try custom.validate()
+        #expect(custom.elements.contains{$0.id==old.elements[0].id && $0.pngFrames==[png,png]})
+        #expect(custom.visibleElements.count==1)
+    }
+    @Test func importedArtworkIsBoundedAndSurvivesExportWithTransparency() throws {
+        let image=UIGraphicsImageRenderer(size:CGSize(width:900,height:600)).image { ctx in
+            UIColor.systemPink.setFill();ctx.cgContext.fillEllipse(in:CGRect(x:70,y:70,width:600,height:400))
+        }
+        let encoded=try SeasonalPNGImporter.frame(image.pngData()!)
+        let data=try #require(Data(base64Encoded:encoded)),decoded=try #require(UIImage(data:data))
+        #expect(data.count<=48_000)
+        #expect(max(decoded.size.width,decoded.size.height)<=256)
+        #expect(decoded.cgImage?.alphaInfo != .none)
+        var scene=SeasonalTheme.gtaVI();scene.elements[0].artwork = .image;scene.elements[0].pngFrames=[encoded]
+        let library=SeasonalLibrary(themes:[scene]);let same=try SeasonalLibrary.decode(library.encoded())==library
+        #expect(same)
+        #expect(throws:(any Error).self) { try SeasonalPNGImporter.frame(Data("not PNG".utf8)) }
+        #expect(throws:(any Error).self) { try SeasonalPNGImporter.frame(image.jpegData(compressionQuality:0.8)!) }
     }
 }
