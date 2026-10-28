@@ -55,6 +55,17 @@ struct SeasonalDynamicsTests {
             }
         }
     }
+    @Test func calmScenesUseFifteenAndOnlyActiveMotionUsesSixty() {
+        #expect(SeasonalFramePacing.rate(at:20,hasWeb:true,hasBat:true,preview:false,moving:false)==15)
+        #expect(SeasonalFramePacing.rate(at:20,hasWeb:false,hasBat:false,preview:false,moving:false)==15)
+        #expect(SeasonalFramePacing.rate(at:5,hasWeb:true,hasBat:false,preview:false,moving:false)==60)
+        #expect(SeasonalFramePacing.rate(at:20,hasWeb:false,hasBat:false,preview:false,moving:true)==60)
+        for preview in [true,false] {
+            let start=preview ? 18.0:32.0
+            #expect(SeasonalFramePacing.rate(at:start+10,hasWeb:true,hasBat:true,preview:preview,moving:false)==60)
+            #expect(SeasonalFramePacing.rate(at:start+11,hasWeb:true,hasBat:true,preview:preview,moving:false)==15)
+        }
+    }
     @Test func sustainedTiltReachesStableAngleAndDampingSettles() {
         var p=SeasonalPendulum()
         for _ in 0..<900 { p.step(delta:1.0/60,tilt:0.6,acceleration:0,intensity:1) }

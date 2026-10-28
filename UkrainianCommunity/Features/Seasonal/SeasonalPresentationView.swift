@@ -2,7 +2,7 @@ import Combine
 import SwiftUI
 import UIKit
 
-enum SeasonalHeaderAnchor: Hashable { case pumpkin, header }
+enum SeasonalHeaderAnchor: Hashable { case pumpkin }
 struct SeasonalHeaderAnchors: PreferenceKey {
     static let defaultValue: [SeasonalHeaderAnchor: Anchor<CGRect>] = [:]
     static func reduce(value: inout [SeasonalHeaderAnchor: Anchor<CGRect>], nextValue: () -> [SeasonalHeaderAnchor: Anchor<CGRect>]) {
@@ -10,7 +10,12 @@ struct SeasonalHeaderAnchors: PreferenceKey {
     }
 }
 private struct SeasonalHeaderActiveKey: EnvironmentKey { static let defaultValue = false }
+private struct SeasonalHeaderThemeKey: EnvironmentKey { static let defaultValue:SeasonalTheme? = nil }
 extension EnvironmentValues {
+    var seasonalHeaderTheme:SeasonalTheme? {
+        get { self[SeasonalHeaderThemeKey.self] }
+        set { self[SeasonalHeaderThemeKey.self] = newValue }
+    }
     var seasonalHeaderActive: Bool {
         get { self[SeasonalHeaderActiveKey.self] }
         set { self[SeasonalHeaderActiveKey.self] = newValue }
@@ -22,6 +27,7 @@ struct SeasonalDecorationLayer: View {
     let theme: SeasonalTheme
     let anchors: [SeasonalHeaderAnchor: Anchor<CGRect>]
     var preview = false
+    var embedsHeaderPumpkin = false
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -35,9 +41,14 @@ struct SeasonalDecorationLayer: View {
     }
     private var customElements: [SeasonalElement] { theme.elements.filter { ![SeasonalArtwork.pumpkin,.web,.bat].contains($0.artwork) } }
 
+    private var sceneTheme:SeasonalTheme {
+        var result=theme
+        if embedsHeaderPumpkin { result.elements.removeAll{$0.artwork == .pumpkin} }
+        return result
+    }
+
     var body: some View {
         GeometryReader { geometry in
-            let header = anchors[.header].map { geometry[$0] }
             let dock = anchors[.pumpkin].map { geometry[$0] }
             // The geometry extends to the top of the window, behind the system status region.
             let globalTop = geometry.frame(in: .global).minY
@@ -45,11 +56,11 @@ struct SeasonalDecorationLayer: View {
             let placement = SeasonalScenePlacement(
                 pumpkin: dock.map { CGPoint(x:$0.midX,y:$0.midY) } ?? CGPoint(x:geometry.size.width-30,y:top+80),
                 webTop: top,
-                descent: preview ? 116 : min(190,max(140,(header?.maxY ?? top+100)-top+65)),
+                descent: preview ? 116 : 180,
                 objectScale: dock.map { min(1,$0.width/40) } ?? 0.85)
             ZStack(alignment:.topLeading) {
-                if theme.elements.contains(where:{[SeasonalArtwork.pumpkin,.web,.bat].contains($0.artwork)}) {
-                    SeasonalScene(theme:theme,placement:placement,animated:animated,dark:scheme == .dark,preview:preview)
+                if sceneTheme.elements.contains(where:{[SeasonalArtwork.pumpkin,.web,.bat].contains($0.artwork)}) {
+                    SeasonalScene(theme:sceneTheme,placement:placement,animated:animated,dark:scheme == .dark,preview:preview)
                         .frame(width:geometry.size.width,height:geometry.size.height)
                 }
                 if !customElements.isEmpty {
@@ -81,8 +92,9 @@ struct SeasonalPreview: View {
             RoundedRectangle(cornerRadius:14).fill(AppTheme.accentPrimary.opacity(0.12)).frame(height:58).padding(12)
         }
         .environment(\.seasonalHeaderActive,true)
+        .environment(\.seasonalHeaderTheme,theme)
         .overlayPreferenceValue(SeasonalHeaderAnchors.self) { anchors in
-            SeasonalDecorationLayer(theme:theme,anchors:anchors,preview:true)
+            SeasonalDecorationLayer(theme:theme,anchors:anchors,preview:true,embedsHeaderPumpkin:true)
         }
         .background { AppBackgroundView() }
         .clipShape(RoundedRectangle(cornerRadius:20))
@@ -107,9 +119,10 @@ struct SeasonalRootDecoration: ViewModifier {
                 ? store.library.active(at:context.date,section:section) : nil
             content
                 .environment(\.seasonalHeaderActive,theme != nil)
+                .environment(\.seasonalHeaderTheme,theme)
                 .overlayPreferenceValue(SeasonalHeaderAnchors.self) { anchors in
                     if let theme {
-                        SeasonalDecorationLayer(theme:theme,anchors:anchors)
+                        SeasonalDecorationLayer(theme:theme,anchors:anchors,embedsHeaderPumpkin:true)
                             .ignoresSafeArea(.container,edges:.top)
                     }
                 }

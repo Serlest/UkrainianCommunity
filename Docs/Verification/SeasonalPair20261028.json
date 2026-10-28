@@ -39,9 +39,15 @@
     "build": 135,
     "archive": "succeeded",
     "upload": "succeeded",
-    "appleProcessing": "PROCESSING",
-    "internalBuildState": "pending",
+    "appleProcessing": "VALID",
+    "internalBuildState": "IN_BETA_TESTING",
     "sourceGitHub": "queued",
-    "evidence": "TestFlight135.json"
+    "evidence": "TestFlight135.json",
+    "group": "Beta Tester",
+    "notesLocales": [
+      "uk",
+      "de-DE",
+      "en-US"
+    ]
   }
 }

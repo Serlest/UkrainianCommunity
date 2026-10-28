@@ -39,18 +39,21 @@ struct SeasonalScene: UIViewRepresentable {
     private var bats:[(root:SCNNode,wings:[SCNNode])]=[]
     private var elements:[SeasonalElement]=[]
     private var theme:SeasonalTheme?
+    private var materialSignature:String?
     private var placement=SeasonalScenePlacement()
     private var animated=false, dark=false, preview=false
     private var link:CADisplayLink?
     private let target=SeasonalDisplayTarget()
     private let motion=SeasonalMotion()
     private var elapsed=0.0,lastTime=0.0
+    private var fastMotionUntil=0.0
+    private var lastMotion=SeasonalMotionSample()
 
     override init(frame:CGRect) {
         super.init(frame:frame)
         isUserInteractionEnabled=false;isAccessibilityElement=false;backgroundColor = .clear
         renderer.backgroundColor = .clear;renderer.isOpaque=false;renderer.isUserInteractionEnabled=false
-        renderer.antialiasingMode = .multisampling4X;renderer.preferredFramesPerSecond=30
+        renderer.antialiasingMode = .multisampling4X;renderer.preferredFramesPerSecond=60
         let scene=SCNScene();scene.rootNode.addChildNode(world)
         let camera=SCNCamera();camera.usesOrthographicProjection=true;camera.zNear=0.1;camera.zFar=2000
         camera.wantsHDR=true;camera.wantsExposureAdaptation=false
@@ -67,34 +70,50 @@ struct SeasonalScene: UIViewRepresentable {
     required init?(coder:NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     override func layoutSubviews() {
-        super.layoutSubviews();renderer.frame=bounds
+        super.layoutSubviews()
+        guard renderer.frame != bounds else { return }
+        renderer.frame=bounds
         cameraNode.camera?.orthographicScale=Double(max(1,bounds.height)/2)
         world.position=SCNVector3(-Float(bounds.width)/2,Float(bounds.height)/2,0)
-        draw(delta:0)
+        if !animated { draw(delta:0) }
     }
 
     func configure(theme:SeasonalTheme,placement:SeasonalScenePlacement,animated:Bool,dark:Bool,preview:Bool) {
+        let themeChanged=self.theme != theme,animationChanged=self.animated != animated
+        let restartClock=animated && link == nil
+        guard themeChanged || self.placement != placement || animationChanged || self.dark != dark || self.preview != preview || restartClock else { return }
         let changedIdentity=self.theme?.id != theme.id
+        let geometryChanged=themeChanged && elements.map { $0.id+"|"+$0.artwork.rawValue } != theme.elements.map { $0.id+"|"+$0.artwork.rawValue }
         self.theme=theme;self.placement=placement;self.dark=dark;self.preview=preview
-        let geometryChanged=elements.map { $0.id+"|"+$0.artwork.rawValue } != theme.elements.map { $0.id+"|"+$0.artwork.rawValue }
-        elements=theme.elements
+        if themeChanged { elements=theme.elements }
         if geometryChanged || changedIdentity {
-            buildObjects();elapsed=0
-        } else {
-            // Size, glow and motion sliders update transforms/materials, never regenerate meshes.
+            buildObjects();elapsed=0;fastMotionUntil=0;lastMotion=SeasonalMotionSample()
+        } else if themeChanged {
             for index in pumpkinNodes.indices {
                 if let current=elements.first(where:{$0.id==pumpkinNodes[index].3.id}) { pumpkinNodes[index].3=current }
             }
         }
+        updateMaterialAppearance()
         self.animated=animated
-        motion.setEnabled(animated && theme.reactsToTilt && theme.elements.contains{$0.sway > 0})
+        if animationChanged || themeChanged || restartClock {
+            motion.setEnabled(animated && theme.reactsToTilt && theme.elements.contains{$0.sway > 0})
+        }
+        if themeChanged {
+            // Bloom/HDR stay in the tiny header pumpkin viewport, not the full-screen web.
+            let litPumpkin=elements.contains{$0.artwork == .pumpkin}
+            cameraNode.camera?.wantsHDR=litPumpkin
+            cameraNode.camera?.bloomIntensity=litPumpkin ? 0.04:0
+            cameraNode.camera?.exposureOffset=litPumpkin ? -0.25:0
+            renderer.antialiasingMode=litPumpkin ? .multisampling4X:.multisampling2X
+        }
         if animated && link == nil {
             lastTime=0
             let l=CADisplayLink(target:target,selector:#selector(SeasonalDisplayTarget.tick(_:)))
-            l.preferredFramesPerSecond=30;l.add(to:.main,forMode:.common);link=l
+            l.preferredFramesPerSecond=60;l.add(to:.main,forMode:.common);link=l
         } else if !animated { link?.invalidate();link=nil;lastTime=0 }
-        renderer.rendersContinuously=animated;renderer.isPlaying=animated
-        draw(delta:0)
+        renderer.rendersContinuously=false;renderer.isPlaying=false
+        // An active scene is drawn once by DisplayLink, including after placement changes.
+        if !animated { draw(delta:0) }
     }
 
     func stop() {
@@ -104,11 +123,12 @@ struct SeasonalScene: UIViewRepresentable {
     override func didMoveToWindow() { super.didMoveToWindow();if window == nil { stop() } }
     fileprivate func tick(_ timestamp:Double) {
         guard window != nil,animated else { return }
-        let dt=lastTime == 0 ? 0 : min(0.05,max(0,timestamp-lastTime));lastTime=timestamp;elapsed += dt
+        let dt=lastTime == 0 ? 0 : min(0.1,max(0,timestamp-lastTime));lastTime=timestamp;elapsed += dt
         draw(delta:dt)
     }
 
     private func buildObjects() {
+        materialSignature=nil
         world.childNodes.forEach{$0.removeFromParentNode()};pumpkinNodes=[];webNode=nil;bats=[];spiders=[]
         for element in elements where element.artwork == .pumpkin {
             let p=SeasonalSceneArtwork.pumpkin();world.addChildNode(p.root);pumpkinNodes.append((p.root,p.ember,p.light,element))
@@ -130,11 +150,42 @@ struct SeasonalScene: UIViewRepresentable {
         }
     }
 
+    /// Theme/material properties change on configuration, never during each animation tick.
+    private func updateMaterialAppearance() {
+        let web=elements.first{$0.artwork == .web}
+        let glow=elements.first{$0.artwork == .bat}?.glow ?? false
+        let signature="\(dark)|\(web?.glow ?? false)|\(glow)"
+        guard signature != materialSignature else { return }
+        materialSignature=signature
+        webNode?.enumerateChildNodes { node,_ in node.geometry?.materials.forEach {
+            $0.multiply.contents=dark ? UIColor(white:0.69,alpha:0.84):UIColor(white:0.20,alpha:0.78)
+            $0.emission.contents=UIColor(white:0.12,alpha:1);$0.emission.intensity=(web?.glow ?? false) ? 0.035:0
+        } }
+        for spider in spiders {
+            spider.silk.geometry?.firstMaterial?.diffuse.contents=dark ? UIColor(white:0.77,alpha:0.8):UIColor(white:0.24,alpha:0.68)
+        }
+        for bat in bats { bat.root.enumerateChildNodes { node,_ in node.geometry?.materials.forEach {
+            $0.emission.contents=UIColor(red:0.22,green:0.11,blue:0.12,alpha:1);$0.emission.intensity=glow ? 0.3:0
+        } } }
+    }
+
     private func draw(delta:Double) {
         guard let theme else { return }
         SCNTransaction.begin();SCNTransaction.animationDuration=0;SCNTransaction.disableActions=true
         defer { SCNTransaction.commit() }
         let input=animated && theme.reactsToTilt ? motion.sample() : SeasonalMotionSample()
+        if animated {
+            let moved=abs(input.acceleration)>0.025 || abs(input.x-lastMotion.x)>0.003 || abs(input.y-lastMotion.y)>0.003
+            if moved { fastMotionUntil=elapsed+0.8 }
+            lastMotion=input
+            let swinging=spiders.contains{abs($0.pendulum.velocity)>0.03}
+            let rate=SeasonalFramePacing.rate(at:elapsed,
+                hasWeb:elements.contains{$0.artwork == .web && $0.sway>0},
+                hasBat:elements.contains{$0.artwork == .bat && $0.sway>0},preview:preview,
+                moving:elapsed<fastMotionUntil || swinging)
+            if link?.preferredFramesPerSecond != rate { link?.preferredFramesPerSecond=rate }
+            if renderer.preferredFramesPerSecond != rate { renderer.preferredFramesPerSecond=rate }
+        }
         let intensity=theme.intensity
         for (index,p) in pumpkinNodes.enumerated() {
             let scale=p.3.size * 0.53 * Double(placement.objectScale)
@@ -146,7 +197,7 @@ struct SeasonalScene: UIViewRepresentable {
         }
         let top=Double(placement.webTop),center=Double(bounds.width)/2
         let webElement=elements.first{$0.artwork == .web}
-        let webScale=min((webElement?.size ?? 44)/44*1.22,Double(bounds.width)/300)
+        let webScale=min((webElement?.size ?? 44)/44,Double(bounds.width)/300)
         // The upper anchors never rotate. The mesh bends below the cutout on the GPU.
         webNode?.position=SCNVector3(center,-top,22);webNode?.scale=SCNVector3(webScale,webScale,webScale)
         let webStrength=animated ? (webElement?.sway ?? 0)*intensity : 0
@@ -154,10 +205,6 @@ struct SeasonalScene: UIViewRepresentable {
         webNode?.enumerateChildNodes { node,_ in
             node.morpher?.setWeight(CGFloat(max(0,bend)),forTargetAt:0)
             node.morpher?.setWeight(CGFloat(max(0,-bend)),forTargetAt:1)
-            node.geometry?.materials.forEach {
-                $0.diffuse.contents=dark ? UIColor(white:0.69,alpha:0.84):UIColor(white:0.20,alpha:0.78)
-                $0.emission.contents=UIColor(white:0.12,alpha:1);$0.emission.intensity=(webElement?.glow ?? false) ? 0.035:0
-            }
         }
         for index in spiders.indices {
             let progress=animated && (webElement?.sway ?? 0)>0
@@ -182,7 +229,6 @@ struct SeasonalScene: UIViewRepresentable {
             (spider.silk.geometry as? SCNCylinder)?.height=CGFloat(len)
             spider.silk.position=SCNVector3((start.x+end.x)/2,(start.y+end.y)/2,33)
             spider.silk.simdOrientation=simd_quatf(from:SIMD3<Float>(0,1,0),to:SIMD3<Float>(dx,dy,0)/max(len,0.001))
-            spider.silk.geometry?.firstMaterial?.diffuse.contents=dark ? UIColor(white:0.77,alpha:0.8):UIColor(white:0.24,alpha:0.68)
             for (i,leg) in spider.legs.enumerated() {
                 leg.eulerAngles.z=animated ? Float(sin(elapsed*(index==0 ? 2.6:2.1)+Double(i))*0.045*intensity):0
             }
@@ -201,9 +247,6 @@ struct SeasonalScene: UIViewRepresentable {
                 let scale=(batElement?.size ?? 20)/28*(0.8+sin(q * .pi)*0.3)*[1.0,0.81,0.92,0.74][index]
                 bat.root.scale=SCNVector3(scale,scale,scale)
                 for (i,wing) in bat.wings.enumerated() { wing.eulerAngles.y=Float(sin(elapsed*(17+Double(index)*0.9)+Double(index)*1.7)*(i == 0 ? -1:1)*(0.65+0.25*(batElement?.sway ?? 0))) }
-                bat.root.enumerateChildNodes { node,_ in node.geometry?.materials.forEach {
-                    $0.emission.contents=UIColor(red:0.22,green:0.11,blue:0.12,alpha:1);$0.emission.intensity=(batElement?.glow ?? false) ? 0.3:0
-                } }
             }
         }
     }

@@ -53,7 +53,7 @@ struct SeasonalAuditHarness: View {
                                         .frame(height: 130).frame(maxWidth: .infinity)
                                         .foregroundStyle(.orange.gradient).background(.blue.opacity(0.12))
                                         .clipShape(RoundedRectangle(cornerRadius: 20))
-                                    ForEach(0..<3) { _ in
+                                    ForEach(0..<(scope == "scroll" ? 60:3),id:\.self) { _ in
                                         HStack {
                                             Image(systemName: "newspaper").font(.title)
                                             VStack(alignment: .leading) {
@@ -70,8 +70,9 @@ struct SeasonalAuditHarness: View {
                             }
                             .background { AppBackgroundView() }
                             .environment(\.seasonalHeaderActive,effects)
+                            .environment(\.seasonalHeaderTheme,effects ? theme:nil)
                             .overlayPreferenceValue(SeasonalHeaderAnchors.self) { anchors in
-                                if effects { SeasonalDecorationLayer(theme:theme,anchors:anchors).ignoresSafeArea(.container,edges:.top) }
+                                if effects { SeasonalDecorationLayer(theme:theme,anchors:anchors,embedsHeaderPumpkin:true).ignoresSafeArea(.container,edges:.top) }
                             }
                         }.tabItem { Label(SeasonalText.section(SeasonalSection.allCases[index]), systemImage: "square.grid.2x2") }.tag(index)
                     }

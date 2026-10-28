@@ -58,6 +58,19 @@ import UIKit
         shot("SeasonalPair-DuringBatGroup")
         app.terminate()
     }
+    func testSeasonalScrollPerformance() throws {
+        let app=launch(scope:"scroll")
+        XCTAssertTrue(app.buttons["seasonal.fixture.bell"].waitForExistence(timeout:15))
+        let options=XCTMeasureOptions();options.iterationCount=3
+        measure(metrics:[XCTOSSignpostMetric.scrollDraggingMetric,XCTCPUMetric(application:app)],options:options) {
+            app.swipeUp();app.swipeUp();app.swipeUp()
+            app.swipeDown();app.swipeDown();app.swipeDown()
+        }
+        app.swipeDown();app.swipeDown()
+        XCTAssertTrue(app.buttons["seasonal.fixture.bell"].isHittable)
+        shot("SeasonalScroll-ReturnedHeader")
+        app.terminate()
+    }
     func testLightAndDarkActualArtworkAndEditor() throws {
         for appearance in ["light","dark"] {
             let app=launch(scope:"home",appearance:appearance)

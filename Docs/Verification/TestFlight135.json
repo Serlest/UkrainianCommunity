@@ -1,13 +1,19 @@
 {
-  "checkedAt": "2026-10-28T14:58:30.162242+00:00",
+  "checkedAt": "2026-10-28T15:33:02.701289+00:00",
   "version": "1.2.1",
   "build": 135,
   "sourceCommit": "c572f60fc9e7f1acabbd9936c577c162aa531b68",
-  "processingState": "PROCESSING",
-  "internalBuildState": "pending",
-  "groups": [],
-  "notesLocales": [],
-  "notesStatus": "Automatic helper build/testflight-135/set-notes.cjs waiting for build visibility; readback pending",
+  "processingState": "VALID",
+  "internalBuildState": "IN_BETA_TESTING",
+  "groups": [
+    "Beta Tester"
+  ],
+  "notesLocales": [
+    "uk",
+    "de-DE",
+    "en-US"
+  ],
+  "notesStatus": "All three localizations and Beta Tester membership confirmed by API",
   "archive": "ARCHIVE SUCCEEDED; version/encryption exemption and main app dSYM match verified",
   "upload": "EXPORT SUCCEEDED; Apple upload state confirmed without errors",
   "verification": "SeasonalPair20261028.json: 11 local tests passed, no failures/skips; eight UI captures and nine actual News-root recording frames reviewed",

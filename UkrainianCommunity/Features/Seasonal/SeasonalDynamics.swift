@@ -116,3 +116,12 @@ enum SeasonalWebShape {
                        y:point.y+bend*sin(point.x*0.022)*1.5*weight)
     }
 }
+
+/// Keep the calm scene inexpensive; short motion/flight bursts get full-rate updates.
+enum SeasonalFramePacing {
+    static func rate(at time:Double,hasWeb:Bool,hasBat:Bool,preview:Bool,moving:Bool) -> Int {
+        if moving || (hasWeb && time<9) { return 60 }
+        if hasBat && (0..<SeasonalChoreography.batCount).contains(where:{SeasonalChoreography.batProgress(at:time,preview:preview,index:$0) != nil}) { return 60 }
+        return 15
+    }
+}

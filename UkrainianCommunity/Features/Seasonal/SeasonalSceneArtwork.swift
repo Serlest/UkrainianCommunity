@@ -94,75 +94,73 @@ import UIKit
         return (root,ember,light)
     }
 
+    /// One cached antialiased silk mask on an 81-vertex sheet. The spiders stay 3D.
+    /// Fine thread cylinders do not need thousands of lit/morphed vertices each frame.
     static func web() -> SCNNode {
         let root=SCNNode();root.name="web"
-        let silk=material(UIColor(white:0.22,alpha:0.78),roughness:0.58,metalness:0.06)
-        // Off-centre orb with unequal radial lengths: the upper half continues behind
-        // the screen edge, rather than radiating from a conspicuous fan apex.
-        let hub=CGPoint(x:-14,y:-23)
-        let angles:[Double]=[-0.12,0.24,0.68,1.10,1.49,1.97,2.39,2.86,3.35,3.81,4.25,4.82,5.29,5.81]
-        let lengths:[Double]=[1.05,0.88,1.12,0.94,1.08,0.90,1.03,0.86,1.10,0.93,1.05,0.89,1.12,0.97]
-        func point(_ ray:Int,_ fraction:Double) -> SCNVector3 {
-            let i=ray % angles.count,a=angles[i],r=fraction*lengths[i]
-            return SCNVector3(hub.x+cos(a)*112*r,hub.y-sin(a)*82*r,0)
-        }
-        var vertices:[SCNVector3]=[],normals:[SCNVector3]=[],indices:[Int32]=[]
-        func tube(_ a:SCNVector3,_ b:SCNVector3,_ radius:CGFloat) {
-            let av=SIMD3<Float>(a.x,a.y,a.z),bv=SIMD3<Float>(b.x,b.y,b.z)
-            let direction=simd_normalize(bv-av)
-            let u=simd_normalize(simd_cross(direction,SIMD3<Float>(0,0,1)))
-            let v=simd_cross(direction,u),base=Int32(vertices.count)
-            for end in [av,bv] { for side in 0..<5 {
-                let angle=Float(side)/5 * .pi*2,n=cos(angle)*u+sin(angle)*v
-                let point=end+n*Float(radius)
-                vertices.append(SCNVector3(point));normals.append(SCNVector3(n))
-            } }
-            for side in 0..<5 {
-                let a=base+Int32(side),b=base+Int32((side+1)%5)
-                indices += [a,b,a+5,b,b+5,a+5]
-            }
-        }
-        func curve(_ a:SCNVector3,_ b:SCNVector3,_ sag:Double,_ radius:CGFloat) {
-            func tapered(_ p:SCNVector3) -> SCNVector3 {
-                let point=SeasonalWebShape.tapered(CGPoint(x:Double(p.x),y:Double(p.y)))
-                return SCNVector3(Float(point.x),Float(point.y),p.z)
-            }
-            var previous=tapered(a)
-            for step in 1...6 {
-                let t=Double(step)/6,bend=sin(t * .pi)*sag
-                let next=SCNVector3(Double(a.x)+Double(b.x-a.x)*t,
-                                    Double(a.y)+Double(b.y-a.y)*t-bend,sin(t * .pi)*0.6)
-                let mapped=tapered(next);tube(previous,mapped,radius);previous=mapped
-            }
-        }
-        for ray in angles.indices { curve(SCNVector3(hub.x,hub.y,0),point(ray,1.12),1.2,0.36) }
-        for ring in 1...7 { for ray in angles.indices {
-            // A few incomplete cells and unequal spacing avoid a mechanical icon.
-            if (ring==7 && [1,5,10].contains(ray)) || (ring==5 && ray==8) { continue }
-            let f=Double(ring)/7
-            let jitter=sin(Double(ray)*2.3+Double(ring)*1.8)*0.022
-            curve(point(ray,f+jitter),point(ray+1,f+sin(Double(ray+1)*2.3+Double(ring)*1.8)*0.022),
-                  1.3+f*2.1,0.25+CGFloat(f)*0.05)
+        let silk=SCNMaterial();silk.lightingModel = .constant
+        silk.diffuse.contents=webTexture;silk.diffuse.minificationFilter = .linear
+        silk.diffuse.magnificationFilter = .linear;silk.diffuse.mipFilter = .linear
+        silk.isDoubleSided=true;silk.writesToDepthBuffer=false;silk.transparencyMode = .aOne
+        var vertices:[SCNVector3]=[],uv:[CGPoint]=[],indices:[Int32]=[]
+        // An explicit row at -42 keeps the whole upper attachment corridor pinned.
+        let rows:[Double]=[80,40,0,-42,-62,-82,-102,-122,-140]
+        for y in rows { for column in 0...8 {
+            let x = -140+Double(column)*35
+            vertices.append(SCNVector3(x,y,0));uv.append(CGPoint(x:(x+140)/280,y:(80-y)/220))
         } }
-        curve(point(2,1.12),SCNVector3(80,-112,0),2.8,0.23)
-        curve(point(5,1.12),SCNVector3(-73,-116,0),1.9,0.22)
-        for (index,attachment) in SeasonalWebShape.attachments.enumerated() {
-            curve(point(index==0 ? 5:2,0.92),SCNVector3(attachment.x,attachment.y,0),1.1,0.29)
-        }
+        for row in 0..<8 { for column in 0..<8 {
+            let a=Int32(row*9+column),b=a+1,c=a+9,d=c+1
+            indices += [a,c,b,b,c,d]
+        } }
+        let normals=Array(repeating:SCNVector3(0,0,1),count:vertices.count)
         func geometry(_ points:[SCNVector3]) -> SCNGeometry {
-            let g=SCNGeometry(sources:[SCNGeometrySource(vertices:points),SCNGeometrySource(normals:normals)],
+            let g=SCNGeometry(sources:[SCNGeometrySource(vertices:points),SCNGeometrySource(normals:normals),SCNGeometrySource(textureCoordinates:uv)],
                               elements:[SCNGeometryElement(indices:indices,primitiveType:.triangles)])
             g.firstMaterial=silk;return g
         }
-        let mesh=SCNNode(geometry:geometry(vertices))
-        let morph=SCNMorpher();morph.calculationMode = .additive
+        let mesh=SCNNode(geometry:geometry(vertices)),morph=SCNMorpher();morph.calculationMode = .additive
         morph.targets=[1.0,-1.0].map { amount in geometry(vertices.map { vertex in
             let p=SeasonalWebShape.displaced(CGPoint(x:Double(vertex.x),y:Double(vertex.y)),amount:amount)
             return SCNVector3(Float(p.x),Float(p.y),vertex.z)
         }) }
-        mesh.morpher=morph;root.addChildNode(mesh)
-        return root
+        mesh.morpher=morph;root.addChildNode(mesh);return root
     }
+
+    private static let webTexture:UIImage = {
+        let format=UIGraphicsImageRendererFormat();format.scale=3;format.opaque=false
+        return UIGraphicsImageRenderer(size:CGSize(width:280,height:220),format:format).image { renderer in
+            let context=renderer.cgContext
+            context.translateBy(x:140,y:80);context.scaleBy(x:1,y:-1)
+            context.setStrokeColor(UIColor.white.cgColor);context.setLineCap(.round);context.setLineJoin(.round)
+            let hub=CGPoint(x:-14,y:-23)
+            let angles:[Double]=[-0.12,0.24,0.68,1.10,1.49,1.97,2.39,2.86,3.35,3.81,4.25,4.82,5.29,5.81]
+            let lengths:[Double]=[1.05,0.88,1.12,0.94,1.08,0.90,1.03,0.86,1.10,0.93,1.05,0.89,1.12,0.97]
+            func point(_ ray:Int,_ fraction:Double) -> CGPoint {
+                let i=ray % angles.count,a=angles[i],r=fraction*lengths[i]
+                return CGPoint(x:hub.x+cos(a)*112*r,y:hub.y-sin(a)*82*r)
+            }
+            func curve(_ a:CGPoint,_ b:CGPoint,_ sag:Double,_ radius:CGFloat) {
+                context.beginPath();context.move(to:SeasonalWebShape.tapered(a))
+                for step in 1...6 {
+                    let t=Double(step)/6
+                    context.addLine(to:SeasonalWebShape.tapered(CGPoint(x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t-sin(t * .pi)*sag)))
+                }
+                context.setLineWidth(radius*2);context.strokePath()
+            }
+            for ray in angles.indices { curve(hub,point(ray,1.12),1.2,0.36) }
+            for ring in 1...7 { for ray in angles.indices {
+                if (ring==7 && [1,5,10].contains(ray)) || (ring==5 && ray==8) { continue }
+                let f=Double(ring)/7,jitter=sin(Double(ray)*2.3+Double(ring)*1.8)*0.022
+                curve(point(ray,f+jitter),point(ray+1,f+sin(Double(ray+1)*2.3+Double(ring)*1.8)*0.022),1.3+f*2.1,0.25+CGFloat(f)*0.05)
+            } }
+            curve(point(2,1.12),CGPoint(x:80,y:-112),2.8,0.23)
+            curve(point(5,1.12),CGPoint(x:-73,y:-116),1.9,0.22)
+            for (index,attachment) in SeasonalWebShape.attachments.enumerated() {
+                curve(point(index==0 ? 5:2,0.92),attachment,1.1,0.29)
+            }
+        }
+    }()
 
     static func spider() -> (root:SCNNode,legs:[SCNNode]) {
         let root=SCNNode(),shell=material(UIColor(red:0.085,green:0.055,blue:0.035,alpha:1),roughness:0.36,metalness:0.08)

@@ -133,6 +133,7 @@ struct AdaptiveBrandLockupView: View {
 
 struct AppBrandHeader<TrailingContent: View>: View {
     @Environment(\.seasonalHeaderActive) private var seasonalHeaderActive
+    @Environment(\.seasonalHeaderTheme) private var seasonalHeaderTheme
     @ViewBuilder let trailingContent: TrailingContent
 
     init(@ViewBuilder trailingContent: () -> TrailingContent) {
@@ -155,7 +156,6 @@ struct AppBrandHeader<TrailingContent: View>: View {
         }
         .frame(maxWidth: .infinity, minHeight: AppTheme.appHeaderLogoSize.height)
         .padding(.leading, AppTheme.appHeaderLeadingAdjustment)
-        .transformAnchorPreference(key:SeasonalHeaderAnchors.self,value:.bounds) { anchors,header in anchors[.header]=header }
     }
 
     private var brandCluster: some View {
@@ -164,7 +164,16 @@ struct AppBrandHeader<TrailingContent: View>: View {
                 .fixedSize(horizontal:true,vertical:false)
             if seasonalHeaderActive {
                 Color.clear.frame(width:38,height:56)
-                    .anchorPreference(key:SeasonalHeaderAnchors.self,value:.bounds) { [.pumpkin:$0] }
+                    .overlay {
+                        if let theme=seasonalHeaderTheme,theme.elements.contains(where:{$0.artwork == .pumpkin}) {
+                            SeasonalHeaderPumpkin(theme:theme)
+                        }
+                    }
+                    .anchorPreference(key:SeasonalHeaderAnchors.self,value:.bounds) { anchor in
+                        // Only legacy imported artwork needs a moving screen-space anchor.
+                        seasonalHeaderTheme?.elements.contains(where:{![SeasonalArtwork.pumpkin,.web,.bat].contains($0.artwork)}) == true
+                            ? [.pumpkin:anchor]:[:]
+                    }
             }
         }
     }

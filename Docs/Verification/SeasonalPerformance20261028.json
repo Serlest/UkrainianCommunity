@@ -1,0 +1,146 @@
+{
+  "date": "2026-10-28",
+  "scope": "Build 135 feedback: web stutter and pumpkin lag during scroll",
+  "changes": [
+    "Pumpkin moved into scrolling header, not a global screen-space overlay",
+    "Web scale restored from 1.22 to 1.0; persistent pair retained",
+    "Cached 3x alpha mask on an 81-vertex deformable sheet",
+    "Material appearance cached and no longer written every tick",
+    "Full-screen overlay HDR/bloom removed; smaller 2x MSAA overlay, tiny local 4x pumpkin viewport",
+    "60 fps target; redundant configure/layout draws coalesced; unchanged native configurations return immediately",
+    "Native header anchors removed; legacy imported PNG anchors retained; fixed spider resting depth",
+    "Final matched renderer/display cadence: 15 fps ambient idle, 60 fps motion/flight/descent; scroll compositor moves local pumpkin independently"
+  ],
+  "evidence": {
+    "webBenchmark": {
+      "before": {
+        "frames": 60,
+        "meanGpuMs": 0.0356770916065822,
+        "medianWallMs": 0.5059242248535156,
+        "morphVertices": 13440,
+        "p95WallMs": 0.841975212097168,
+        "scope": "isolated web, simulator Metal, 1179x660; not iPhone FPS",
+        "triangles": 6720,
+        "vertices": 6720
+      },
+      "after": {
+        "frames": 60,
+        "meanGpuMs": 0.03746041329577565,
+        "medianWallMs": 0.558018684387207,
+        "morphVertices": 162,
+        "p95WallMs": 0.6380081176757812,
+        "scope": "isolated web, simulator Metal, 1179x660; not iPhone FPS",
+        "triangles": 128,
+        "vertices": 81
+      }
+    },
+    "scrollBaseline": "build/seasonal-performance-20261028/BaselineScroll.xcresult",
+    "scrollAfter": "build/seasonal-performance-20261028/SynchronizedVerification.xcresult",
+    "fullSimulatorVerification": "pending",
+    "realDevice": "Unavailable via devicectl; no measured physical FPS or final device acceptance",
+    "productionWrites": false,
+    "scrollMetrics": {
+      "baseline": {
+        "CPU Time (UkrainianCommunity)": {
+          "mean": 4.866967415666667,
+          "samples": [
+            4.899134485,
+            4.817641573,
+            4.884126189000001
+          ],
+          "unit": "s"
+        },
+        "CPU Instructions Retired (UkrainianCommunity)": {
+          "mean": 36465618.75266667,
+          "samples": [
+            36447534.581,
+            37249985.71,
+            35699335.967
+          ],
+          "unit": "kI"
+        },
+        "CPU Cycles (UkrainianCommunity)": {
+          "mean": 12995938.883666666,
+          "samples": [
+            13133407.129,
+            12937382.854,
+            12917026.668
+          ],
+          "unit": "kC"
+        },
+        "Duration (Scroll_Dragging)": {
+          "mean": 0.17228133366666668,
+          "samples": [
+            0.18318345800000002,
+            0.166829459,
+            0.16683108400000002
+          ],
+          "unit": "s"
+        }
+      },
+      "final": {
+        "CPU Time (UkrainianCommunity)": {
+          "mean": 4.714230662333334,
+          "samples": [
+            4.640283363,
+            4.905279647,
+            4.597128977000001
+          ],
+          "unit": "s"
+        },
+        "CPU Instructions Retired (UkrainianCommunity)": {
+          "mean": 34588546.722333334,
+          "samples": [
+            34557351.045,
+            35750594.998,
+            33457694.124
+          ],
+          "unit": "kI"
+        },
+        "CPU Cycles (UkrainianCommunity)": {
+          "mean": 12509310.387666667,
+          "samples": [
+            12519819.086,
+            13020451.139,
+            11987660.938
+          ],
+          "unit": "kC"
+        },
+        "Duration (Scroll_Dragging)": {
+          "mean": 0.17746944433333334,
+          "samples": [
+            0.182770167,
+            0.166693791,
+            0.18294437500000002
+          ],
+          "unit": "s"
+        }
+      }
+    },
+    "interpretation": "Final CPU time is comparable to baseline (4.867 vs 4.714 seconds per measured scroll iteration); not evidence of an iPhone FPS improvement. Initial 60 fps and unmatched adaptive variants were more expensive and were not delivered. Isolated GPU web timing stayed around 0.036 ms; no GPU saturation claim.",
+    "firstSimulatorVerification": {
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "result": "build/seasonal-performance-20261028/Verification.xcresult"
+    },
+    "finalPacingVerification": {
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0,
+      "result": "build/seasonal-performance-20261028/QuietVerification.xcresult"
+    },
+    "finalMatchedClockScrollVerification": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "result": "build/seasonal-performance-20261028/SynchronizedVerification.xcresult"
+    },
+    "visualReview": "All 12 UI captures reviewed: light/dark native root/editor, legacy PNG, maximum German keyboard/date, retained pair, returned scrolling header",
+    "actualRootVerification": "pending"
+  },
+  "delivery": {
+    "build": 136,
+    "status": "pending"
+  }
+}
