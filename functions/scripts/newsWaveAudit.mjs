@@ -32,9 +32,16 @@ export async function auditNewsWave(root, runId) {
     // `decisions` is the closed decision ledger. Some newer scope reports also
     // put terminal outcomes on `openedArticles`, but those entries can be only
     // lead summaries and omit publication IDs and read-back paths.
+    const openedArticleDecisions = Array.isArray(report.openedArticles)
+      ? report.openedArticles.map((entry) => entry.decision && typeof entry.decision === "object"
+        ? {...entry, ...entry.decision, url: entry.decision.url ?? entry.url}
+        : entry)
+      : null;
     const reportDecisionEntries = isTerminalDecisionList(report.decisions) ? report.decisions
-      : isTerminalDecisionList(report.openedArticles) ? report.openedArticles : null;
-    const explicitTerminalCounts = report.candidateDecisionsComplete === true &&
+      : isTerminalDecisionList(report.openedArticles) ? report.openedArticles
+        : isTerminalDecisionList(openedArticleDecisions) ? openedArticleDecisions
+          : isTerminalDecisionList(report.decidedCandidates) ? report.decidedCandidates : null;
+    const explicitTerminalCounts = (report.candidateDecisionsComplete === true || report.candidateBatchClosed === true) &&
       Number.isInteger(report.decidedCandidates) && Number.isInteger(report.published) &&
       Number.isInteger(report.rejected);
     // Salzburg's immutable report schema records a terminal `decisions` list
@@ -44,10 +51,12 @@ export async function auditNewsWave(root, runId) {
     const derivedTerminalCounts = report.workflowComplete === true &&
       Array.isArray(report.decisions) && report.decisions.length > 0 &&
       report.decisions.every((entry) => entry.outcome === "published" || entry.outcome === "rejected");
-    const reportHasTerminalCounts = explicitTerminalCounts || derivedTerminalCounts;
-    const terminalCandidates = explicitTerminalCounts ? report.decidedCandidates : derivedTerminalCounts ? report.decisions.length : 0;
-    const terminalPublished = explicitTerminalCounts ? report.published : derivedTerminalCounts ? report.decisions.filter((entry) => entry.outcome === "published").length : 0;
-    const terminalRejected = explicitTerminalCounts ? report.rejected : derivedTerminalCounts ? report.decisions.filter((entry) => entry.outcome === "rejected").length : 0;
+    const derivedCandidateCounts = isTerminalDecisionList(report.decidedCandidates);
+    const derivedEntries = derivedTerminalCounts ? report.decisions : derivedCandidateCounts ? report.decidedCandidates : null;
+    const reportHasTerminalCounts = explicitTerminalCounts || derivedTerminalCounts || derivedCandidateCounts;
+    const terminalCandidates = explicitTerminalCounts ? report.decidedCandidates : derivedEntries?.length ?? 0;
+    const terminalPublished = explicitTerminalCounts ? report.published : derivedEntries?.filter((entry) => entry.outcome === "published").length ?? 0;
+    const terminalRejected = explicitTerminalCounts ? report.rejected : derivedEntries?.filter((entry) => entry.outcome === "rejected").length ?? 0;
     const reportBatch = reportHasTerminalCounts ? {
       runId, candidateDecisionsComplete: true, candidates: terminalCandidates,
       published: terminalPublished, rejected: terminalRejected,

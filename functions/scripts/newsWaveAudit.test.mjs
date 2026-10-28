@@ -138,3 +138,58 @@ test('wave audit prefers closed decisions and follows nested production read-bac
   assert.equal(scope.publications[0].manifestPath,'/manifest.json');
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('wave audit recognizes candidateBatchClosed reports with nested opened-article decisions',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'news-wave-audit-closed-batch-'));const run='news-2026-10-28T15';
+ try{
+  for(const p of ['snapshots','source-policies','scopes',`reports/${run}`])await mkdir(join(root,p),{recursive:true});
+  await writeFile(join(root,`snapshots/${run}.json`),JSON.stringify([{sourceId:'one',sourcePolicyVersion:4,links:[{url:'https://example.at/story'}]}]));
+  await writeFile(join(root,'source-policies/v4.json'),JSON.stringify({sources:[{sourceId:'one',active:true}]}));
+  const openedArticles=[
+   {url:'https://example.at/limited-a',decision:{url:'https://example.at/limited-a',outcome:'rejected',reason:'unverified'}},
+   {url:'https://example.at/limited-b',decision:{url:'https://example.at/limited-b',outcome:'rejected',reason:'unverified'}},
+  ];
+  await writeFile(join(root,`reports/${run}/kaernten.json`),JSON.stringify({
+   status:'partial',candidateBatchClosed:true,decidedCandidates:2,published:0,rejected:2,openedArticles,
+  }));
+  await writeFile(join(root,'scopes/kaernten.json'),JSON.stringify({
+   lastCandidateBatch:{runId:'news-2026-10-28T16',candidateDecisionsComplete:true,candidates:1,published:1,rejected:0},
+   candidateDecisions:{},
+  }));
+  const result=await auditNewsWave(root,run);const scope=result.scopes.find(x=>x.scope==='kaernten');
+  assert.deepEqual(scope.batch,{runId:run,candidateDecisionsComplete:true,candidates:2,published:0,rejected:2});
+  assert.equal(scope.batchSource,'closed_report');
+  assert.equal(scope.decisionLedger.decisionsReadFrom,'closed_report');
+  assert.equal(scope.decisionLedger.retainedDecisionCountMatches,false);
+  assert.equal(scope.rejectionReasons.unverified,2);
+  assert.equal(scope.publications.length,0);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+
+test('wave audit derives counts from decidedCandidates after the scope checkpoint advances',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'news-wave-audit-decided-candidates-'));const run='news-2026-10-28T15';
+ try{
+  for(const p of ['snapshots','source-policies','scopes',`reports/${run}`])await mkdir(join(root,p),{recursive:true});
+  await writeFile(join(root,`snapshots/${run}.json`),JSON.stringify([{sourceId:'one',sourcePolicyVersion:4,links:[{url:'https://example.at/story'}]}]));
+  await writeFile(join(root,'source-policies/v4.json'),JSON.stringify({sources:[{sourceId:'one',active:true}]}));
+  const receipt=join(root,'production-readback.json');
+  await writeFile(receipt,JSON.stringify({contentId:'published-id',allVerified:true}));
+  const decidedCandidates=[
+   {url:'https://example.at/a',outcome:'rejected',reason:'unverified'},
+   {url:'https://example.at/b',outcome:'published',contentId:'published-id',productionReadback:{verified:true,contentId:'published-id',receiptPath:receipt}},
+   {url:'https://example.at/c',outcome:'rejected',reason:'no_practical_effect'},
+  ];
+  await writeFile(join(root,`reports/${run}/burgenland.json`),JSON.stringify({status:'partial',decidedCandidates}));
+  await writeFile(join(root,'scopes/burgenland.json'),JSON.stringify({
+   lastCandidateBatch:{runId:'news-2026-10-28T16',candidateDecisionsComplete:true,candidates:1,published:1,rejected:0},candidateDecisions:{},
+  }));
+  const result=await auditNewsWave(root,run);const scope=result.scopes.find(x=>x.scope==='burgenland');
+  assert.deepEqual(scope.batch,{runId:run,candidateDecisionsComplete:true,candidates:3,published:1,rejected:2});
+  assert.equal(scope.batchSource,'closed_report');
+  assert.equal(scope.decisionLedger.decisionsReadFrom,'closed_report');
+  assert.equal(scope.rejectionReasons.unverified,1);
+  assert.equal(scope.rejectionReasons.no_practical_effect,1);
+  assert.equal(scope.publications.length,1);
+  assert.equal(scope.publications[0].verifiedReceipt,true);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
