@@ -2,3 +2,5 @@
 "NSCalendarsUsageDescription" = "Fügen Sie eine Community-Veranstaltung zu Ihrem Kalender hinzu.";
 "NSFaceIDUsageDescription" = "Face ID schützt den Zugriff auf Ihr Konto auf diesem Gerät.";
 "NSCalendarsWriteOnlyAccessUsageDescription" = "Fügen Sie eine Community-Veranstaltung zu Ihrem Kalender hinzu.";
+
+"NSMotionUsageDescription" = "Die Geräteneigung bewegt saisonale Dekorationen sanft. Bewegungsdaten werden weder gespeichert noch übertragen.";

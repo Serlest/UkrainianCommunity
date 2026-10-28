@@ -252,6 +252,20 @@ struct UkrainianCommunityApp: App {
 
     @ViewBuilder private var rootContent: some View {
 #if DEBUG
+#if targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"), ProcessInfo.processInfo.environment["UITestSeasonal"] == "1" {
+            SeasonalAuditHarness()
+        } else { seasonalOrStandardRoot }
+#else
+        seasonalOrStandardRoot
+#endif
+#else
+        standardRootContent
+#endif
+    }
+
+    @ViewBuilder private var seasonalOrStandardRoot: some View {
+#if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
            ProcessInfo.processInfo.environment["UITestBanner14"] == "1" {
             BannerAuditHarness14()

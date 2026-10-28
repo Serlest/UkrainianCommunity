@@ -2,6 +2,9 @@ import SwiftUI
 import UIKit
 
 struct ContentView: View {
+    @StateObject private var seasonalStore = SeasonalStore()
+    @Environment(\.scenePhase) private var seasonalScenePhase
+    @State private var seasonalKeyboardVisible = false
     @StateObject private var announcementCoordinator: AnnouncementCoordinator
     @State private var announcementFeedback: UserAnnouncement?
     @State private var isShowingPasskeyOffer = false
@@ -113,6 +116,7 @@ struct ContentView: View {
 
     var body: some View {
         presentedContent
+            .environmentObject(seasonalStore)
             .environmentObject(organizationBlockingCoordinator)
             .environmentObject(announcementCoordinator)
             .environmentObject(directoryContentStore)
@@ -191,12 +195,32 @@ struct ContentView: View {
             && userBlockingCoordinator.errorMessage == nil && notificationRouteErrorMessage == nil
     }
 
-    private var canExposeRootBanners: Bool {
+    private var canExposeRootChrome: Bool {
         isStartupReady && !authState.isRestoring && !authState.isAuthenticating
             && !updateAppLockIsLocked && authState.presentedAuthFlow == nil
-            && !isShowingPasskeyOffer
-            && accountStatusMonitor.activeNotice == nil
-            && !organizationBlockingCoordinator.requiresVisibilityGate
+            && !isShowingPasskeyOffer && accountStatusMonitor.activeNotice == nil
+    }
+
+    private var canExposeRootBanners: Bool {
+        canExposeRootChrome && !organizationBlockingCoordinator.requiresVisibilityGate
+    }
+
+    private var selectedSeasonalSection: SeasonalSection {
+        switch selectedTab {
+        case .home: .news
+        case .events: .events
+        case .organizations: .organizations
+        case .directory: .directory
+        case .profile: .profile
+        }
+    }
+
+    private func seasonalDecoration(_ section: SeasonalSection, isRoot: Bool) -> SeasonalRootDecoration {
+        SeasonalRootDecoration(store: seasonalStore, section: section,
+            isEligible: selectedSeasonalSection == section && isRoot && canExposeRootChrome
+                && !seasonalKeyboardVisible && quickCreation == nil && !isShowingNotificationInbox
+                && contentReportCoordinator.target == nil
+                && notificationPopupCoordinator.activeNotification == nil && !isShowingPasskeyOffer)
     }
 
     private var directoryAccessKey: String {
@@ -241,6 +265,12 @@ struct ContentView: View {
 
     private var lifecycleContent: some View {
         baseContent
+        .task(id: "\(isStartupReady)-\(seasonalScenePhase == .background)") {
+            if isStartupReady && seasonalScenePhase != .background { seasonalStore.start() }
+            else { seasonalStore.stop() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in seasonalKeyboardVisible = true }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in seasonalKeyboardVisible = false }
         .onAppear {
             updateAppLockIsLocked = authState.appLock.isLocked
             applyContentVisibility(blockedUserIDs: userBlockingCoordinator.blockedUserIDs)
@@ -635,6 +665,7 @@ struct ContentView: View {
                 isActive: selectedTab == .home && canExposeRootBanners
             )
             .tint(AppTheme.primaryBlue)
+            .modifier(seasonalDecoration(.news, isRoot: homeNavigationPath.isEmpty))
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .accessibilityIdentifier("screen.home")
@@ -664,6 +695,7 @@ struct ContentView: View {
                 selectedFederalState: publicRegionBinding
             )
             .tint(AppTheme.primaryBlue)
+            .modifier(seasonalDecoration(.events, isRoot: eventsNavigationPath.isEmpty))
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .accessibilityIdentifier("screen.events")
@@ -693,6 +725,7 @@ struct ContentView: View {
                 selectedFederalState: publicRegionBinding
             )
             .tint(AppTheme.primaryBlue)
+            .modifier(seasonalDecoration(.organizations, isRoot: organizationsNavigationPath.isEmpty))
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .accessibilityIdentifier("screen.organizations")
@@ -730,6 +763,7 @@ struct ContentView: View {
                 scrollResetToken: profileScrollResetToken
             )
             .tint(AppTheme.primaryBlue)
+            .modifier(seasonalDecoration(.profile, isRoot: profileNavigationPath.isEmpty))
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .toolbar(profileNavigationPath.last?.hidesRootTabBar == true ? .hidden : .automatic, for: .tabBar)
@@ -756,6 +790,7 @@ struct ContentView: View {
                 feedbackRepository: container.feedbackRepository
             )
             .tint(AppTheme.primaryBlue)
+            .modifier(seasonalDecoration(.directory, isRoot: directoryNavigationPath.isEmpty))
         }
         .onChange(of: directoryContentStore.visibleRouteSignature) { _, _ in
             directoryNavigationPath = DirectoryRoute.visiblePrefix(

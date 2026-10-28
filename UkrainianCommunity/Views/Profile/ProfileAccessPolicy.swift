@@ -29,7 +29,7 @@ struct ProfileAccessPolicy {
             return true
         case .profileSettings, .accountSecurity, .dsaStatement:
             return user != nil
-        case .announcementManagement, .directoryEditors, .featuredBannerManagement,
+        case .announcementManagement, .directoryEditors, .featuredBannerManagement, .seasonalManagement,
              .contentPlanning, .contentPlanningNews, .contentPlanningEvent,
              .legalDocumentManagement, .legalEvidence, .ownerAnalytics, .bannerAnalytics, .donationSettings:
             return PermissionService.isAppOwner(user: user)

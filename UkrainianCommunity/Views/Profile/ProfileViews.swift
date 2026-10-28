@@ -27,6 +27,7 @@ enum ProfileNavigationRoute: Hashable {
     case userManagement
     case directoryEditors
     case featuredBannerManagement
+    case seasonalManagement
     case contentPlanning(draftID: String?)
     case contentPlanningNews(id: String)
     case contentPlanningEvent(id: String)
@@ -54,7 +55,7 @@ enum ProfileNavigationRoute: Hashable {
         switch self {
         case .accountSecurity, .directoryEditors, .userManagement, .contentPlanning(draftID: nil),
              .legalDocumentManagement, .legalEvidence, .legal, .donationSettings, .notifications,
-             .featuredBannerManagement: true
+             .featuredBannerManagement, .seasonalManagement: true
         default: false
         }
     }
@@ -663,6 +664,8 @@ struct ProfileView: View {
                     DirectoryEditorsView()
                 }
             }
+        case .seasonalManagement:
+            SeasonalManagementView()
         case .featuredBannerManagement:
             FeaturedBannerManagementView(
                 repository: featuredBannerRepository,
@@ -1196,6 +1199,8 @@ struct ProfileView: View {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
                 profileLink(.contentPlanning(draftID: nil), title: PublicationControlText.title,
                           subtitle: PublicationControlText.subtitle, icon: "calendar.badge.clock", id: "profile.contentPlanning")
+                profileLink(.seasonalManagement, title: SeasonalText.title,
+                          subtitle: SeasonalText.subtitle, icon: "sparkles", id: "profile.seasonalManagement")
                 profileLink(.featuredBannerManagement, title: AppStrings.FeaturedManagement.profileEntryTitle,
                           subtitle: AppStrings.FeaturedManagement.profileEntrySubtitle, icon: "sparkles.rectangle.stack", id: "profile.featuredBanners")
                 profileLink(.announcementManagement, title: AnnouncementStrings.title,

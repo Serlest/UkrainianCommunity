@@ -9,6 +9,7 @@ struct ProfilePreferencesView: View {
     @ObservedObject var bannerMeasurementService: BannerMeasurementService
     @Binding var isAnalyticsCollectionEnabled: Bool
     let currentUser: AppUser?
+    @AppStorage("seasonalEffectsEnabled") private var seasonalEffectsEnabled = true
     @State private var accountDeletionCandidate: AppUser?
     @State private var analyticsConsentWasRejected = false
     @State private var isShowingBannerConsent = false
@@ -37,6 +38,10 @@ struct ProfilePreferencesView: View {
                         .id(locale.identifier)
                         .accessibilityIdentifier("profile.settings.language")
                     }
+
+                    ProfileSettingsToggleRow(title: SeasonalText.preference, subtitle: SeasonalText.preferenceHint,
+                        systemImage: "sparkles", isOn: $seasonalEffectsEnabled)
+                        .accessibilityIdentifier("profile.settings.seasonalEffects")
 
                     ProfileSettingsPickerRow(
                         title: AppStrings.Profile.appAppearance,

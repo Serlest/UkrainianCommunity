@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "themes": [
+    {
+      "id": "uac-halloween-v1",
+      "name": "Halloween",
+      "isEnabled": false,
+      "startsAt": "2026-10-23T22:00:00Z",
+      "endsAt": "2026-11-01T23:00:00Z",
+      "timeZoneID": "Europe/Vienna",
+      "repeatsYearly": true,
+      "priority": 0,
+      "intensity": 0.6,
+      "reactsToTilt": true,
+      "sections": [
+        "news",
+        "events",
+        "organizations",
+        "directory",
+        "profile"
+      ],
+      "elements": [
+        {
+          "id": "pumpkin",
+          "artwork": "pumpkin",
+          "anchor": "leading",
+          "size": 32,
+          "sway": 0.6,
+          "glow": true,
+          "pngFrames": [],
+          "frameDuration": 0.2
+        },
+        {
+          "id": "web",
+          "artwork": "web",
+          "anchor": "trailing",
+          "size": 44,
+          "sway": 0.25,
+          "glow": false,
+          "pngFrames": [],
+          "frameDuration": 0.2
+        },
+        {
+          "id": "bat",
+          "artwork": "bat",
+          "anchor": "trailing",
+          "size": 20,
+          "sway": 0.8,
+          "glow": false,
+          "pngFrames": [],
+          "frameDuration": 0.2
+        }
+      ]
+    }
+  ]
+}

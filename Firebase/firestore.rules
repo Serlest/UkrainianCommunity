@@ -2798,6 +2798,36 @@ service cloud.firestore {
       }
     }
 
+    // Private reusable library and public presentation are independent data snapshots.
+    function validSeasonalPackageWrite() {
+      return isAppOwner()
+        && request.resource.data.keys().hasOnly(['schemaVersion', 'payload', 'revision', 'updatedBy', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['schemaVersion', 'payload', 'revision', 'updatedBy', 'updatedAt'])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.payload is string
+        && request.resource.data.payload.size() > 0
+        && request.resource.data.payload.size() <= 240000
+        && request.resource.data.revision is string
+        && request.resource.data.revision.size() >= 16
+        && request.resource.data.revision.size() <= 80
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time;
+    }
+    match /seasonalLibraries/{libraryID} {
+      allow get: if libraryID == 'current' && isAppOwner();
+      allow create: if libraryID == 'current' && validSeasonalPackageWrite();
+      allow update: if libraryID == 'current' && validSeasonalPackageWrite()
+        && request.resource.data.revision != resource.data.revision;
+      allow list, delete: if false;
+    }
+    match /seasonalPresentations/{presentationID} {
+      allow get: if presentationID == 'current';
+      allow create: if presentationID == 'current' && validSeasonalPackageWrite();
+      allow update: if presentationID == 'current' && validSeasonalPackageWrite()
+        && request.resource.data.revision != resource.data.revision;
+      allow list, delete: if false;
+    }
+
     match /appConfig/{configId} {
       function donationConfigFields() {
         return [

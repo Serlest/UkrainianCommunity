@@ -1,0 +1,213 @@
+{
+  "feature": "Seasonal appearance / reusable owner-managed themes",
+  "updatedAt": "2026-10-28T10:32:06.407652+00:00",
+  "implementationStatus": "implemented_ios; automated local verification passed; physical acceptance and delivery pending",
+  "authoritativeCheckout": "/Users/serlest/Developer/UkrainianCommunity",
+  "baselineCommit": "bed7188465e3def343e7e6bb923fbf286979bf16",
+  "sourceSHA256": {
+    "Firebase/firestore.rules": "d1fed7047076d19b6e1ccdb35fba47b84e7f4035759e129e851450ad54294312",
+    "UkrainianCommunity/App/UkrainianCommunityApp.swift": "35229134fdd9031b080948fc4e7ebe8e0b250f34b226bbc4e71e23d96a010d52",
+    "UkrainianCommunity/Features/Seasonal/SeasonalArtworkView.swift": "783303c477f88d9eb96380588b1589525a462041e79c695d381921c63864bdde",
+    "UkrainianCommunity/Features/Seasonal/SeasonalAuditHarness.swift": "acd0b24d76e439fca1bfd2fcb7a162be7394e8d8ad1909b77bf0554d5729bb29",
+    "UkrainianCommunity/Features/Seasonal/SeasonalManagementModel.swift": "604ca922560fd51ed0c88068e946e4efa38f95527d1ae241d9d6e0a0fbdf9e1b",
+    "UkrainianCommunity/Features/Seasonal/SeasonalManagementView.swift": "81b0109be4b580b1241bc27c21dd4a0d127ba14fdca774b03cf706f7e4caa0c9",
+    "UkrainianCommunity/Features/Seasonal/SeasonalPresentationView.swift": "2556e8202db5653c18b2876d6998670798b9babfa5867bc0ed2cdb23aa04caa0",
+    "UkrainianCommunity/Features/Seasonal/SeasonalRepository.swift": "7111b456df348257123f3ec99a5c6768b3d92148a5c542407ae0ddce4523aeb4",
+    "UkrainianCommunity/Features/Seasonal/SeasonalStore.swift": "4cdff22c00bb8fda88ad47d8f65bf5277e266842348b472ddc1738a4a2c44a87",
+    "UkrainianCommunity/Features/Seasonal/SeasonalText.swift": "3e91b6d02f7775ad51aed5f9815886b55663de0ce744ff969533274f51f9aa5f",
+    "UkrainianCommunity/Features/Seasonal/SeasonalTheme.swift": "12fceeea6eb8f7b08cffc24c01d803e2cd95bba88cc407289da87fb2e00e181b",
+    "UkrainianCommunity/Features/Seasonal/SeasonalThemeEditor.swift": "2441f13c9f37bc9781113384721e1a73a9c002f14d14097bae3045751391e97f",
+    "UkrainianCommunity/Localization/Seasonal.xcstrings": "b321dcd3c5c1ccff6a3c72d4c473f484c42264723aebe0bcca9ec3dc8056537f",
+    "UkrainianCommunity/Views/ContentView.swift": "22b1cc4fee4998627fc704f2f3adf168057283210718b805af83cfacccc9dfe7",
+    "UkrainianCommunity/Views/Profile/ProfileAccessPolicy.swift": "3ff276d1b6e2fdf612dbf24ef7b1739068a6efda86f85a436ab095d1be17fbfc",
+    "UkrainianCommunity/Views/Profile/ProfileRootDestinationViews.swift": "0e2baefc9c222b8c5caac145f8a87abbd5925070f2961ed94339add5e47e925a",
+    "UkrainianCommunity/Views/Profile/ProfileViews.swift": "0d4fa837ae2826c0ad9e14c79b92340e2eedf6589e4bccbf6d442fe9e31b5eab",
+    "UkrainianCommunity/de.lproj/InfoPlist.strings": "9725cd2d101d01e61d1ea2dec9f747dfb41893de9c7c9b99e0ba0d2bc6a8dd7e",
+    "UkrainianCommunity/uk.lproj/InfoPlist.strings": "ece7a0384449e4b26d2ffac5a688d444f8681bb454365e0bd361f6798898b24d",
+    "UkrainianCommunity-Info.plist": "4b383b33a2bbcd8943f78696a05da86eb97c9c4b63550653a52c8f33c06c4726"
+  },
+  "implemented": [
+    "Persistent private library independent from public published snapshot; disabled copy/import and export through Files",
+    "Owner-only menu, editor, local light/dark preview, local apply versus cloud save versus explicit publish confirmation",
+    "Exact start/end, IANA timezone, yearly local-calendar recurrence across New Year and DST, section selection and deterministic priority",
+    "Bundled Halloween: original vector pumpkin with candle-like eyes, web, bat with once-per-day arrival and damped tilt",
+    "Data-driven bounded PNG frame playback, sway, glow, size and anchors; future compatible packages require no binary change after initial renderer release",
+    "Five root screens reserve their own inset inside NavigationStack; no decoration over search/text/tab controls",
+    "Local effects opt-out, cached offline schedule, background/saving/reduced-motion/accessibility protections and no transmitted motion samples",
+    "Compact-height roots hide the strip; nested/editor/auth/keyboard flows are gated; inactive scenes keep static layout while motion stops"
+  ],
+  "formatLimits": {
+    "schemaVersion": 1,
+    "themesPerLibrary": 12,
+    "maxPayloadUTF8Bytes": 240000,
+    "elementsPerTheme": 6,
+    "elementsPerEdge": 3,
+    "PNGFramesPerElement": 8,
+    "PNGBytesPerFrame": 48000,
+    "maxPNGDimension": 256,
+    "elementPointSizes": [
+      16,
+      44
+    ]
+  },
+  "automatedVerification": {
+    "unitAndSDK": {
+      "result": "passed",
+      "passed": 32,
+      "failed": 0,
+      "skipped": 0,
+      "bundle": "build/seasonal-20261028/SeasonalLocalFinalUnits.xcresult",
+      "notes": "Includes app-host/settings regressions; dedicated real Auth/Firestore SDK scenario covers PNG data save, public listener/cache, publish isolation, revision conflict, anonymous read, admin denial and disable retaining the private library.",
+      "cacheFollowup": {
+        "result": "passed",
+        "bundle": "build/seasonal-20261028/SeasonalCacheReadbackSDK.xcresult",
+        "assertions": [
+          "Decode actual SDK-written cache bytes and compare the entire PNG package",
+          "Resolve the cached schedule through a new offline store without starting a listener"
+        ]
+      }
+    },
+    "UI": {
+      "result": "passed",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "bundle": "build/seasonal-20261028/SeasonalLocalFinalUI.xcresult",
+      "notes": "Actual ContentView roots use UI content fixtures plus a loopback public configuration. Editor/library use an injected in-memory repository. This is simulator evidence, not production/device acceptance.",
+      "initialLoadingFollowup": {
+        "result": "passed",
+        "passed": 2,
+        "failed": 0,
+        "bundle": "build/seasonal-20261028/SeasonalInitialStateUI.xcresult"
+      }
+    },
+    "rules": {
+      "passed": 243,
+      "failed": 0,
+      "skipped": 1,
+      "log": "build/seasonal-20261028/rules-all.log",
+      "skip": "One pre-existing opt-in banner SDK/callable scenario skipped; dedicated seasonal SDK test ran separately with Auth/Firestore."
+    },
+    "static": [
+      "repository structure",
+      "de/uk localization references and catalog",
+      "property lists",
+      "Firestore index uniqueness",
+      "release configuration (offline; no TestFlight upload)",
+      "20 change-classifier tests"
+    ],
+    "deviceRelease": {
+      "result": "passed",
+      "configuration": "Release",
+      "scheme": "UACPhysicalAudit",
+      "destination": "generic iOS",
+      "signing": false,
+      "installed": false,
+      "log": "build/seasonal-20261028/device-release-initial-state-final.log"
+    }
+  },
+  "visualEvidence": {
+    "directory": "build/seasonal-20261028/local-final-ui-images",
+    "manifest": "build/seasonal-20261028/local-final-ui-images/manifest.json",
+    "reviewedPNGCount": 15,
+    "reviewedContactSheets": [
+      "build/seasonal-20261028/local-final-ui-images/review-1.jpg",
+      "build/seasonal-20261028/local-final-ui-images/review-2.jpg",
+      "build/seasonal-20261028/local-final-ui-images/review-3.jpg",
+      "build/seasonal-20261028/local-final-ui-images/review-4.jpg",
+      "build/seasonal-20261028/local-final-ui-images/review-5.jpg",
+      "build/seasonal-20261028/local-final-ui-images/review-6.jpg",
+      "build/seasonal-20261028/local-final-ui-images/review-7.jpg",
+      "build/seasonal-20261028/local-final-ui-images/review-8.jpg"
+    ],
+    "observed": [
+      "all five actual roots keep icons/buttons below the ornament zone",
+      "light and dark artwork plus independent light preview inside dark editor",
+      "private save leaves published count zero; explicit publish changes it to one",
+      "custom magenta PNG frames actually visible; pixel assertion passed",
+      "maximum German text, full timezone name, typed name, enlarged scrollable date modal, unchanged date after return"
+    ],
+    "keyboardBoundary": "Text entry/focus were tested. Simulator screenshots used the hardware-input path; full onscreen keyboard acceptance remains a physical-device gate."
+  },
+  "correctedDuringVerification": [
+    {
+      "issue": "External TabView safe-area inset overlaid the real logo/search despite a correct isolated preview",
+      "fix": "Apply inset to each root inside its NavigationStack; preserve static geometry during inactive scenes",
+      "proof": "Actual root geometry with effects off/on, all five tab captures, background/return equality"
+    },
+    {
+      "issue": "Initially empty image branch never started its loading lifecycle",
+      "fix": "Real transparent placeholder until bounded PNG frames are decoded",
+      "proof": "Custom PNG pixel assertion and reviewed actual screenshot; real SDK PNG persistence/cache scenario"
+    },
+    {
+      "issue": "Preview appearance preference affected presentation semantics instead of the preview alone",
+      "fix": "Override preview colorScheme environment locally"
+    },
+    {
+      "issue": "Maximum text truncated timezone and needed more room for date controls",
+      "fix": "Wrapping timezone menu, accessible date summaries, explicitly sized scrollable date sheet"
+    },
+    {
+      "issue": "Initially pending library could expose retry before the first task started",
+      "fix": "Explicit initial loading state until a result or error is known"
+    },
+    {
+      "issue": "Some ornament glow/arrival parameters did not affect every visible control",
+      "fix": "Shared glow for non-pumpkin artwork and intensity/sway-aware bat arrival with a smooth envelope"
+    },
+    {
+      "issue": "Native switches/large lazy Form rows needed precise test interaction",
+      "fix": "Tap the actual switch thumb, dismiss focus and use a bounded gutter drag; retain value, sheet and persistence assertions"
+    }
+  ],
+  "production": {
+    "rulesDeployment": "only firestore:rules; complete source read back through existing Firebase CLI authentication",
+    "rulesProof": {
+      "phase": "after",
+      "rulesetName": "projects/ukrainiancommunity-dbd5f/rulesets/86944f67-edb4-4a16-947f-b9121a0d8a8a",
+      "updateTime": "2026-10-28T09:08:54.303934Z",
+      "matchesExpectedSource": true,
+      "sha256": "d1fed7047076d19b6e1ccdb35fba47b84e7f4035759e129e851450ad54294312"
+    },
+    "documentsAfter": {
+      "seasonalLibraries/current": {
+        "status": 404,
+        "exists": false
+      },
+      "seasonalPresentations/current": {
+        "status": 404,
+        "exists": false
+      }
+    },
+    "globalThemeActivated": false,
+    "testMessagesOrPushesSent": false,
+    "functionsOrStorageDeployed": false
+  },
+  "hostedCI": {
+    "baselineRun": 40648049651,
+    "baselineConclusion": "success",
+    "featureRun": "pending; inspect checks for the commit containing this report before any TestFlight release"
+  },
+  "pendingAcceptance": [
+    "Actual iPhone tilt, physical visual acceptance, performance/energy and native Reduce Motion/Low Power transitions",
+    "Physical large text / onscreen keyboard / portrait-landscape flows and user preference interaction",
+    "Native Files/iCloud import/export handoff (parser, capacity checks and payload roundtrips are automated; OS picker workflow not claimed)",
+    "Actual VoiceOver spoken interaction",
+    "Initial signed TestFlight binary containing the renderer; no build number change, upload or public release in this task"
+  ],
+  "pausedAudit": {
+    "checkpoint": "Docs/Verification/PhysicalAcceptance11to19Progress20261027.json",
+    "resumed": false,
+    "phoneActions": false,
+    "priorEvidencePreserved": true,
+    "note": "Existing 11/12–19 physical follow-up stays paused. Recheck that checkpoint and current Git before resuming; this feature does not close its remaining cases or claim that the phone appearance has been restored."
+  },
+  "preservedUnrelatedWork": [
+    "UkrainianCommunity.xcodeproj/project.pbxproj",
+    "UkrainianCommunity/Localization/Localizable.xcstrings",
+    "UkrainianCommunityUITests/PhysicalAnalyticsFollowupUITests.swift",
+    "UkrainianCommunityUITests/PhysicalClosureAuditUITests.swift",
+    "Docs/Verification/PhysicalAcceptance11to19Progress20261027.json"
+  ]
+}

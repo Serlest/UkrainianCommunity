@@ -2,3 +2,5 @@
 "NSCalendarsUsageDescription" = "Додайте подію громади до свого календаря.";
 "NSCalendarsWriteOnlyAccessUsageDescription" = "Додайте подію громади до свого календаря.";
 "NSFaceIDUsageDescription" = "Face ID захищає доступ до вашого акаунту на цьому пристрої.";
+
+"NSMotionUsageDescription" = "Нахил пристрою м’яко рухає сезонні прикраси. Дані руху не зберігаються й не надсилаються.";
