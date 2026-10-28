@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "status": "in_progress",
-  "updatedAt": "2026-10-27T20:08:08.455039+00:00",
+  "updatedAt": "2026-10-28T07:06:00.184167+00:00",
   "scope": "Only outstanding physical checks from blocks11–19; retain existing source/emulator/simulator evidence. Each remaining scenario is observed step by step.",
   "userConstraints": [
     "Primary iPhone is the visual/interaction acceptance device.",
@@ -15,8 +15,8 @@
     "iPhone": {
       "account": "Serlest",
       "role": "appOwner",
-      "sourceBase": "091ca4352f87cd64807cd05e823a568e82faef20",
-      "installation": "Locally signed Release, product1.2.1(129); no TestFlight upload."
+      "sourceBase": "e87fa424601fcc373fdf5e389204700c736d6699 UI sources plus preserved pre-existing project/catalog changes; named physical driver follow-up uncommitted.",
+      "installation": "Locally signed Release1.2.1(129), install-compact-editor-followup.json. Source code committed locally; shared proof/test follow-up will be pushed together. No new TestFlight upload."
     },
     "Mac": {
       "account": "Serlest Gmail",
@@ -56,68 +56,77 @@
     {
       "block": 14,
       "name": "Баннеры",
-      "status": "physical_checks_passed_pending_final_source_CI",
+      "status": "passed_remaining_connected_device_checks",
       "remainingBeforeThisRun": [
         "B14-72-DEVICE-MATRIX",
         "B14-79"
       ],
       "existingEvidence": "Docs/Verification/BannersAudit20261026.json",
       "followupReport": "Docs/Verification/BannersPhysicalFollowup20261027.json",
-      "physicalScope": "Connected owner iPhone; native windows, cancellation/reopen, loaded protected statistics, uk/de light/dark, normal/maximum text, reduce-transparency and post-text-change landscape. Earlier390pt simulator and role evidence retained separately."
+      "physicalScope": "Connected owner iPhone; native windows, cancellation/reopen, loaded protected statistics, uk/de light/dark, normal/maximum text, reduce-transparency and post-text-change landscape. Earlier390pt simulator and role evidence retained separately.",
+      "remainingAfterThisRun": []
     },
     {
       "block": 15,
       "name": "Аналитика",
-      "status": "queued",
+      "status": "passed_remaining_connected_device_checks",
       "remainingBeforeThisRun": [
         "Physical signed iPhone with real protected owner reads, both languages/themes and large text.",
         "Narrow/landscape/reduced-transparency device matrix; long ranking expansion with real20item data. The shared disclosure controls and both region lists are tested locally.",
         "No new TestFlight delivery was requested."
       ],
-      "existingEvidence": "Docs/Verification/AnalyticsFixes20261027.json"
+      "existingEvidence": "Docs/Verification/AnalyticsFixes20261027.json",
+      "followupReport": "Docs/Verification/AnalyticsPhysicalFollowup20261028.json",
+      "physicalReport": "Docs/Verification/AnalyticsPhysicalFollowup20261028.json"
     },
     {
       "block": 16,
       "name": "Контроль публикаций и автоматических проходов",
-      "status": "queued",
+      "status": "read_only_device_checks_passed_open_cold_start_finding",
       "remainingBeforeThisRun": [
         "Signed physical iPhone read/filters/date/detail/back and unchanged legacy compatibility modals; device currently unavailable."
       ],
-      "existingEvidence": "Docs/Verification/PublicationControlFixes20261027.json"
+      "existingEvidence": "Docs/Verification/PublicationControlFixes20261027.json",
+      "followupReport": "Docs/Verification/PublicationControlPhysicalFollowup20261028.json"
     },
     {
       "block": 17,
       "name": "Журнал системы и серверные процессы",
-      "status": "queued",
+      "status": "actual_owner_journal_display_target_and_controlled_review_verified",
       "remainingBeforeThisRun": [
         "Physical signed-copy journal reads and fresh APNs lock-screen/tap acceptance; phone unavailable",
         "Reduced transparency / increased contrast and full physical role/device matrix",
         "New TestFlight delivery only when requested; build129 does not include block17"
       ],
-      "existingEvidence": "Docs/Verification/SystemLogsFixes20261027.json"
+      "existingEvidence": "Docs/Verification/SystemLogsFixes20261027.json",
+      "followupReport": "Docs/Verification/SystemJournalPhysicalFollowup20261028.json",
+      "physicalProof": "SystemJournalPhysicalFollowup20261028.json",
+      "boundary": "No spoken VoiceOver claim; controlled source retained reviewed, no foreign logs changed."
     },
     {
       "block": 18,
       "name": "Правовые документы и согласия",
-      "status": "queued",
+      "status": "in_progress_actual_history_defect_fixed_repeat_passed",
       "remainingBeforeThisRun": [
         "Signed physical iPhone, VoiceOver, increased contrast/reduced transparency and narrow/landscape acceptance; phone unavailable.",
         "No real registration per user boundary; no real external translation-provider quality assessment.",
         "New TestFlight delivery when requested; build129 excludes blocks17–18."
       ],
-      "existingEvidence": "Docs/Verification/LegalFixes20261027.json"
+      "existingEvidence": "Docs/Verification/LegalFixes20261027.json",
+      "followupReport": "Docs/Verification/LegalPhysicalFollowup20261028.json"
     },
     {
       "block": 19,
       "name": "Поддержка проекта",
-      "status": "queued",
+      "status": "in_progress_actual_readonly_keyboard_preview_passed",
       "remainingBeforeThisRun": [
         "Signed physical iPhone, VoiceOver spoken interaction and OS transparency/contrast settings remain pending; Serlest Mobile unavailable.",
         "Real external-site return/payment and real provider translation quality were not invoked; provider-free UI/contract evidence is separate.",
         "Narrow landscape interaction and an actual dropped Firestore acknowledgement remain unverified; portrait maximum-text and typed recovery evidence do not claim those scenarios.",
         "Hosted CI status is recorded exactly above; a running or pending run is not passed. No TestFlight upload/public release in this turn."
       ],
-      "existingEvidence": "Docs/Verification/ProjectSupportFixes20261027.json"
+      "existingEvidence": "Docs/Verification/ProjectSupportFixes20261027.json",
+      "followupReport": "Docs/Verification/ProjectSupportPhysicalFollowup20261028.json"
     }
   ],
   "acceptedChecks": [
@@ -264,7 +273,7 @@
     "Use only controlled test records for messages/status changes. Keep real user content, permissions and production publication unchanged."
   ],
   "notCompleted": [
-    "Block14 physical checks passed on connected iPhone; final hosted follow-up CI pending. Blocks15–19 remain open.",
+    "Blocks15–19 remain open;11–14 connected-device checks completed in their explicitly recorded scope.",
     "Full physical role/OS accessibility matrix remains open until individually observed.",
     "No claim that all tests or all19 blocks are physically complete."
   ],
@@ -353,5 +362,7 @@
     "permissions": "System denial, exact Settings link, restoration and warning clearance observed as recorded in notificationPermissionCheck.",
     "scopeBoundary": "Retains earlier56 source/emulator/simulator scenario groups. Does not claim new physical execution for each role. No first-ever prompt reset or new registration; existing authorized device plus denied/restored settings used with explicit user approval. No broadcast campaign sent."
   },
-  "bannerPhysicalFollowup": "Docs/Verification/BannersPhysicalFollowup20261027.json"
+  "bannerPhysicalFollowup": "Docs/Verification/BannersPhysicalFollowup20261027.json",
+  "continuedOn": "2026-10-28",
+  "userActionPending": null
 }

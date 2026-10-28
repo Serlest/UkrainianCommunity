@@ -1,0 +1,98 @@
+{
+  "block": 19,
+  "date": "2026-10-28",
+  "status": "in_progress_actual_read_only_check_passed",
+  "artifactBase": "build/physical-acceptance11-19-20261027",
+  "confirmedChecks": [
+    {
+      "result": "P19ActualOwnerFieldsKeyboardPreview.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual owner config read, URL keyboard/focus bounds, keyboard dismissal, Ukrainian/German edit-language fields, independent preview languages, disabled Save, back/reopen URL and enabled exact values."
+    },
+    {
+      "result": "P19GermanLightMaximumFieldsKeyboardPreview.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual German/light/max accessibility text/reduced transparency; URL keyboard bounds, local edit language, bilingual previews, disabled Save, unchanged local values after reopen. Pixels partly reviewed; remaining captures under review."
+    },
+    {
+      "result": "P19FinalLocalKeyboardDiscardNormal.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual local-only message and title typing, entire active field above Save/keyboard, unsaved-close cancel then discard, independently reopened exact original values and disabled Save. All4captures inspected."
+    },
+    {
+      "result": "P19CorrectedLocalKeyboardDiscardMaximum.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Corrected intended upward traversal: actual max/light/reduced transparency local message/title typing, whole fields above keyboard/Save, cancel/discard and independent exact original values on reopen. All4captures inspected."
+    }
+  ],
+  "pixelReview": [
+    "p19-actual-owner-fields/24089691-DA35-4CA3-A7F1-005AAE38E18F.png",
+    "p19-actual-owner-fields/111B1009-79B5-445C-B41C-DC3E29D692D1.png",
+    "p19-actual-owner-fields/DE9DF976-5D1A-4698-8F6A-F3191EC267EC.png",
+    "p19-actual-owner-fields/E57412E0-6036-4798-B1AC-ACBB55C30C74.png",
+    "p19-actual-owner-fields/1B1332ED-BFC8-4BA0-87C0-55F38A05CAFB.png",
+    "p19-actual-owner-fields/0FEB34B0-0712-4FB5-9C43-8A51C223E48A.png",
+    "p19-actual-owner-fields/83C03FCC-5657-44A0-A5CD-EF3E02337AC2.png"
+  ],
+  "productionReadback": {
+    "artifact": "p19-config-after-readonly.json",
+    "isEnabled": false,
+    "updateTime": "2026-09-09T15:44:18.535649Z",
+    "conclusion": "Actual production config unchanged since September9, no save occurred during current test. Preview is explicitly hidden after save; no payment/external URL invoked.",
+    "independentFinal": "p17to19-final-production-readback.json:42actual documents read,0changed, including all captured legal pointers/versions and appConfig/donation."
+  },
+  "remaining": [
+    "Full compact exit/cancel/discard repeat with corrected centred-Back driver",
+    "Focused actual maximum-text collapsed/expanded preview-header pixel review",
+    "Exact external merchant destination behind PayPal authentication remains separate unverified boundary; no financial sign-in requested",
+    "VoiceOver spoken interaction not claimed; separate existing SDK/emulator role/write/conflict evidence retained"
+  ],
+  "settingsRestoration": {
+    "lastConfirmed": {
+      "language": "uk",
+      "appearance": "system",
+      "largerDynamicType": false,
+      "textPercent": 50,
+      "reduceTransparency": false
+    },
+    "restoreRequired": false,
+    "pendingCommand": null,
+    "native": "P19CompactFinalRestoreNative.xcresult passed",
+    "app": "P19SystemRestoreAfterInterruptedSliderAttempt.xcresult passed; exact language/appearance labels checked after selection."
+  },
+  "maximumPixelReview": "All7named German/light/maximum fields, URL keyboard and bilingual preview captures inspected.",
+  "partialAttempts": [
+    {
+      "result": "P19FinalLocalKeyboardDiscardMaximum.xcresult",
+      "acceptedAsComplete": false,
+      "scope": "Message typing/whole-field keyboard bounds passed. Traversal back to title failed before title/discard assertions; retained failed bundle.",
+      "reason": "Recorded repeated downward scrolling at bottom while next intended target was above. Physical screenshot confirmed current bottom content; explicit toward-top intent now overrides offscreen AX bounds in driver. No server write occurred."
+    }
+  ],
+  "previewFinding": "Actual max Ukrainian collapsed preview label broke a word because its scalable arrow consumed text width; use vertical title/chevron layout at accessibility sizes and fixed decorative arrow size. Final signed repeat pending.",
+  "landscapeFinding": {
+    "firstResult": "P19ActualLandscapeLocalKeyboard.xcresult failed whole-field bound: active message maxY216, Save starts164.",
+    "fix": "Opt-in scrolling header during compact-height input;100pt focused compact message,180pt in portrait/unfocused.",
+    "repeat": "Pending rebuilt signed copy."
+  },
+  "installedEditorSourceCommit": "e87fa424601fcc373fdf5e389204700c736d6699",
+  "installedCopy": "install-compact-editor-followup.json; locally signed Release1.2.1(129); no TestFlight delivery in this follow-up.",
+  "compactInputRepeat": {
+    "result": "P19FixedCompactLandscapeLocalKeyboard.xcresult",
+    "acceptedAsComplete": false,
+    "verifiedScope": "Actual landscape window, typed local title/body, complete active field bounds above Save/keyboard, preview opened. Input captures inspected.",
+    "remainingFailure": "Driver rejected centred Back button because its filter required minX<100. Full exit/cancel/discard repeat remains open; Back selector now accounts for centred landscape header and current identifier.",
+    "driverBuild": "build-focused-preview-driver.log TEST BUILD SUCCEEDED; not yet rerun while waiting for locked-push user step."
+  },
+  "externalLinkAttempt": {
+    "result": "P19ActualExternalLinkAndReturn.xcresult not accepted as complete",
+    "actualDestination": "PayPal universal-link handler opened its Face ID login gate; no authentication/payment controls acted on.",
+    "evidence": "p19-external-first/actual-destination-at42.png extracted from real XCTest recording.",
+    "boundary": "Safari-address assertion cannot prove a native financial app target. Exact merchant screen remains unverified behind external authentication; next app-preference run successfully returned to UAC.",
+    "productionConfig": "No URL/config edit or financial transaction performed."
+  }
+}

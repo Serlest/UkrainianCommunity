@@ -510,7 +510,7 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         returnFromPushedScreens(app)
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))
         let profile = app.tabBars.buttons["tab.profile"].firstMatch
-        XCTAssertTrue(profile.exists, "Return from a tab-bar-hidden screen before selecting Profile")
+        XCTAssertTrue(profile.waitForExistence(timeout: 20), "Return from a tab-bar-hidden screen before selecting Profile")
         if profile.isHittable { profile.tap() }
         else {
             // Native tab AX hit testing can lag an on-device text-size change.
@@ -624,8 +624,13 @@ extension PhysicalClosureAuditUITests {
                 XCTAssertEqual(sliderPercent(slider), 50, "Recheck the recorded baseline before mutation")
             }
             setNativeVisualSwitch(toggle, enabled: mode == "maximumOpaque")
-            slider.adjust(toNormalizedSliderPosition: mode == "maximumOpaque" ? 1 : 0.5)
-            XCTAssertEqual(sliderPercent(slider), mode == "maximumOpaque" ? 100 : 50)
+            let targetPercent = mode == "maximumOpaque" ? 100 : 50
+            for _ in 0..<3 {
+                slider.adjust(toNormalizedSliderPosition: mode == "maximumOpaque" ? 1 : 0.5)
+                let settled = NSPredicate { _, _ in self.sliderPercent(slider) == targetPercent }
+                if XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: settled, object: nil)], timeout: 2) == .completed { break }
+            }
+            XCTAssertEqual(sliderPercent(slider), targetPercent)
             captureForeground(settings, "physical-visual-settings-" + mode)
             app.activate()
             return
@@ -961,6 +966,97 @@ extension PhysicalClosureAuditUITests {
         original.lifetime = .keepAlways; add(original)
         captureForeground(settings, "physical-original-larger-text")
         // Read only. Capture the actual baseline before any approved mutation.
+    }
+
+    func testP15ActualNewsEventAndOrganizationAnalyticsDetails() {
+        let app = XCUIApplication(); openProfile(app)
+        let entry = app.buttons["profile.owner.analytics"].firstMatch
+        reveal(entry, app); entry.tap()
+        let updated = app.descendants(matching: .any)["ownerAnalytics.updatedAt"].firstMatch
+        XCTAssertTrue(updated.waitForExistence(timeout: 30))
+        let thirty = app.buttons["30 днів"].firstMatch
+        reveal(thirty, app, towardTop: true); thirty.tap()
+        XCTAssertTrue(updated.waitForExistence(timeout: 30))
+        for type in ["news", "event", "organization"] {
+            let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "ownerAnalytics.content." + type + ".")).firstMatch
+            reveal(row, app); let title = row.label; row.tap()
+            let screenID = type == "organization" ? "screen.ownerAnalytics.organizationDetail" : "screen.ownerAnalytics.contentDetail"
+            let detail = app.descendants(matching: .any)[screenID].firstMatch
+            XCTAssertTrue(detail.waitForExistence(timeout: 20))
+            // The screen identifier can belong to a shell AX element rather
+            // than an ancestor of the cards. Select only the foreground tile.
+            var visibleMetric: XCUIElement?
+            let metricID = type == "organization" ? "ownerAnalytics.metric.person.crop.rectangle" : "ownerAnalytics.metric.eye"
+            let confirmed = NSPredicate { _, _ in
+                visibleMetric = app.descendants(matching: .any).matching(identifier: metricID)
+                    .allElementsBoundByIndex.first { $0.isHittable }
+                return visibleMetric != nil
+            }
+            XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: confirmed, object: nil)], timeout: 30), .completed)
+            guard let metric = visibleMetric else { XCTFail("No confirmed foreground detail metric"); return }
+            let loaded = XCTAttachment(string: "Opened actual " + type + " analytics for " + title + "; views=" + (metric.value as? String ?? "missing"))
+            loaded.name = "physical-p15-confirmed-detail-" + type; loaded.lifetime = .keepAlways; add(loaded)
+            captureForeground(app, "physical-p15-" + type + "-confirmed-detail")
+            for periodTitle in ["7 днів", "30 днів"] {
+                let candidates = app.buttons.matching(NSPredicate(format: "label == %@", periodTitle)).allElementsBoundByIndex
+                guard let period = candidates.first(where: { $0.isHittable }) else { XCTFail("Foreground detail period is not visible"); return }
+                period.tap()
+                XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == true"), object: period)], timeout: 10), .completed)
+                captureForeground(app, "physical-p15-" + type + "-period-" + periodTitle)
+            }
+            app.swipeUp()
+            captureForeground(app, "physical-p15-" + type + "-regions")
+            let identifiedBack = app.buttons.matching(identifier: "navigation.back").allElementsBoundByIndex.first { $0.isHittable }
+            // The shell screen ID can override the back ID on the actual phone.
+            let localizedBack = app.buttons.matching(NSPredicate(format: "label IN %@", ["Назад", "Zurück", "Back"]))
+                .allElementsBoundByIndex.first { $0.isHittable && $0.frame.minY < 200 && $0.frame.minX < 100 }
+            let back = identifiedBack ?? localizedBack
+            XCTAssertNotNil(back); back?.tap()
+            XCTAssertTrue(detail.waitForNonExistence(timeout: 10))
+            XCTAssertTrue(thirty.isSelected, "Returning from details retains the root30day report")
+        }
+        returnFromPushedScreens(app)
+        XCTAssertTrue(app.tabBars.buttons["tab.profile"].waitForExistence(timeout: 15))
+    }
+
+    func testP15ActualOwnerAnalyticsPeriodsSearchAndConfirmedCount() {
+        let app = XCUIApplication(); openProfile(app)
+        let entry = app.buttons["profile.owner.analytics"].firstMatch
+        reveal(entry, app); entry.tap()
+        let updated = app.descendants(matching: .any)["ownerAnalytics.updatedAt"].firstMatch
+        XCTAssertTrue(updated.waitForExistence(timeout: 30))
+        let count = app.descendants(matching: .any)["ownerAnalytics.metric.person.3"].firstMatch
+        reveal(count, app)
+        let value = count.value as? String ?? ""
+        XCTAssertNotNil(Int(value))
+        let countEvidence = XCTAttachment(string: "Actual protected current-account count: " + value)
+        countEvidence.name = "physical-p15-confirmed-account-count"; countEvidence.lifetime = .keepAlways; add(countEvidence)
+        captureForeground(app, "physical-p15-owner-current-count-and-report")
+        for title in ["7 днів", "30 днів"] {
+            let period = app.buttons[title].firstMatch
+            reveal(period, app, towardTop: true); period.tap()
+            XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == true"), object: period)], timeout: 10), .completed)
+            XCTAssertTrue(updated.waitForExistence(timeout: 30))
+            captureForeground(app, "physical-p15-actual-period-" + title)
+        }
+        let search = app.textFields["ownerAnalytics.search"].firstMatch
+        reveal(search, app, towardTop: true); search.tap(); search.typeText("UAC-NO-MATCH-20261027\n")
+        let empty = app.descendants(matching: .any)["ownerAnalytics.search.empty"].firstMatch
+        XCTAssertTrue(empty.waitForExistence(timeout: 15))
+        captureForeground(app, "physical-p15-search-confirmed-no-match")
+        let clear = app.buttons["ownerAnalytics.search.clear"].firstMatch
+        reveal(clear, app, towardTop: true); clear.tap()
+        search.typeText("\n")
+        XCTAssertTrue(clear.waitForNonExistence(timeout: 10))
+        XCTAssertTrue(empty.waitForNonExistence(timeout: 10))
+        XCTAssertTrue(updated.waitForExistence(timeout: 20))
+        let chart = app.descendants(matching: .any)["ownerAnalytics.trendChart"].firstMatch
+        reveal(chart, app)
+        captureForeground(app, "physical-p15-actual-thirty-day-trend")
+        let hierarchy = XCTAttachment(string: app.debugDescription)
+        hierarchy.name = "physical-p15-actual-loaded-owner-hierarchy"; hierarchy.lifetime = .keepAlways; add(hierarchy)
+        returnFromPushedScreens(app)
+        XCTAssertTrue(app.tabBars.buttons["tab.profile"].waitForExistence(timeout: 15))
     }
 
     func testP14CurrentPublicCarouselReadAndSwipe() {

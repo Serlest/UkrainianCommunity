@@ -1,0 +1,202 @@
+{
+  "block": 15,
+  "date": "2026-10-28",
+  "status": "verified_on_connected_physical_device",
+  "scope": "Outstanding actual signed iPhone owner reads and visual acceptance; preserve earlier source/roles/emulator/simulator evidence. No analytics data manually created and no foreign account or content mutated.",
+  "artifactBase": "build/physical-acceptance11-19-20261027",
+  "confirmedChecks": [
+    {
+      "result": "P15ActualOwnerPeriodsSearchCount.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual current-account count,7/30period selection, no-match search/clear, thirty-day trend and return."
+    },
+    {
+      "result": "P15SpecificMetricsActualNewsEventOrganizationDetails.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Real news,event,organization profile-view counters, each7/30period, region surface and return preserving root30day selection. Pixel review separate."
+    },
+    {
+      "result": "P15ActualRankingOrganizationSearchChildren.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual available news/event/organization rankings expand/collapse within20limit; organization no-match search/clear and actual child news/event detail/back."
+    },
+    {
+      "result": "P15GermanLightMaximumChart.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Real German/light maximum text/reduced-transparency current count, metric selection and day selection. Functional pass does not close pixels: native metric label visibly clipped."
+    },
+    {
+      "result": "P15FixedGermanLightMaximumChart.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Installed corrected real app, repeated maximum German/light metric/day selection. Whole-chart and selected-day pixels inspected: selected metric has two complete lines, no lower-line clipping."
+    },
+    {
+      "result": "P15GermanDarkMaximumNestedDetails.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual news/event/organization detail7/30periods, foreground metrics, region section and return in German/dark/maximum font/reduced transparency. All9named screenshots inspected."
+    },
+    {
+      "result": "P15UkrainianLightNormalChart.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual uk/light normal-text current accounts,30day metrics, long chart picker and day selection. Current-account/whole-chart/selected-day pixels inspected; faint default chart axis text identified separately."
+    },
+    {
+      "result": "P15FinalFullWidthGermanDarkDetails.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Final source actual news/event/organization detail periods, metrics, regions and return; final3region pixels inspected, prior unchanged header/metric pixels retained separately."
+    },
+    {
+      "result": "P15FinalGermanDarkChart.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Final real German/dark/max font/opaque chart metric/day selection; whole chart and selected day pixels inspected with full wrapping title and contrasting axes."
+    },
+    {
+      "result": "P15SlowCardPaddingUtcDaysLandscapeReturn.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Final actual whole chart in956x440landscape; bounds302,117.33,352.33,190 stay between header and tabs; three named final UTC/landscape/portrait screenshots inspected. Day disclosure expands/collapses; portrait/profile return and teardown succeeded."
+    }
+  ],
+  "accountCountReadback": {
+    "phone": 71,
+    "serverBefore": 71,
+    "serverAfter": 71,
+    "before": "p15-current-account-count-before.json",
+    "after": "p15-current-account-count-after-core.json",
+    "phoneEvidence": "p15-owner-core-attachments/79546156-1792-445D-BE64-446BF05CA57F.txt"
+  },
+  "partialAttempts": [
+    {
+      "result": "P15ActualNewsEventOrganizationDetails.xcresult",
+      "acceptedAsComplete": false,
+      "reason": "Screen shell identifier maps to the native Back button rather than an ancestor of cards; scoped metric query returned none despite actual loaded news4views."
+    },
+    {
+      "result": "P15ForegroundActualNewsEventOrganizationDetails.xcresult",
+      "acceptedAsComplete": false,
+      "acceptedScope": "Actual news detail,7/30periods and regions captured; Back lookup omitted actual localized Back with overridden screen ID."
+    },
+    {
+      "result": "P15NativeBackActualNewsEventOrganizationDetails.xcresult",
+      "acceptedAsComplete": false,
+      "acceptedScope": "News and event loaded, period selection and return retained30day root.",
+      "reason": "Organization uses person.crop.rectangle profile-view metric, not the eye symbol used by news/events."
+    },
+    {
+      "result": "P15ActualUtcDaysLandscapeReturn.xcresult",
+      "acceptedAsComplete": false,
+      "acceptedScope": "Actual UTC day disclosure expands into real daily rows and collapses; not final landscape acceptance.",
+      "reason": "Landscape read-only report is centred in a narrow content column. Portrait x0.97 gutter gesture was outside that real scroll surface. Device Hub actual pixels confirmed unmoved content. Named test failed in reveal; repeat uses in-column gesture and explicit setup/teardown orientation reset."
+    },
+    {
+      "result": "P15CorrectedUtcDaysLandscapeReturn.xcresult",
+      "acceptedAsComplete": false,
+      "acceptedScope": "Actual light-mode final UTC rows align left, localized count labels and contrasting banner axes inspected. Disclosure expand/collapse passes.",
+      "reason": "Centre-column scrolling reaches chart, but fine-position gesture starts in interactive chart surface; chart remains partly behind header and strict whole-frame check fails. Teardown explicitly restores portrait; further repeat uses actual card padding and records geometry."
+    },
+    {
+      "result": "P15CardPaddingUtcDaysLandscapeReturn.xcresult",
+      "acceptedAsComplete": false,
+      "reason": "Fine scroll at default velocity caused inertial oscillation despite in-column padding. Geometry initial top61.33,end-23.67. Exact viewport assertions preserved; slow held positioning repeat passed. No product code changed for failed driver attempts."
+    }
+  ],
+  "remaining": [
+    "Blocks16–19 are separate work. No second smaller physical phone, all-role physical matrix or new TestFlight claimed; prior simulator/emulator/source evidence remains separate."
+  ],
+  "block14HostedCompletion": "b5b15f3d exact source CI40597265414 succeeded;14/19 closed in recorded connected-device scope,5remaining.",
+  "pixelReview": {
+    "detail7and30DayAndRegions": "Reviewed final news/event/organization period surfaces and region descriptions; ordinary dark Ukrainian layout readable. Actual7day news/event empty states clearly explain analytics consent/period. Organization cards remain scrollable under bottom navigation.",
+    "organizationNoMatch": "Reviewed real query and readable specific empty state; clear restored rows.",
+    "expandedRankingAndChildren": "All6named screenshots inspected: readable actual expanded rankings, no-match state, organization news/event detail; navigation and specific values real.",
+    "rootPeriodsSearch": "All named7day/30day/no-match screenshots reviewed; each selected period and explicit bounded search scope readable. Current accounts71isindependent of selected period."
+  },
+  "findings": [
+    {
+      "id": "P15-PHYSICAL-01",
+      "status": "fixed_and_verified_on_connected_iPhone",
+      "problem": "German Nachrichtenaufrufe native Picker clips lower line at maximum accessibility size; real screenshot proves despite functional case passing.",
+      "before": "p15-german-light-maximum-chart-final/FA772204-B120-4428-9847-3E756F2FF589.png",
+      "change": "Reuse wrapping SwiftUI menu label/native options from banner report as shared AnalyticsReportFilterMenu. No metric/date/query logic changed.",
+      "after": "p15-fixed-german-light-maximum/B30FFB27-28F6-4497-B5F5-F8EC5213B974.png",
+      "commit": "40a6fad8"
+    },
+    {
+      "id": "P15-PHYSICAL-02",
+      "status": "fixed_and_verified_on_connected_iPhone",
+      "problem": "At maximum German font, scaled icon reserved a narrow text column for long regional breakdowns, producing excessive word fragmentation.",
+      "before": "p15-german-dark-maximum-nested/294A8A18-806C-4E32-83E3-1AB90E76C8AB.png",
+      "change": "Accessibility-only responsive value row stacks the icon and full-width labels; ordinary layout unchanged. Removes fixed46pt trailing indent at accessibility sizes.",
+      "commit": "e8e7de26",
+      "after": "p15-final-full-width-details/C59C3B7C-A297-4518-9E0C-0B5A9F0C5931.png"
+    },
+    {
+      "id": "P15-PHYSICAL-03",
+      "status": "fixed_and_verified_on_connected_iPhone",
+      "problem": "Ordinary light-theme chart axis captions use faint Charts system styling, inconsistent with the app readable text palette.",
+      "before": "p15-ukrainian-light-normal-chart/BAC12AAC-D463-4765-B766-76824121B1C9.png",
+      "change": "Owner and banner chart axis labels explicitly use adaptive AppTheme.textSecondary; date/count/UTC semantics unchanged.",
+      "commit": "e8e7de26",
+      "after": "p15-final-dark-chart/BF8EFCFD-42D6-44CB-90A4-32710F277FFB.png; light actual banner axes in p15-second-utc-landscape-attempt/861FA7C1-26E6-4D4B-9AA0-C3082123D8AD.png"
+    },
+    {
+      "id": "P15-PHYSICAL-04",
+      "status": "fixed_and_verified_on_connected_iPhone",
+      "problem": "Day rows had inconsistent centred intrinsic alignment and fixed plural count phrases (e.g.1click).",
+      "change": "Full-width leading-aligned rows; existing translated metric labels compose count summaries without numeral-dependent plural errors. No new localization keys.",
+      "after": "p15-second-utc-landscape-attempt/861FA7C1-26E6-4D4B-9AA0-C3082123D8AD.png",
+      "validation": "validate_localizations.py:de/uk3462entries passed; actual screenshot shows UTC2026-10-28row, tracked impressions and correctly labelled count summary.",
+      "commit": "e8e7de26"
+    }
+  ],
+  "regression": {
+    "result": "P15SharedMenuAnalyticsRegression.xcresult",
+    "passed": 36,
+    "failed": 0,
+    "scope": "OwnerAnalyticsAuditTests and BannerMeasurementReportTests, iOS26.5 simulator; separate from physical pixels."
+  },
+  "delivery": {
+    "git": "e8e7de26 committed and pushed after actual final layout/color/copy pixels and appropriate checks",
+    "installed": "install-p15-wrapping-picker.json, signed Release on controlled iPhone",
+    "testFlight": "unchanged",
+    "publicRelease": "unchanged",
+    "hostedCI": "Exact final product e8e7de267f1e456bb17a9305d75c895c87c798a7 run40611268674 completed successfully."
+  },
+  "settingsCheckpoint": {
+    "native": "P15RestoreNativeOriginalValues.xcresult passed; LargerText OFF,50%,ReduceTransparency OFF",
+    "app": "P15SetUkrainianLightNormal.xcresult passed;uk/light. Appearance system must still be restored after remaining matrix."
+  },
+  "contrastRegression": {
+    "result": "P15FinalThemeContrastRegression.xcresult",
+    "passed": 8,
+    "failed": 0,
+    "scope": "Actual adaptive text palette contrast,light/dark/high contrast; iOS26.5 simulator. Final physical chart pixels reviewed in the separately named final cases below."
+  },
+  "settingsRestoration": {
+    "native": "P15FinalRestoreNative.xcresult passed; LargerText OFF,50%,ReduceTransparency OFF",
+    "app": "P15FinalRestoreApp.xcresult passed;uk/system",
+    "state": "visual-settings-state.json lastConfirmed equals original;pendingCommand null;restoreRequired false",
+    "sequence": "p15-final-accessibility-sequence.log:all6named commands/cases exit0"
+  },
+  "scenarioReconciliation": {
+    "rootPeriodsSearchCount": "Actual period/search/current71and protected readback confirmed",
+    "rankingsAndChildren": "Actual available rankings expand/collapse, organization search and real child content links confirmed",
+    "charts": "Metric/day interaction,UTC banner daily rows, both inspected styles and exact landscape frame confirmed",
+    "detailWindows": "Actual news/event/organization periods/regions/return; normal uk/dark plus de/dark max/opaque inspected",
+    "negativeStatesAndRoles": "Retain explicitly documented source/simulator/emulator contract evidence in AnalyticsFixes20261027; do not claim induced production network failures or every role on physical phone",
+    "settings": "Original uk/system,50%,larger textOFF,reduce transparencyOFF confirmed by actual commands/readback"
+  },
+  "finalHostedCI": {
+    "sha": "e8e7de267f1e456bb17a9305d75c895c87c798a7",
+    "run": 40611268674,
+    "conclusion": "success"
+  }
+}

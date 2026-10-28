@@ -1,9 +1,9 @@
 {
   "auditDate": "2026-10-23",
   "totalBlocks": 19,
-  "completedBlocks": 13,
-  "remainingBlocks": 6,
-  "nextBlock": 19,
+  "completedBlocks": 15,
+  "remainingBlocks": 4,
+  "nextBlock": 16,
   "blocks": [
     {
       "number": 1,
@@ -245,11 +245,8 @@
     {
       "number": 14,
       "name": "Баннеры",
-      "status": "verified_pending_user_testflight_acceptance",
-      "openChecks": [
-        "B14-72-DEVICE-MATRIX",
-        "B14-79"
-      ],
+      "status": "verification_closed_connected_device_scope",
+      "openChecks": [],
       "inventory": "Docs/Verification/BannersInventory20261026.json",
       "authorizedByUser": "2026-10-26: приступай к 14 пункту, исправь все, сделай каунтдаун; сезонную тему отдельно",
       "report": "Docs/Verification/BannersAudit20261026.json",
@@ -263,7 +260,9 @@
       "serverIndexesChanged": false,
       "serverFunctionsChanged": true,
       "closedChecks": [
-        "B14-FINAL-CI"
+        "B14-FINAL-CI",
+        "B14-72-DEVICE-MATRIX",
+        "B14-79"
       ],
       "compatibilityFixCommit": "ff4e0a4f",
       "sourceCI": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40375126735",
@@ -286,17 +285,17 @@
         "includedInTestFlight128": false
       },
       "physicalFollowupReport": "Docs/Verification/BannersPhysicalFollowup20261027.json",
-      "physicalFollowupStatus": "physical_checks_passed_pending_final_source_CI"
+      "physicalFollowupStatus": "verified_on_connected_physical_device",
+      "physicalAcceptanceBoundary": "Connected iPhone16ProMax/iOS27.2 owner acceptance plus separately retained390pt simulator/role/SDK evidence. No second smaller physical device, all-role physical matrix or new TestFlight claimed.",
+      "latestSourceCommit": "b5b15f3d4c3883c96a1cfe4b000f7e76076d643d",
+      "latestSourceCI": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40597265414",
+      "latestSourceCIConclusion": "success"
     },
     {
       "number": 15,
       "name": "Аналитика",
-      "status": "implemented_locally_verified_pending_device_acceptance",
-      "openChecks": [
-        "Physical signed iPhone with real protected owner reads, both languages/themes and large text.",
-        "Narrow/landscape/reduced-transparency device matrix; long ranking expansion with real20item data. The shared disclosure controls and both region lists are tested locally.",
-        "No new TestFlight delivery was requested."
-      ],
+      "status": "verification_closed_connected_device_scope",
+      "openChecks": [],
       "inventory": "Docs/Verification/AnalyticsInventory20261026.json",
       "report": "Docs/Verification/AnalyticsAudit20261026.json",
       "testFlightChanged": true,
@@ -316,7 +315,18 @@
         "conclusion": "success"
       },
       "deliveryReport": "Docs/Verification/TestFlight12920261027.json",
-      "deliveredBuild": "1.2.1 (129)"
+      "deliveredBuild": "1.2.1 (129)",
+      "physicalFollowupReport": "Docs/Verification/AnalyticsPhysicalFollowup20261028.json",
+      "physicalFollowupStatus": "verified_on_connected_physical_device",
+      "latestSourceCommit": "e8e7de267f1e456bb17a9305d75c895c87c798a7",
+      "latestSourceCI": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40611268674",
+      "latestSourceCIConclusion": "success",
+      "physicalAcceptanceBoundary": "Connected primary-owner iPhone16ProMax/iOS27.2 actual reads, available rankings, children, periods, metrics/day/UTCdisclosure, uk/de/light/dark/max/opaque and exact landscape; preserve separate earlier source/emulator/simulator role/small-screen/negative-state evidence. No full Cartesian physical matrix or new TestFlight.",
+      "closedChecks": [
+        "A15-PHYSICAL-ACTUAL-READS",
+        "A15-PHYSICAL-AVAILABLE-RANKINGS-CHILDREN",
+        "A15-PHYSICAL-OBSERVED-VISUAL-MATRIX"
+      ]
     },
     {
       "number": 16,
@@ -700,12 +710,12 @@
   "nextNewBlock": null,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "Verify hosted CI for final banner context-height fix; outstanding physical analytics and blocks16–19 remain queued.",
+  "nextAction": "Continue actual publication-control16pages, report disclosures and accessibility matrix; final analytics product CI succeeded and original settings restored.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,
     "remainingScenarioGroups": 0,
-    "fullyClosedBlocks": 13,
+    "fullyClosedBlocks": 15,
     "block10Report": "Docs/Verification/ModerationAudit20261025.json",
     "block10ScenarioChecks": 32,
     "block11Report": "Docs/Verification/UserManagementAudit20261025.json",
@@ -772,6 +782,6 @@
     },
     "physicalBoundary": "User acceptance of signed TestFlight129 on real iPhone remains pending."
   },
-  "currentBlock": 14,
-  "physicalAcceptanceCurrentBlock": 14
+  "currentBlock": 16,
+  "physicalAcceptanceCurrentBlock": 16
 }

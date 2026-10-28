@@ -1,0 +1,90 @@
+{
+  "block": 16,
+  "date": "2026-10-28",
+  "status": "physical_read_only_scenarios_verified_with_open_performance_finding",
+  "scope": "Remaining actual signed primary-owner iPhone reads/interactions; original settings restored before this case; no publication/automation run/edit/delete or foreign account changed. Prior source/emulator/simulator and deployed evidence retained separately.",
+  "artifactBase": "build/physical-acceptance11-19-20261027",
+  "confirmedChecks": [
+    {
+      "result": "P16ActualOwnerTabsDatesRegionsAndDetails.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual protected overview, calendar cancel and previous-day confirmation/restoration,4tabs,Tirol/all history filtering, one real news detail and return."
+    },
+    {
+      "result": "P16FocusedActualMultisessionEventAndDisclosures.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual already-loaded Spooky Halloween Days event with multiple dated sessions; back to publication control; expand/collapse issue and history details. Immediate screenshots remain subject to separate settled-layout repeat."
+    },
+    {
+      "result": "P16GermanLightMaximumControls.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual German/light/max accessibility text/reduced-transparency controls, calendar, four tabs, long Lower Austria choice and reset; no production content mutations."
+    },
+    {
+      "result": "P16SettledExpandedReportDetails.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Independent entry from owner profile, actual issue/history expansion after1.5s settling, scroll and collapse, return."
+    }
+  ],
+  "pixelReview": {
+    "overview": "Reviewed actual28October zero-date and27October56news/24events counter; successful sync01:59and normal missing-current-day state.",
+    "issuesAndHistory": "Reviewed actual grouped partial-check reason/remedy and raw details disclosure; raw fields not expanded yet. Synchronization success and source coverage partial states are distinct.",
+    "filteredHistory": "Reviewed exact Tirol labels and data; return all regions actual.",
+    "news": "Opened actualc430b61157095533e6162dbe83d8ec2007f18838title/image/body; no content edited.",
+    "maximumText": "All12 named screenshots in p16-german-light-maximum reviewed: calendar, four tab controls and bodies, wrapped Lower Austria option/selection, overview. Intermediate pressed/loading states kept separate from settled bodies. Labels wrap; no horizontal label clipping observed.",
+    "event": "Reviewed 5E5A1CBF-9245-4A77-9826-5D5765461ED7.png actual multi-session event title/image/body/date rows; lower rows require scrolling behind tab bar, not assumed all visible at once.",
+    "settledDisclosures": "Reviewed all4screens in p16-settled-expanded. Immediate-frame clipping is expansion animation, not persistent lost text. Final issue details visibly reach last source paragraph and following card; full history detail visible above following card. Both collapse and return succeed."
+  },
+  "remaining": [
+    "Measured14.266s cold service startup remains unresolved; warm0.163-0.290s",
+    "Retain source/emulator legacy workflow proof separately; no live publish/archive/delete performed"
+  ],
+  "partialAttempts": [
+    {
+      "result": "P16ActualSecondPageEventAndDisclosures.xcresult",
+      "acceptedAsComplete": false,
+      "reason": "After append, the lazy list AX snapshot still contains nearby news rows; checking all events without traversing appended rows returned none. Handler page size is30. Actual bounded server read independently confirms24approved events that day; updated driver traverses lazy rows/pages rather than inventing a production event."
+    },
+    {
+      "result": "P16TraversedActualDayPagesEventAndDisclosures.xcresult",
+      "acceptedAsComplete": false,
+      "reason": "Traversal opened actual event df72d9c00f420c8c5b78c6225d1b3a3ae83880e6; single-session marker assertion was inapplicable. Focused repeat explicitly accepts actual multi-session date branch. No production event fabricated."
+    }
+  ],
+  "eventReadback": {
+    "artifact": "p16-real-event-day-preflight.json",
+    "day": "2026-10-27",
+    "events": 24,
+    "approved": 24,
+    "scope": "Independent read-only indexed projection data; not proof of actual event-route UI until named repeat."
+  },
+  "performanceFinding": {
+    "status": "measured_cold_start_limitation_not_fixed",
+    "firstRequestSeconds": 14.266090164,
+    "warmSecondsRange": [
+      0.162693551,
+      0.290207659
+    ],
+    "requestEvidence": "p16-call-latency-preflight.json",
+    "startupEvidence": "p16-cold-start-system-proof.json",
+    "startupStartUTC": "2026-10-28T01:00:01.707692Z",
+    "startupProbeReadyUTC": "2026-10-28T01:00:15.329019Z",
+    "conclusion": "Observed initial delay is service instance startup; warm indexed requests are fast. Do not attribute it to large user/data volume or label latency optimized/closed. No scaling/billing change performed."
+  },
+  "settingsRestoration": {
+    "native": "P16RestoreNative.xcresult:1passed",
+    "app": "P16RestoreApp.xcresult:1passed",
+    "confirmedOriginal": {
+      "language": "uk",
+      "appearance": "system",
+      "largerDynamicType": false,
+      "textPercent": 50,
+      "reduceTransparency": false
+    },
+    "stateArtifact": "visual-settings-state.json:restoreRequired=false,pendingCommand=null"
+  }
+}

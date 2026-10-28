@@ -1,0 +1,123 @@
+{
+  "block": 17,
+  "date": "2026-10-28",
+  "status": "actual_delivery_target_and_controlled_review_verified",
+  "artifactBase": "build/physical-acceptance11-19-20261027",
+  "confirmedChecks": [
+    {
+      "result": "P17ActualOwnerReadOnlyJournal.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Real signed owner journal read, actual existing record, expanded technical disclosure, back and profile return. No record reviewed/deleted/copied."
+    },
+    {
+      "result": "P17TraversedUkrainianLightMaximumJournal.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual max-text owner journal/details/technical disclosure; pixels revealed cramped role/target row, corrected subsequently."
+    },
+    {
+      "result": "P17TraversedUkrainianLightMaximumSearchFilters.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual unmatched server search, explicit empty-filter result, reset restores real row, advanced filter sheet and close."
+    },
+    {
+      "result": "P17FinalVerticalMetadataMaximum.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Signed revised role/target vertical layout, loaded count, actual real record/detail/disclosure under UK/light/max accessibility/reduced transparency. Row pixels inspected: words no longer squeezed into columns."
+    },
+    {
+      "result": "P17FinalSearchFiltersMaximum.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual unmatched server search/explicit empty state, reset restores real row, advanced filter sheet/cancel. All3captures inspected; filter-scope note squeezed beside reset at maximum text, corrected source and final physical repeat pending."
+    },
+    {
+      "result": "P17FinalPendingMetricsActualRead.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual normal dark owner initial-load screenshot visibly shows pending dashes instead of zeros, then real loaded row/detail/technical read/back. Initial pending pixels inspected."
+    },
+    {
+      "result": "P17FinalVerticalScopeMaximum.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual maximum-text unmatched search/scope note/reset/advanced filter sheet; all3captures inspected, note and Reset now each have full-width vertical layout."
+    }
+  ],
+  "pixelReview": [
+    "p17-actual-owner-readonly/41AF4F68-B965-437F-B5FA-0D44919EA3BC.png",
+    "p17-actual-owner-readonly/7E132007-EA0A-46D6-BE96-05D47FC8E381.png",
+    "p17-actual-owner-readonly/502FAC53-7097-4253-A667-C75F517169D5.png"
+  ],
+  "observations": [
+    "Existing warning refers to unread-notification count server read on26October, not failed user message delivery. UI distinguishes uncertain network/server cause.",
+    "Loaded result count is explicitly scoped to loaded results; search/filter scope entire journal.",
+    "Maximum-text metadata now vertical with down arrow; normal layout remains horizontal.",
+    "Initial-load screenshot exposed interim zero metrics before a response; pending-count display correction implemented, final build/device repeat pending.",
+    "Maximum-text filtered-result screenshot exposed narrow scope-note column beside Reset; use vertical note/reset layout at accessibility sizes."
+  ],
+  "remaining": [
+    "VoiceOver spoken interaction not claimed; shared source/accessibility and existing isolated role evidence remain separate from owner-device proof."
+  ],
+  "productionMutations": [
+    "One explicitly marked synthetic systemLogs entry",
+    "One deduplicated owner notificationInbox item and its private push delivery receipt"
+  ],
+  "partialAttempts": [
+    {
+      "results": [
+        "P17UkrainianLightMaximumJournal.xcresult",
+        "P17UkrainianLightMaximumSearchFilters.xcresult"
+      ],
+      "acceptedAsComplete": false,
+      "reason": "Driver awaited the first LazyVStack row before scrolling past max-sized overview. Normal real rows already passed; fix driver to traverse actual scroll surface before requiring visible row. Meaningful empty-query UI assertion retained. No server/app loading defect inferred."
+    }
+  ],
+  "countLabelFix": "Actual max screenshot confirms localized Records:1; numeric header count no fixed plural suffix.",
+  "pendingMetricsFix": {
+    "verification": "build-final-journal-support-layout.log and install-final-journal-support-layout.json; P17FinalPendingMetricsActualRead.xcresult passed",
+    "pixel": "p17-pending-metrics-actual/9AC75613-A0F5-4CE0-8B43-9CADF47EB48F.png",
+    "behavior": "Unknown metrics are dashes and disabled until initial query completes; initial access/read failure does not show fabricated zero overview."
+  },
+  "alertCopyFix": {
+    "sourceCommit": "d290ad0fdf4cf762239aeafaf75a2c1b3ccf6102",
+    "reason": "Diagnostic warnings do not always represent a failed user action; fixed push body now neutrally directs to journal.",
+    "scope": "Only fixed generic message text, no recipients/eligibility/dedupe/route/security changes.",
+    "local": "p17-alert-neutral-copy-integration.log:2passed0failed0skipped with actual isolated Firestore/Auth emulators",
+    "deployment": "p17-alert-neutral-copy-deploy.log successful single notifySystemLogIssue update",
+    "runtime": "p17-neutral-copy-runtime-proof.json:ACTIVE, onDeployUpdatePolicy retained, Ready/ConfigurationsReady/RoutesReady true,100% on notifysystemlogissue-00002-saw, Eventarc correct source/destination; deployed TS and compiled JS bytes match.",
+    "actualDelivery": "Exactly one controlled source produced one owner inbox item;1providerattempt with2acceptedregistrations. User confirmed arrival; actual expected target and controlled review were independently observed/verified.",
+    "verificationCI": {
+      "run": 40641426988,
+      "sha": "d290ad0fdf4cf762239aeafaf75a2c1b3ccf6102",
+      "conclusion": "success"
+    }
+  },
+  "clientSourceCommit": "f7db35b217c0d7c56860e69bf380d88d4ff2f55f",
+  "actualControlledPush": {
+    "authorization": "User approved one test push and explicitly instructed send now after lock request.",
+    "logId": "uac-test-p17-physical-20261028",
+    "logCreate": "p17-approved-create-result.json, currentDocument.exists=false and server REQUEST_TIME createdAt/receivedAt",
+    "recipientGuard": "p17-final-owner-recipient-preflight.json, exactly one active owner, Serlest; no other account receives the inbox item",
+    "inbox": "p17-actual-owner-inbox-after-test.json, exactly1 item, route=openSystemLog, routeTargetId matches exact controlled log ID, fixed generic Ukrainian title/body",
+    "delivery": "p17-actual-push-delivery-receipt.json",
+    "status": "complete",
+    "attempts": 1,
+    "acceptedRegistrationCount": 2,
+    "providerBoundary": "Provider acceptance for2registered targets is not proof of display on the physical iPhone; one source event/one owner inbox item/one delivery attempt. No second test source/event created.",
+    "deviceConfirmation": "User confirmed notification arrived. Initial answer reported another window; after user left the window open, Device Hub showed the exact UAC TEST P17 record. No route fix or second push was made.",
+    "exactTargetAndReview": "P17ActualControlledPushTargetAndReview.xcresult:1passed0failed. Actual opened detail must contain both exact synthetic target ID and title before review action; otherwise no write. UI confirmed reviewed status.",
+    "inboxReadback": "p17-inbox-after-visible-target.json: isRead=true, readAt2026-10-28T07:01:36.405Z.",
+    "reviewReadback": "p17-controlled-record-after-review.json: isReviewed=true, reviewedByUserId=Serlest UID, reviewedAt2026-10-28T07:03:41.125Z. Entry retained and clearly marked synthetic.",
+    "timing": "p17-actual-controlled-pipeline-timing.json:5.633s to inbox,13.987s to final provider receipt; these are server timings, not screen display latency."
+  },
+  "clientHostedCI": {
+    "run": 40641883243,
+    "sha": "f7db35b217c0d7c56860e69bf380d88d4ff2f55f",
+    "conclusion": "success",
+    "scope": "Journal client layout/loading corrections, actual hosted iOS build/unit checks completed; Firebase affected checks skipped because unchanged in that commit."
+  }
+}

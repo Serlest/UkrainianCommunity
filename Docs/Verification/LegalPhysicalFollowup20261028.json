@@ -1,0 +1,112 @@
+{
+  "block": 18,
+  "date": "2026-10-28",
+  "status": "history_load_defect_fixed_actual_repeat_passed_remaining_physical_checks_open",
+  "artifactBase": "build/physical-acceptance11-19-20261027",
+  "firstAttempt": {
+    "result": "P18ActualOwnerReadersAndHistory.xcresult",
+    "acceptedAsComplete": false,
+    "observed": "Actual active terms read in both languages, then real history load error on owner iPhone. DeviceHub screenshot independently confirmed error and retry card."
+  },
+  "confirmedDefect": {
+    "trigger": "History includes immutable legacy identifiers2026.202602,2026.202603,2026.202604 with versionNumber202602/3/4. Strict new-draft identifier validator throws on each; whole history page fails.",
+    "evidence": "p18-terms-history-preflight.json:15actual rows; all locale and aggregate hashes independently verified using current or documented legacy canonical payload",
+    "fix": "Separate exact legacy published-read identifier compatibility from strict new-draft/publication identifier validation. Keep document type, exact ID, status, bilingual hashes and expected hash checks. No production legal text/pointer/receipts modified.",
+    "verification": {
+      "sourceCommit": "bb160b356313fab7ac3659e34f5f1de85cce6968",
+      "localUnits": "P18LegacyHistoryRegression.xcresult:5passed0failed",
+      "signedBuild": "build-p18-legacy-history-fix.log:TEST BUILD SUCCEEDED",
+      "installed": "install-p18-history-fix.json",
+      "actualRepeat": "P18FixedActualOwnerReadersAndHistory.xcresult:1passed0failed",
+      "scope": "Actual three active documents in both locales and version history; direct immutable legacy2026.202604 reader and comparison passed separately.",
+      "hostedCI": {
+        "run": 40617420819,
+        "sha": "bb160b356313fab7ac3659e34f5f1de85cce6968",
+        "conclusion": "success"
+      }
+    }
+  },
+  "productionSnapshot": "p18-documents-before-fix.json",
+  "remaining": [
+    "Full compact exit/cancel/discard repeat with corrected centred-Back driver",
+    "VoiceOver spoken interaction/fresh legal-change APNs are separate unverified boundaries; no legal acceptance/registration/publication performed. Existing real SDK/handler role/publication evidence remains separate."
+  ],
+  "confirmedChecks": [
+    {
+      "result": "P18FixedActualOwnerReadersAndHistory.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual three current documents both locales, history pages/current readers/back."
+    },
+    {
+      "result": "P18ActualLegacyArchiveAndComparison.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual immutable legacy2026.202604 reader/body and comparison against current2026.15, back to profile. Pixels reviewed reader and comparison; body capture retained."
+    },
+    {
+      "result": "P18GermanLightMaximumActualReadersHistory.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Three actual current readers in both content locales/history under German/light/maximum text/reduced transparency. All21named captures visually inspected."
+    },
+    {
+      "result": "P18ActualOwnLegalEvidenceAndVersion.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Exact owner UID search, own legal receipt summary, exact accepted document version reader."
+    },
+    {
+      "result": "P18FinalFocusBilingualNormal.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual owner editor: independently typed DE/UK local title values, full focused body above pinned Save and keyboard, preview, cancel unsaved exit, leave without saving. No production writes."
+    },
+    {
+      "result": "P18FinalFocusBilingualMaximum.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual same unsaved DE/UK local-title isolation/body-focus/full-field keyboard bounds/preview/close-cancel/discard under UK/light/maximum accessibility text/reduced transparency; all4named captures inspected."
+    }
+  ],
+  "pixelReview": {
+    "normal": "All21named active-reader/history/management captures inspected; own exact UID/evidence/exact accepted-version reader and3legacy comparison/body captures inspected.",
+    "maximum": "All21named German/light/maximum active-reader/history/management captures inspected.",
+    "finalEditorNormal": "All4captures inspected: title keyboard, full focused body above Save/keyboard, local preview, unsaved-close sheet."
+  },
+  "editorFinding": {
+    "observed": "Old actual keyboard screenshot showed most of320pt body editor behind pinned Save. Old weak minY assertion did not prove whole input visibility.",
+    "fix": "Focus-directed scroll,180pt focused body, keyboard notification alignment, locale-stable title/body bindings.",
+    "normalRepeat": "P18FinalFocusBilingualNormal.xcresult passed; all4captures inspected.",
+    "maximumRepeat": "P18FinalFocusBilingualMaximum.xcresult:1passed0failed, all4captures inspected; active TextEditor fits above Save and keyboard with inner content scrolling."
+  },
+  "productionReadback": "p17to19-final-production-readback.json:42actual documents read,0changed versus captured legal pointers/versions and support config.",
+  "landscapeFinding": {
+    "firstResult": "P18ActualLandscapeLocalKeyboard.xcresult failed strict whole-field keyboard bounds at body focus. Portrait title/local-language checks reached and passed; whole landscape scenario not accepted.",
+    "pixel": "p18-first-landscape/failed-body-keyboard-at85s.png extracted from actual XCTest recording. Shows field under pinned Save/header.",
+    "fix": "Opt-in scrolling header only during compact-height input,100pt focused compact body; normal portrait unchanged.",
+    "repeat": "Pending rebuilt signed copy."
+  },
+  "installedEditorSourceCommit": "e87fa424601fcc373fdf5e389204700c736d6699",
+  "installedCopy": "install-compact-editor-followup.json; locally signed Release1.2.1(129); no TestFlight delivery in this follow-up.",
+  "compactInputRepeat": {
+    "result": "P18FixedCompactLandscapeLocalKeyboard.xcresult",
+    "acceptedAsComplete": false,
+    "verifiedScope": "Actual landscape window, typed local title/body, complete active field bounds above Save/keyboard, preview opened. Input captures inspected.",
+    "remainingFailure": "Driver rejected centred Back button because its filter required minX<100. Full exit/cancel/discard repeat remains open; Back selector now accounts for centred landscape header and current identifier.",
+    "driverBuild": "build-focused-preview-driver.log TEST BUILD SUCCEEDED; not yet rerun while waiting for locked-push user step."
+  },
+  "settingsRestoration": {
+    "lastConfirmed": {
+      "language": "uk",
+      "appearance": "system",
+      "largerDynamicType": false,
+      "textPercent": 50,
+      "reduceTransparency": false
+    },
+    "restoreRequired": false,
+    "pendingCommand": null,
+    "native": "P19CompactFinalRestoreNative.xcresult passed",
+    "app": "P19SystemRestoreAfterInterruptedSliderAttempt.xcresult passed; exact language/appearance labels checked after selection."
+  }
+}
