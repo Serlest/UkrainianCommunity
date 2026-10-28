@@ -197,7 +197,10 @@ struct BannerAnalyticsValueRow: View {
                 clicks: OwnerAnalyticsFormatting.integer(totals.clicks, locale: locale),
                 rate: totals.clickRate.map { OwnerAnalyticsFormatting.percent($0, locale: locale) } ?? "—"))
                 .font(.footnote.monospacedDigit()).foregroundStyle(AppTheme.textSecondary)
-        }.fixedSize(horizontal: false, vertical: true).accessibilityElement(children: .combine)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -234,14 +237,14 @@ struct BannerAnalyticsTrendView: View {
             .chartXAxis {
                 AxisMarks(values: .automatic(desiredCount: dynamicTypeSize.isAccessibilitySize ? 2 : 4)) { value in
                     AxisValueLabel {
-                        if let date = value.as(Date.self) { Text(date, format: dayLabelStyle).font(.caption2) }
+                        if let date = value.as(Date.self) { Text(date, format: dayLabelStyle).font(.caption2).foregroundStyle(AppTheme.textSecondary) }
                     }
                 }
             }
             .chartYAxis {
                 AxisMarks(values: .automatic(desiredCount: dynamicTypeSize.isAccessibilitySize ? 2 : 5)) { _ in
                     AxisGridLine()
-                    AxisValueLabel().font(.caption2)
+                    AxisValueLabel().font(.caption2).foregroundStyle(AppTheme.textSecondary)
                 }
             }
             .environment(\.timeZone, utc)

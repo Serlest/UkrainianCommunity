@@ -1334,10 +1334,7 @@ enum AppStrings {
         static var namesUnavailable: String { text("banner_report.names_unavailable", "Назви банерів зараз недоступні. Показано їхні ID; лічильники завантажені.") }
         static var methodology: String { text("banner_report.methodology", "Ураховано лише банери користувачів, які окремо погодилися на вимірювання. Показ зараховується, коли видно щонайменше половину банера протягом секунди; натискання — після дії користувача. Частка натискань = натискання / покази. Це кількість дій, а не унікальних людей. Дні рахуються за UTC, дані поточного дня можуть доповнюватися.") }
         static func row(impressions: String, clicks: String, rate: String) -> String {
-            LocalizationStore.localizedFormat(
-                "banner_report.row", defaultValue: "%1$@ показів · %2$@ натискань · %3$@",
-                arguments: [impressions, clicks, rate]
-            )
+            "\(Self.impressions): \(impressions) · \(Self.clicks): \(clicks) · \(Self.ctr): \(rate)"
         }
         static func rateExplanation(_ rate: String) -> String {
             LocalizationStore.localizedFormat(

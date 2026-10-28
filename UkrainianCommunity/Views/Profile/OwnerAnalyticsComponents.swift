@@ -180,7 +180,10 @@ struct OwnerAnalyticsTrendChart: View {
                 }
             }
             .chartYAxis {
-                AxisMarks(position: .leading)
+                AxisMarks(position: .leading) {
+                    AxisGridLine().foregroundStyle(AppTheme.borderSubtle)
+                    AxisValueLabel().foregroundStyle(AppTheme.textSecondary)
+                }
             }
             .chartXAxis {
                 AxisMarks(values: .automatic(desiredCount: dynamicTypeSize.isAccessibilitySize ? 2 : min(points.count, 4))) { value in
@@ -188,6 +191,7 @@ struct OwnerAnalyticsTrendChart: View {
                     AxisValueLabel {
                         if let date = value.as(Date.self) {
                             Text(OwnerAnalyticsDateFormatting.analyticsDayText(date, locale: locale))
+                                .foregroundStyle(AppTheme.textSecondary)
                         }
                     }
                 }
@@ -568,12 +572,13 @@ struct OwnerAnalyticsResponsiveValueRow<Leading: View>: View {
         Group {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: 10) {
-                    HStack(alignment: .top, spacing: 12) {
+                    // At accessibility sizes, keep long region breakdowns out of
+                    // the narrow column beside the scaled icon.
+                    VStack(alignment: .leading, spacing: 12) {
                         leading
                     }
 
                     trailingValue(alignment: .leading)
-                        .padding(.leading, 46)
                 }
             } else {
                 HStack(alignment: .top, spacing: 12) {
