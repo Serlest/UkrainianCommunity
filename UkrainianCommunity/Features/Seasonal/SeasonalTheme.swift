@@ -151,7 +151,7 @@ struct SeasonalTheme: Codable, Equatable, Identifiable {
         let start = calendar.date(from: DateComponents(year: year, month: 10, day: 24, hour: 0))!
         let end = calendar.date(from: DateComponents(year: year, month: 11, day: 2, hour: 0))!
         return Self(name: "Halloween", startsAt: start, endsAt: end, elements: [
-            SeasonalElement(artwork: .pumpkin, anchor: .leading, size: 32, sway: 0.6, glow: true),
+            SeasonalElement(artwork: .pumpkin, anchor: .leading, size: 40, sway: 0.6, glow: true),
             SeasonalElement(artwork: .web, anchor: .trailing, size: 44, sway: 0.25),
             SeasonalElement(artwork: .bat, anchor: .trailing, size: 20, sway: 0.8)
         ])

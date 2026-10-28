@@ -81,14 +81,15 @@ struct AdaptiveBrandLockupView: View {
     }
 
     let layout: Layout
+    var compact = false
 
     var body: some View {
         Group {
             switch layout {
             case .horizontal:
                 HStack(spacing: 10) {
-                    brandSymbol(size: 56)
-                    brandText(titleFont: .title3, subtitleFont: .subheadline)
+                    brandSymbol(size: compact ? 42 : 56)
+                    brandText(titleFont: compact ? .system(size:17) : .title3, subtitleFont: compact ? .system(size:14) : .subheadline)
                 }
             case .vertical:
                 VStack(spacing: 14) {
@@ -131,6 +132,7 @@ struct AdaptiveBrandLockupView: View {
 }
 
 struct AppBrandHeader<TrailingContent: View>: View {
+    @Environment(\.seasonalHeaderActive) private var seasonalHeaderActive
     @ViewBuilder let trailingContent: TrailingContent
 
     init(@ViewBuilder trailingContent: () -> TrailingContent) {
@@ -140,20 +142,31 @@ struct AppBrandHeader<TrailingContent: View>: View {
     var body: some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: AppTheme.eventsControlGroupSpacing) {
-                AdaptiveBrandLockupView(layout: .horizontal)
-                    .fixedSize(horizontal: true, vertical: false)
+                brandCluster
 
                 Spacer(minLength: 0)
 
                 trailingContent
             }
             VStack(alignment: .leading, spacing: 8) {
-                AdaptiveBrandLockupView(layout: .horizontal)
+                brandCluster
                 HStack { Spacer(minLength: 0); trailingContent }
             }
         }
         .frame(maxWidth: .infinity, minHeight: AppTheme.appHeaderLogoSize.height)
         .padding(.leading, AppTheme.appHeaderLeadingAdjustment)
+        .transformAnchorPreference(key:SeasonalHeaderAnchors.self,value:.bounds) { anchors,header in anchors[.header]=header }
+    }
+
+    private var brandCluster: some View {
+        HStack(spacing:4) {
+            AdaptiveBrandLockupView(layout:.horizontal,compact:seasonalHeaderActive)
+                .fixedSize(horizontal:true,vertical:false)
+            if seasonalHeaderActive {
+                Color.clear.frame(width:38,height:56)
+                    .anchorPreference(key:SeasonalHeaderAnchors.self,value:.bounds) { [.pumpkin:$0] }
+            }
+        }
     }
 }
 

@@ -2,16 +2,49 @@ import XCTest
 import UIKit
 
 @MainActor final class SeasonalUITests: XCTestCase {
-    private func launch(scope: String, appearance: String = "light", language: String = "uk", maximum: Bool = false) -> XCUIApplication {
+    private func launch(scope: String, appearance: String = "light", language: String = "uk", maximum: Bool = false, effects:Bool = true) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
         app.launchEnvironment = ["UITestSeasonal":"1", "UITestSeasonalScope":scope == "custom" ? "home" : scope, "UITestSeasonalCustomArtwork":scope == "custom" ? "1" : "0",
             "UITestForceOwnerSession":"1", "UITestAppLanguage":language,
-            "UITestAppAppearance":appearance, "UITestSeasonalMaximum":maximum ? "1":"0"]
+            "UITestAppAppearance":appearance, "UITestSeasonalMaximum":maximum ? "1":"0", "UITestSeasonalEffects":effects ? "1":"0"]
         app.launch(); return app
     }
     private func shot(_ name: String) {
         let attachment=XCTAttachment(screenshot:XCUIApplication().screenshot());attachment.name=name;attachment.lifetime = .keepAlways;add(attachment)
+    }
+    func testScenePreservesHeaderPositionAndShowsDescent() throws {
+        let off=launch(scope:"home",effects:false)
+        let original=off.buttons["seasonal.fixture.bell"]
+        XCTAssertTrue(original.waitForExistence(timeout:15));let baseline=original.frame.minY
+        off.terminate()
+        let on=launch(scope:"home")
+        let bell=on.buttons["seasonal.fixture.bell"]
+        XCTAssertTrue(bell.waitForExistence(timeout:15))
+        XCTAssertEqual(bell.frame.minY,baseline,accuracy:1)
+        XCTAssertTrue(bell.isHittable)
+        let image=try XCTUnwrap(on.screenshot().image.cgImage)
+        let width=image.width,height=image.height,ratio=CGFloat(width)/on.frame.width
+        var pixels=[UInt8](repeating:0,count:width*height*4)
+        pixels.withUnsafeMutableBytes { buffer in
+            let context=CGContext(data:buffer.baseAddress,width:width,height:height,bitsPerComponent:8,bytesPerRow:width*4,
+                space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue)!
+            context.draw(image,in:CGRect(x:0,y:0,width:width,height:height))
+        }
+        let startY=max(0,Int((bell.frame.midY-28)*ratio)),endY=min(height,Int((bell.frame.midY+28)*ratio))
+        var pumpkinPixels=0
+        for y in startY..<endY { for x in Int(Double(width)*0.35)..<Int(Double(width)*0.8) {
+            let i=(y*width+x)*4
+            if pixels[i]>140 && pixels[i+1]>35 && pixels[i+1]<160 && pixels[i+2]<90 { pumpkinPixels += 1 }
+        } }
+        XCTAssertGreaterThan(pumpkinPixels,60,"Native 3D pumpkin must actually render beside the logo")
+        shot("SeasonalDepth-Root-Initial")
+        // Observe the native scene at the bottom of the spider's descent.
+        Thread.sleep(forTimeInterval:6)
+        shot("SeasonalDepth-Root-Spider")
+        XCUIDevice.shared.press(.home);on.activate()
+        XCTAssertTrue(bell.waitForExistence(timeout:10));XCTAssertEqual(bell.frame.minY,baseline,accuracy:1)
+        on.terminate()
     }
     func testLightAndDarkActualArtworkAndEditor() throws {
         for appearance in ["light","dark"] {
@@ -38,7 +71,7 @@ import UIKit
         }
         var customPixels=0
         for y in 0..<height {
-            for x in 0..<Int(Double(width)*0.15) {
+            for x in 0..<width {
                 let offset=(y*width+x)*4
                 if pixels[offset]>200 && pixels[offset+1]<90 && pixels[offset+2]>200 { customPixels += 1 }
             }

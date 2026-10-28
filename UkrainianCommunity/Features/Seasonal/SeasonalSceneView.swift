@@ -1,0 +1,177 @@
+import SceneKit
+import SwiftUI
+import UIKit
+
+struct SeasonalScenePlacement: Equatable {
+    var pumpkin = CGPoint(x:80,y:80)
+    var webTop: CGFloat = 0
+    var descent: CGFloat = 180
+    var objectScale: CGFloat = 1
+}
+
+struct SeasonalScene: UIViewRepresentable {
+    let theme: SeasonalTheme
+    let placement: SeasonalScenePlacement
+    let animated: Bool
+    let dark: Bool
+    var preview = false
+
+    func makeUIView(context: Context) -> SeasonalSceneView { SeasonalSceneView() }
+    func updateUIView(_ view: SeasonalSceneView, context: Context) {
+        view.configure(theme:theme,placement:placement,animated:animated,dark:dark,preview:preview)
+    }
+    static func dismantleUIView(_ view:SeasonalSceneView,coordinator:()) { view.stop() }
+}
+
+@MainActor private final class SeasonalDisplayTarget: NSObject {
+    weak var view: SeasonalSceneView?
+    @objc func tick(_ link:CADisplayLink) { view?.tick(link.timestamp) }
+}
+
+/// One transparent native Metal-backed scene. No touches, camera feed, physics engine or remote code.
+@MainActor final class SeasonalSceneView: UIView {
+    private let renderer = SCNView()
+    private let world = SCNNode()
+    private let cameraNode = SCNNode()
+    private var pumpkinNodes:[(SCNNode,SCNMaterial,SCNLight,SeasonalElement)] = []
+    private var webNode:SCNNode?
+    private var spiderNode:SCNNode?
+    private var spiderLegs:[SCNNode]=[]
+    private var silkNode:SCNNode?
+    private var batNode:SCNNode?
+    private var wings:[SCNNode]=[]
+    private var elements:[SeasonalElement]=[]
+    private var theme:SeasonalTheme?
+    private var placement=SeasonalScenePlacement()
+    private var animated=false, dark=false, preview=false
+    private var link:CADisplayLink?
+    private let target=SeasonalDisplayTarget()
+    private let motion=SeasonalMotion()
+    private var pendulum=SeasonalPendulum()
+    private var elapsed=0.0,lastTime=0.0
+
+    override init(frame:CGRect) {
+        super.init(frame:frame)
+        isUserInteractionEnabled=false;isAccessibilityElement=false;backgroundColor = .clear
+        renderer.backgroundColor = .clear;renderer.isOpaque=false;renderer.isUserInteractionEnabled=false
+        renderer.antialiasingMode = .multisampling4X;renderer.preferredFramesPerSecond=30
+        let scene=SCNScene();scene.rootNode.addChildNode(world)
+        let camera=SCNCamera();camera.usesOrthographicProjection=true;camera.zNear=0.1;camera.zFar=2000
+        camera.wantsHDR=true;camera.exposureOffset = -0.25;camera.bloomIntensity=0.12;camera.bloomThreshold=1.2
+        cameraNode.camera=camera;cameraNode.position=SCNVector3(0,0,700);scene.rootNode.addChildNode(cameraNode)
+        let ambient=SCNLight();ambient.type = .ambient;ambient.color=UIColor(white:0.9,alpha:1);ambient.intensity=420
+        let a=SCNNode();a.light=ambient;scene.rootNode.addChildNode(a)
+        let key=SCNLight();key.type = .directional;key.color=UIColor(red:1,green:0.91,blue:0.78,alpha:1);key.intensity=1150
+        let k=SCNNode();k.light=key;k.eulerAngles=SCNVector3(-0.45,-0.55,0);scene.rootNode.addChildNode(k)
+        let rim=SCNLight();rim.type = .directional;rim.color=UIColor(red:0.62,green:0.73,blue:1,alpha:1);rim.intensity=400
+        let r=SCNNode();r.light=rim;r.eulerAngles=SCNVector3(0.4,2.4,0);scene.rootNode.addChildNode(r)
+        renderer.scene=scene;renderer.pointOfView=cameraNode;addSubview(renderer);target.view=self
+    }
+    required init?(coder:NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews();renderer.frame=bounds
+        cameraNode.camera?.orthographicScale=Double(max(1,bounds.height)/2)
+        world.position=SCNVector3(-Float(bounds.width)/2,Float(bounds.height)/2,0)
+        draw(delta:0)
+    }
+
+    func configure(theme:SeasonalTheme,placement:SeasonalScenePlacement,animated:Bool,dark:Bool,preview:Bool) {
+        let changedIdentity=self.theme?.id != theme.id
+        self.theme=theme;self.placement=placement;self.dark=dark;self.preview=preview
+        if elements != theme.elements || changedIdentity {
+            elements=theme.elements;buildObjects();elapsed=0;pendulum=SeasonalPendulum()
+        }
+        self.animated=animated
+        motion.setEnabled(animated && theme.reactsToTilt && theme.elements.contains{$0.sway > 0})
+        if animated && link == nil {
+            lastTime=0
+            let l=CADisplayLink(target:target,selector:#selector(SeasonalDisplayTarget.tick(_:)))
+            l.preferredFramesPerSecond=30;l.add(to:.main,forMode:.common);link=l
+        } else if !animated { link?.invalidate();link=nil;lastTime=0 }
+        renderer.rendersContinuously=animated;renderer.isPlaying=animated
+        draw(delta:0)
+    }
+
+    func stop() {
+        link?.invalidate();link=nil;motion.setEnabled(false)
+        renderer.rendersContinuously=false;renderer.isPlaying=false;lastTime=0
+    }
+    override func didMoveToWindow() { super.didMoveToWindow();if window == nil { stop() } }
+    fileprivate func tick(_ timestamp:Double) {
+        guard window != nil,animated else { return }
+        let dt=lastTime == 0 ? 0 : min(0.05,max(0,timestamp-lastTime));lastTime=timestamp;elapsed += dt
+        draw(delta:dt)
+    }
+
+    private func buildObjects() {
+        world.childNodes.forEach{$0.removeFromParentNode()};pumpkinNodes=[];webNode=nil;spiderNode=nil;batNode=nil;silkNode=nil;wings=[];spiderLegs=[]
+        for element in elements where element.artwork == .pumpkin {
+            let p=SeasonalSceneArtwork.pumpkin();world.addChildNode(p.root);pumpkinNodes.append((p.root,p.ember,p.light,element))
+        }
+        if elements.contains(where:{$0.artwork == .web}) {
+            let web=SeasonalSceneArtwork.web();world.addChildNode(web);webNode=web
+            let spider=SeasonalSceneArtwork.spider();world.addChildNode(spider.root);spiderNode=spider.root;spiderLegs=spider.legs
+            let g=SCNCylinder(radius:0.25,height:1);g.radialSegmentCount=5
+            let m=SCNMaterial();m.lightingModel = .constant;g.firstMaterial=m
+            let silk=SCNNode(geometry:g);world.addChildNode(silk);silkNode=silk
+        }
+        if elements.contains(where:{$0.artwork == .bat}) {
+            let bat=SeasonalSceneArtwork.bat();world.addChildNode(bat.root);batNode=bat.root;wings=bat.wings
+        }
+    }
+
+    private func draw(delta:Double) {
+        guard let theme else { return }
+        SCNTransaction.begin();SCNTransaction.animationDuration=0;SCNTransaction.disableActions=true
+        defer { SCNTransaction.commit() }
+        let input=animated && theme.reactsToTilt ? motion.sample() : SeasonalMotionSample()
+        let intensity=theme.intensity
+        for (index,p) in pumpkinNodes.enumerated() {
+            let scale=p.3.size * 0.53 * Double(placement.objectScale)
+            p.0.scale=SCNVector3(scale,scale,scale)
+            p.0.position=SCNVector3(placement.pumpkin.x + CGFloat(index)*12,-placement.pumpkin.y + (animated ? sin(elapsed*1.1)*1.2*intensity*p.3.sway:0),35)
+            p.0.eulerAngles=SCNVector3(-0.08 + input.y*0.20*p.3.sway,-0.10 + input.x*0.38*p.3.sway + (animated ? sin(elapsed*0.6)*0.045*p.3.sway*intensity:0),-0.05)
+            let candle=p.3.glow ? (animated ? max(0.12,0.6+sin(elapsed*1.6)*0.29+sin(elapsed*3.2)*0.07) : 0.65) : 0.08
+            p.1.emission.intensity=CGFloat(candle*1.65);p.2.intensity=CGFloat(candle*32)
+        }
+        let top=Double(placement.webTop),center=Double(bounds.width)/2
+        let webElement=elements.first{$0.artwork == .web}
+        let webScale=(webElement?.size ?? 44)/44
+        webNode?.position=SCNVector3(center,-top,22);webNode?.scale=SCNVector3(webScale,webScale,webScale)
+        webNode?.geometry?.materials.forEach {
+            $0.diffuse.contents=dark ? UIColor(white:0.69,alpha:0.84):UIColor(white:0.20,alpha:0.78)
+            $0.emission.contents=UIColor(white:0.45,alpha:1);$0.emission.intensity=(webElement?.glow ?? false) ? 0.25:0
+        }
+        let spiderProgress=animated && (webElement?.sway ?? 0)>0 ? SeasonalChoreography.spiderProgress(at:elapsed,preview:preview) : nil
+        spiderNode?.isHidden=spiderProgress == nil;silkNode?.isHidden=spiderProgress == nil
+        if let progress=spiderProgress {
+            pendulum.step(delta:delta,tilt:input.gravityX*(webElement?.sway ?? 0)*2,acceleration:input.acceleration,intensity:intensity*(webElement?.sway ?? 0))
+            let length=14+Double(placement.descent)*progress,angle=pendulum.angle
+            let x=center+sin(angle)*length,y=top+cos(angle)*length
+            spiderNode?.position=SCNVector3(x,-y,34);spiderNode?.eulerAngles.z=Float(angle)
+            spiderNode?.scale=SCNVector3(1.6*webScale,1.6*webScale,1.6*webScale)
+            let end=SCNVector3(x-sin(angle)*6,-y+cos(angle)*6,33),start=SCNVector3(center,-top,33)
+            let dx=end.x-start.x,dy=end.y-start.y,len=sqrt(dx*dx+dy*dy)
+            (silkNode?.geometry as? SCNCylinder)?.height=CGFloat(len)
+            silkNode?.position=SCNVector3((start.x+end.x)/2,(start.y+end.y)/2,33)
+            silkNode?.simdOrientation=simd_quatf(from:SIMD3<Float>(0,1,0),to:SIMD3<Float>(dx,dy,0)/max(len,0.001))
+            silkNode?.geometry?.firstMaterial?.diffuse.contents=dark ? UIColor(white:0.77,alpha:0.8):UIColor(white:0.24,alpha:0.68)
+            for (i,leg) in spiderLegs.enumerated() { leg.eulerAngles.z=Float(sin(elapsed*2.6+Double(i))*0.045*intensity) }
+        }
+        let batElement=elements.first{$0.artwork == .bat}
+        let progress=animated && (batElement?.sway ?? 0)>0 ? SeasonalChoreography.batProgress(at:elapsed,preview:preview) : nil
+        batNode?.isHidden=progress == nil
+        if let q=progress {
+            let width=Double(bounds.width),flightY=max(top+210,Double(placement.pumpkin.y)+135)
+            batNode?.position=SCNVector3(-45+(width+90)*q,-flightY-sin(q * .pi*2)*30*intensity,65)
+            batNode?.eulerAngles=SCNVector3(0.35,sin(q*5)*0.35,cos(q*6)*0.22)
+            let scale=(batElement?.size ?? 20)/28*(0.8+sin(q * .pi)*0.3)
+            batNode?.scale=SCNVector3(scale,scale,scale)
+            for (i,wing) in wings.enumerated() { wing.eulerAngles.y=Float(sin(elapsed*17)*(i == 0 ? -1:1)*(0.65+0.25*(batElement?.sway ?? 0))) }
+            batNode?.enumerateChildNodes { node,_ in node.geometry?.materials.forEach {
+                $0.emission.contents=UIColor(red:0.22,green:0.11,blue:0.12,alpha:1);$0.emission.intensity=(batElement?.glow ?? false) ? 0.3:0
+            } }
+        }
+    }
+}

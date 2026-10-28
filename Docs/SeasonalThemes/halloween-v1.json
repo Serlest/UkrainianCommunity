@@ -24,7 +24,7 @@
           "id": "pumpkin",
           "artwork": "pumpkin",
           "anchor": "leading",
-          "size": 32,
+          "size": 40,
           "sway": 0.6,
           "glow": true,
           "pngFrames": [],

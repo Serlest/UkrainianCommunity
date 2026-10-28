@@ -17,7 +17,7 @@ struct SeasonalAuditHarness: View {
     @StateObject private var model = SeasonalManagementModel(repository: SeasonalMemoryRepository())
     @State private var selected = 0
     @State private var details = false
-    @State private var effects = true
+    @State private var effects = ProcessInfo.processInfo.environment["UITestSeasonalEffects"] != "0"
     @State private var theme = Self.fixture()
     private static func fixture() -> SeasonalTheme {
         var theme = SeasonalTheme.halloween()
@@ -45,7 +45,10 @@ struct SeasonalAuditHarness: View {
                         NavigationStack {
                             ScrollView {
                                 VStack(spacing: 18) {
-                                    AppBrandHeader { Image(systemName: "bell").foregroundStyle(AppTheme.accentPrimaryForeground) }
+                                    AppBrandHeader {
+                                        Button {} label: { Image(systemName:"bell").frame(width:44,height:44) }
+                                            .accessibilityIdentifier("seasonal.fixture.bell")
+                                    }
                                     Image(systemName: "mountain.2.fill").resizable().scaledToFit()
                                         .frame(height: 130).frame(maxWidth: .infinity)
                                         .foregroundStyle(.orange.gradient).background(.blue.opacity(0.12))
@@ -66,8 +69,9 @@ struct SeasonalAuditHarness: View {
                                 }.padding(.horizontal, AppTheme.pageHorizontal)
                             }
                             .background { AppBackgroundView() }
-                            .safeAreaInset(edge: .top, spacing: 0) {
-                                if effects { SeasonalDecorationStrip(theme: theme).accessibilityIdentifier("seasonal.fixture.strip") }
+                            .environment(\.seasonalHeaderActive,effects)
+                            .overlayPreferenceValue(SeasonalHeaderAnchors.self) { anchors in
+                                if effects { SeasonalDecorationLayer(theme:theme,anchors:anchors).ignoresSafeArea(.container,edges:.top) }
                             }
                         }.tabItem { Label(SeasonalText.section(SeasonalSection.allCases[index]), systemImage: "square.grid.2x2") }.tag(index)
                     }

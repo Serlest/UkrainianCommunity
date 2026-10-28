@@ -1,15 +1,15 @@
 # Seasonal appearance
 
-Status: iOS implementation and local automated verification complete; physical-device acceptance and TestFlight delivery pending. See [verification evidence](Verification/SeasonalAppearance20261028.json).
+Status: the original renderer was delivered in TestFlight 130. The revised native 3D scene and its delivery are documented in SeasonalDepth20261028 and TestFlight131 verification reports. Physical iPhone acceptance is separate.
 The previously paused physical acceptance backlog remains in PhysicalAcceptance11to19Progress20261027.json; this feature does not close any of those cases.
 
 ## Product boundaries
 
 - An owner maintains a reusable library separately from the public presentation. Saving/editing/importing a theme never changes the published presentation. Publishing uses only saved enabled themes. Disabling the presentation keeps the library.
-- Halloween is the first built-in editable template: vector pumpkin with warm pulsing eyes/mouth, fine web and a small bat. Other built-in primitives are snowflake, star and pine. Custom small transparent PNG frames allow future artwork without a new binary.
-- Decorations use a protected top strip on the five main tab roots. Nested routes, authentication, full-screen presentations, keyboard use and compact-height landscape have no live decoration strip. This deliberately reserves layout space instead of putting artwork over text, search or notification controls.
-- Local user preference `seasonalEffectsEnabled` defaults to true. Reduced Motion, accessibility text sizes and Low Power Mode stop animation and tilt; background/invisible strips stop Core Motion. Motion samples exist only in memory; no collection, storage or transmission.
-- Initial renderer supports a maximum of six elements, three per edge, gentle sway/tilt, candle glow and bounded PNG frame playback. New effects outside these capabilities require an application update. No executable content or third-party animation runtime is downloaded.
+- Halloween is the first built-in editable template: original native 3D pumpkin with carved eye/mouth openings and a pulsing interior, a darker web from the top of the window, a descending pendulum spider and an occasional articulated bat. Other built-in primitives are snowflake, star and pine. Custom small transparent PNG frames allow future artwork without a new binary.
+- Decorations overlay the five main tab roots without a safe-area inset. An anchored compact brand cluster places the pumpkin beside the logo while keeping header height and controls accessible. The web starts at the window top, visually behind the physical system cutout; no ActivityKit or custom Dynamic Island is used. Nested routes, authentication, full-screen presentations, keyboard use and compact-height landscape hide the scene.
+- Local user preference `seasonalEffectsEnabled` defaults to true. Reduced Motion, accessibility text sizes and Low Power Mode stop animation and tilt; background/invisible scenes stop Core Motion. Motion samples exist only in memory; no collection, storage or transmission.
+- The data format still supports at most six elements, three per legacy edge. Built-in pumpkin/web/bat use scene-specific placement; the editor explains this instead of offering an ineffective left/right picker. Other artwork retains embedded PNG playback. The native Metal-backed SceneKit scene uses original procedural meshes/PBR materials; geometry is built when element data changes, not each frame. It targets 30 fps while eligible. Core Motion supplies relative gravity for pumpkin parallax, absolute gravity for hanging direction and user acceleration for opposite inertial impulse. Bounded damped dynamics avoid jumps after pauses. Spider and bat have disjoint time windows (14-second descent/hold/return, 4.5-second flight in a 68-second cycle); preview cycles are shorter. Static artwork does not continuously run a blank 3D renderer. New effects outside these capabilities require an application update. No executable content or third-party animation runtime is downloaded.
 
 ## Persistence and schedule
 

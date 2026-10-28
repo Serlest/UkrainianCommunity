@@ -118,10 +118,15 @@ struct SeasonalThemeEditor: View {
                                     Image(systemName: "trash").frame(width: 44, height: 44).accessibilityLabel(AppStrings.Action.delete)
                                 }.buttonStyle(.borderless).disabled(draft.elements.count <= 1)
                             }
-                            Picker(SeasonalText.value("position", "Position"), selection: $element.anchor) {
-                                Text(SeasonalText.value("leading", "Links")).tag(SeasonalAnchor.leading)
-                                Text(SeasonalText.value("trailing", "Rechts")).tag(SeasonalAnchor.trailing)
-                            }.pickerStyle(.segmented)
+                            if [.pumpkin,.web,.bat].contains(element.artwork) {
+                                Text(SeasonalText.value("scenePlacement", "Kürbis neben dem Logo, Netz am oberen Rand mit einem hängenden Spinnenpendel. Die Fledermaus fliegt gelegentlich durch das Bild. Inhalte werden nicht verschoben."))
+                                    .font(.footnote).foregroundStyle(.secondary)
+                            } else {
+                                Picker(SeasonalText.value("position", "Position"), selection: $element.anchor) {
+                                    Text(SeasonalText.value("leading", "Links")).tag(SeasonalAnchor.leading)
+                                    Text(SeasonalText.value("trailing", "Rechts")).tag(SeasonalAnchor.trailing)
+                                }.pickerStyle(.segmented)
+                            }
                             Text(SeasonalText.value("size", "Größe"))
                             Slider(value: $element.size, in: 16...44).accessibilityLabel(SeasonalText.value("size", "Größe"))
                             Text(SeasonalText.value("sway", "Bewegungsstärke"))

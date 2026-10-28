@@ -17,9 +17,8 @@ import XCTest
         let on = launch(enabled: true)
         let onSearch = on.buttons["header.search.toggle"]
         XCTAssertTrue(onSearch.waitForExistence(timeout:30))
-        let shifted = NSPredicate { _,_ in onSearch.exists && onSearch.frame.minY >= baseline + 40 }
-        expectation(for:shifted,evaluatedWith:nil)
-        waitForExpectations(timeout:20)
+        // Decorative overlays must never introduce a top safe-area row.
+        XCTAssertEqual(onSearch.frame.minY,baseline,accuracy:1)
         let capture = XCTAttachment(screenshot:on.screenshot());capture.name="Seasonal-ActualRoot-PublicSchedule";capture.lifetime = .keepAlways;add(capture)
         XCTAssertTrue(onSearch.isHittable)
         let visibleY = onSearch.frame.minY

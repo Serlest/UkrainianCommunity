@@ -1224,6 +1224,22 @@
           }
         }
       }
+    },
+    "seasonal.scenePlacement": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kürbis neben dem Logo, Netz am oberen Rand mit einem hängenden Spinnenpendel. Die Fledermaus fliegt gelegentlich durch das Bild. Inhalte werden nicht verschoben."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Гарбуз біля логотипа, павутиння від верхнього краю та павук на нитці. Кажан зрідка пролітає екраном. Вміст не зміщується."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
