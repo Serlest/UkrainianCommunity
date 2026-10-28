@@ -23,7 +23,8 @@ jobs:
   changes:
     name: Change classification and static checks
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # Full-history checkout can consume ~5 minutes before static checks start.
+    timeout-minutes: 10
     outputs:
       firebase: ${{ steps.classify.outputs.firebase }}
       functions: ${{ steps.classify.outputs.functions }}

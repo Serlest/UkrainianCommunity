@@ -152,8 +152,9 @@ import UIKit
         name.tap(); name.typeText(" TEST")
         XCTAssertTrue((name.value as? String)?.contains("TEST") == true)
         shot("SeasonalEditor-DE-Maximum-Keyboard")
-        let keyboardDone=app.buttons["Fertig"].firstMatch
-        if keyboardDone.exists && keyboardDone.isHittable { keyboardDone.tap() }
+        // The name field uses the system Done key rather than an extra keyboard toolbar.
+        name.typeText("\n")
+        XCTAssertFalse((name.value as? String ?? "").contains("\n"))
         let date=app.buttons["seasonal.editor.date.start"]
         for _ in 0..<12 {
             if date.exists && date.isHittable { break }

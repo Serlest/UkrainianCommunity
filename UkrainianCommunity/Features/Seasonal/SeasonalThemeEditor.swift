@@ -75,6 +75,7 @@ struct SeasonalThemeEditor: View {
                 }
                 Section(SeasonalText.value("schedule", "Zeitplan")) {
                     TextField(SeasonalText.value("name", "Name"), text: $draft.name).focused($nameFocused)
+                        .submitLabel(.done).onSubmit { nameFocused = false }
                         .accessibilityIdentifier("seasonal.editor.name")
                     Toggle(SeasonalText.value("enabled", "In den Zeitplan aufnehmen"), isOn: $draft.isEnabled)
                     timeZoneControl
@@ -169,7 +170,6 @@ struct SeasonalThemeEditor: View {
                     Button(SeasonalText.value("apply", "Übernehmen")) { nameFocused = false; onApply(draft); dismiss() }
                         .disabled(!valid).accessibilityIdentifier("seasonal.editor.apply")
                 }
-                ToolbarItemGroup(placement: .keyboard) { Spacer(); Button(AppStrings.Common.done) { nameFocused = false } }
             }
             .confirmationDialog(SeasonalText.value("discard", "Nicht gespeicherte Änderungen verwerfen?"), isPresented: $confirmDiscard, titleVisibility: .visible) {
                 Button(SeasonalText.value("discardAction", "Änderungen verwerfen"), role: .destructive) { dismiss() }
