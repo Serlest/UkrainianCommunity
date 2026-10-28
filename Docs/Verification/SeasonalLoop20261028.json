@@ -1,0 +1,39 @@
+{
+  "checkedAt": "2026-10-28T12:27:02.874621+00:00",
+  "sourceParent": "159e2fca53d0e8aa23fd602ffcde4dee786a58ea",
+  "build": 133,
+  "interpretation": "The central ring is one full loop in the flight trajectory, not a persistent overlay ring.",
+  "changes": [
+    "Lower-left entry, one complete central circle, upper-right exit; tangent/velocity matched at route joins",
+    "Eight-second flight, 68-second main cycle; 32-second preview cycle prevents truncating the longer flight",
+    "Web radial/thread radii increased 0.23/0.18 to 0.40/0.32 points",
+    "Subtle bounded web sway with ambient motion and device tilt; static with reduced motion/low power",
+    "Spider silk starts from the transformed web attachment; original damped pendulum preserved"
+  ],
+  "tests": {
+    "bundle": "build/seasonal-loop-20261028/LoopVerification.xcresult",
+    "passed": 21,
+    "failed": 0,
+    "skipped": 0,
+    "coverage": [
+      "19 model/management/dynamics tests, including circle bounds/quadrants and C1 route joins",
+      "2 UI cases: light/dark editor/root, native pumpkin pixels, unchanged header position and background return"
+    ],
+    "uiScreenshotsReviewed": 6
+  },
+  "nativeVideo": {
+    "path": "build/seasonal-loop-20261028/native-loop.mp4",
+    "reviewedFrames": "32–50 seconds plus 8-second spider frame; native flight visibly traverses lower left, central loop and upper right around recorded frames 38–43. Startup frames excluded from product assessment.",
+    "context": "Simulator fixture content, native production renderer; not physical sensor evidence."
+  },
+  "archive": "build/testflight-133/archive.log; ARCHIVE SUCCEEDED; signature, version and encryption exemption verified",
+  "deployedAnalyticsContracts": "Explicit live preflight passed; no missing consent contracts.",
+  "productionChanges": "No server deploy or theme-data mutation. Existing themes remain compatible.",
+  "physicalAcceptance": "User to verify real phone tilt, perceived movement and smoothness in TestFlight. Earlier phone audit remains paused.",
+  "sourceSHA256": {
+    "UkrainianCommunity/Features/Seasonal/SeasonalDynamics.swift": "e05bfc1218f8a213f95915910b6ebbb8139c41f4aa60669783bb6ca5319a3be4",
+    "UkrainianCommunity/Features/Seasonal/SeasonalSceneArtwork.swift": "cf5d57841602affd13c83011cf361061eae05489adc364bc9f14dc0cd7508cb8",
+    "UkrainianCommunity/Features/Seasonal/SeasonalSceneView.swift": "650815ecd959b03687810e6ea04af852708de9f43884b9c7396a95ea908cad97",
+    "UkrainianCommunityTests/SeasonalDynamicsTests.swift": "da0fdb5ae617247b3a1671a73b84db1ed5b357fdf8842c31454c28c8d7b5ede1"
+  }
+}

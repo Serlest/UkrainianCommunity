@@ -55,7 +55,7 @@ struct SeasonalMotionSample {
 
 enum SeasonalChoreography {
     static func spiderProgress(at time: Double, preview: Bool) -> Double? {
-        let phase = time.truncatingRemainder(dividingBy: preview ? 22 : 68)
+        let phase = time.truncatingRemainder(dividingBy: preview ? 32 : 68)
         guard phase >= 2, phase < 16 else { return nil }
         let t = phase - 2
         func smooth(_ x: Double) -> Double { x * x * (3 - 2 * x) }
@@ -64,9 +64,36 @@ enum SeasonalChoreography {
         return 1
     }
     static func batProgress(at time: Double, preview: Bool) -> Double? {
-        let phase = time.truncatingRemainder(dividingBy: preview ? 22 : 68)
-        let start = preview ? 17.0 : 32.0
-        guard phase >= start, phase < start + 4.5 else { return nil }
-        return (phase - start) / 4.5
+        let phase = time.truncatingRemainder(dividingBy: preview ? 32 : 68)
+        let start = preview ? 18.0 : 32.0
+        guard phase >= start, phase < start + 8 else { return nil }
+        return (phase - start) / 8
+    }
+}
+
+/// Screen-space route: lower-left approach, one complete central loop, upper-right exit.
+/// Cubic control handles match the circle's tangent and speed at both joins.
+enum SeasonalFlightPath {
+    static func point(at progress:Double,size:CGSize,top:Double,preview:Bool) -> CGPoint {
+        let q=progress.isFinite ? min(1,max(0,progress)):0
+        let width=Double(size.width),height=Double(size.height)
+        let cx=width*0.5,cy=height*(preview ? 0.69:0.52)
+        let radius=min(width*0.17,height*0.105)
+        let join=CGPoint(x:cx,y:cy+radius)
+        func cubic(_ t:Double,_ a:CGPoint,_ b:CGPoint,_ c:CGPoint,_ d:CGPoint) -> CGPoint {
+            let s=1-t
+            return CGPoint(x:s*s*s*a.x+3*s*s*t*b.x+3*s*t*t*c.x+t*t*t*d.x,
+                           y:s*s*s*a.y+3*s*s*t*b.y+3*s*t*t*c.y+t*t*t*d.y)
+        }
+        if q<0.28 {
+            let handle=2 * Double.pi * radius * 0.28 / (3 * 0.42)
+            return cubic(q/0.28,CGPoint(x:-45,y:height+35),CGPoint(x:width*0.07,y:height*0.78),CGPoint(x:cx-handle,y:join.y),join)
+        }
+        if q<0.70 {
+            let angle=Double.pi/2-(q-0.28)/0.42 * Double.pi*2
+            return CGPoint(x:cx+cos(angle)*radius,y:cy+sin(angle)*radius)
+        }
+        let handle=2 * Double.pi * radius * 0.30 / (3 * 0.42)
+        return cubic((q-0.70)/0.30,join,CGPoint(x:cx+handle,y:join.y),CGPoint(x:width*0.9,y:top+55),CGPoint(x:width+45,y:top-25))
     }
 }

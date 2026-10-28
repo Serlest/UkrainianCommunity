@@ -100,7 +100,7 @@ import UIKit
         let count=10
         for ray in 0...count {
             let angle=Double.pi*(0.07+Double(ray)/Double(count)*0.86)
-            root.addChildNode(strand(from:SCNVector3Zero,to:SCNVector3(cos(angle)*92,-sin(angle)*90,0),radius:0.23,material:silk))
+            root.addChildNode(strand(from:SCNVector3Zero,to:SCNVector3(cos(angle)*92,-sin(angle)*90,0),radius:0.40,material:silk))
         }
         for ring in 1...6 { for ray in 0..<count {
             let a=Double.pi*(0.07+Double(ray)/Double(count)*0.86), b=Double.pi*(0.07+Double(ray+1)/Double(count)*0.86)
@@ -109,7 +109,7 @@ import UIKit
             for step in 1...5 {
                 let t=Double(step)/5,angle=a+(b-a)*t,radius=r*(1-0.055*sin(t * .pi))
                 let next=SCNVector3(cos(angle)*radius,-sin(angle)*radius,0)
-                root.addChildNode(strand(from:previous,to:next,radius:0.18,material:silk));previous=next
+                root.addChildNode(strand(from:previous,to:next,radius:0.32,material:silk));previous=next
             }
         } }
         return root.flattenedClone()

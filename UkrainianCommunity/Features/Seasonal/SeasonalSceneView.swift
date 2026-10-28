@@ -147,6 +147,10 @@ struct SeasonalScene: UIViewRepresentable {
         let webElement=elements.first{$0.artwork == .web}
         let webScale=(webElement?.size ?? 44)/44
         webNode?.position=SCNVector3(center,-top,22);webNode?.scale=SCNVector3(webScale,webScale,webScale)
+        let webStrength=animated ? (webElement?.sway ?? 0)*intensity : 0
+        webNode?.eulerAngles=SCNVector3(max(-0.12,min(0.12,sin(elapsed*0.48)*0.09*webStrength+input.y*0.16*webStrength)),
+                                      input.x*0.12*webStrength,
+                                      max(-0.14,min(0.14,sin(elapsed*0.65)*0.20*webStrength+input.x*0.35*webStrength)))
         webNode?.geometry?.materials.forEach {
             $0.diffuse.contents=dark ? UIColor(white:0.69,alpha:0.84):UIColor(white:0.20,alpha:0.78)
             $0.emission.contents=UIColor(white:0.12,alpha:1);$0.emission.intensity=(webElement?.glow ?? false) ? 0.035:0
@@ -155,11 +159,12 @@ struct SeasonalScene: UIViewRepresentable {
         spiderNode?.isHidden=spiderProgress == nil;silkNode?.isHidden=spiderProgress == nil
         if let progress=spiderProgress {
             pendulum.step(delta:delta,tilt:input.gravityX*(webElement?.sway ?? 0)*2,acceleration:input.acceleration,intensity:intensity*(webElement?.sway ?? 0))
-            let length=14+Double(placement.descent)*progress,angle=pendulum.angle
-            let x=center+sin(angle)*length,y=top+cos(angle)*length
+            let anchor=webNode?.convertPosition(SCNVector3(0,-64,0),to:world) ?? SCNVector3(center,-top,33)
+            let length=10+max(30,Double(placement.descent)-64*webScale)*progress,angle=pendulum.angle
+            let x=Double(anchor.x)+sin(angle)*length,y=Double(-anchor.y)+cos(angle)*length
             spiderNode?.position=SCNVector3(x,-y,34);spiderNode?.eulerAngles.z=Float(angle)
             spiderNode?.scale=SCNVector3(1.6*webScale,1.6*webScale,1.6*webScale)
-            let end=SCNVector3(x-sin(angle)*6,-y+cos(angle)*6,33),start=SCNVector3(center,-top,33)
+            let end=SCNVector3(x-sin(angle)*6,-y+cos(angle)*6,33),start=SCNVector3(anchor.x,anchor.y,33)
             let dx=end.x-start.x,dy=end.y-start.y,len=sqrt(dx*dx+dy*dy)
             (silkNode?.geometry as? SCNCylinder)?.height=CGFloat(len)
             silkNode?.position=SCNVector3((start.x+end.x)/2,(start.y+end.y)/2,33)
@@ -171,11 +176,12 @@ struct SeasonalScene: UIViewRepresentable {
         let progress=animated && (batElement?.sway ?? 0)>0 ? SeasonalChoreography.batProgress(at:elapsed,preview:preview) : nil
         batNode?.isHidden=progress == nil
         if let q=progress {
-            let width=Double(bounds.width)
-            let flightY=preview ? Double(bounds.height)*0.66 : max(top+210,Double(placement.pumpkin.y)+135)
-            let rise=preview ? min(12,Double(bounds.height)*0.08) : 30
-            batNode?.position=SCNVector3(-45+(width+90)*q,-flightY-sin(q * .pi*2)*rise*intensity,65)
-            batNode?.eulerAngles=SCNVector3(0.35,sin(q*5)*0.35,cos(q*6)*0.22)
+            let point=SeasonalFlightPath.point(at:q,size:bounds.size,top:top,preview:preview)
+            let before=SeasonalFlightPath.point(at:q-0.001,size:bounds.size,top:top,preview:preview)
+            let after=SeasonalFlightPath.point(at:q+0.001,size:bounds.size,top:top,preview:preview)
+            let heading=atan2(-(after.y-before.y),after.x-before.x)
+            batNode?.position=SCNVector3(point.x,-point.y,65)
+            batNode?.eulerAngles=SCNVector3(0.35,sin(q * .pi*4)*0.38,Double(heading)-Double.pi/2)
             let scale=(batElement?.size ?? 20)/28*(0.8+sin(q * .pi)*0.3)
             batNode?.scale=SCNVector3(scale,scale,scale)
             for (i,wing) in wings.enumerated() { wing.eulerAngles.y=Float(sin(elapsed*17)*(i == 0 ? -1:1)*(0.65+0.25*(batElement?.sway ?? 0))) }

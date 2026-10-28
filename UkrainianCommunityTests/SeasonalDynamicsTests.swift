@@ -1,7 +1,40 @@
+import Foundation
 import Testing
 @testable import UkrainianCommunity
 
 struct SeasonalDynamicsTests {
+    @Test func batMakesOneCentralLoopAndExitsUpperRight() {
+        for preview in [true,false] {
+            let size=CGSize(width:393,height:preview ? 190:820)
+            let start=SeasonalFlightPath.point(at:0,size:size,top:0,preview:preview)
+            let end=SeasonalFlightPath.point(at:1,size:size,top:0,preview:preview)
+            #expect(start.x<0 && start.y>size.height)
+            #expect(end.x>size.width && end.y<0)
+            let cx=size.width*0.5,cy=size.height*(preview ? 0.69:0.52)
+            let radius=min(size.width*0.17,size.height*0.105)
+            for step in 0...100 {
+                let q=0.28+0.42*Double(step)/100
+                let p=SeasonalFlightPath.point(at:q,size:size,top:0,preview:preview)
+                #expect(abs(hypot(p.x-cx,p.y-cy)-radius)<0.001)
+            }
+            let right=SeasonalFlightPath.point(at:0.385,size:size,top:0,preview:preview)
+            let upper=SeasonalFlightPath.point(at:0.49,size:size,top:0,preview:preview)
+            let left=SeasonalFlightPath.point(at:0.595,size:size,top:0,preview:preview)
+            #expect(right.x>cx && upper.y<cy && left.x<cx)
+        }
+    }
+    @Test func flightJoinsHaveContinuousPositionAndVelocity() {
+        let size=CGSize(width:393,height:820),epsilon=0.00001
+        for join in [0.28,0.70] {
+            let a=SeasonalFlightPath.point(at:join-epsilon,size:size,top:0,preview:false)
+            let b=SeasonalFlightPath.point(at:join,size:size,top:0,preview:false)
+            let c=SeasonalFlightPath.point(at:join+epsilon,size:size,top:0,preview:false)
+            let left=CGPoint(x:(b.x-a.x)/epsilon,y:(b.y-a.y)/epsilon)
+            let right=CGPoint(x:(c.x-b.x)/epsilon,y:(c.y-b.y)/epsilon)
+            #expect(hypot(left.x-right.x,left.y-right.y)<1)
+            #expect(hypot(b.x-a.x,b.y-a.y)<0.02)
+        }
+    }
     @Test func sustainedTiltReachesStableAngleAndDampingSettles() {
         var p=SeasonalPendulum()
         for _ in 0..<900 { p.step(delta:1.0/60,tilt:0.6,acceleration:0,intensity:1) }
