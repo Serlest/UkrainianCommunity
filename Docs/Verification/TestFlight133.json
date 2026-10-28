@@ -1,0 +1,48 @@
+{
+  "checkedAt": "2026-10-28T12:33:17.946987+00:00",
+  "version": "1.2.1",
+  "build": 133,
+  "sourceCommit": "a25210c65ac20aa141e22ce8ceb91721755321ce",
+  "processingState": "VALID",
+  "internalBuildState": "IN_BETA_TESTING",
+  "groups": [
+    "Beta Tester"
+  ],
+  "notesLocales": [
+    "de-DE",
+    "uk",
+    "en-US"
+  ],
+  "archive": "ARCHIVE SUCCEEDED; signature/version/encryption exemption and application dSYM UUIDs verified",
+  "upload": "EXPORT SUCCEEDED; Apple processing VALID",
+  "verification": "SeasonalLoop20261028.json; 21 local tests passed, no failures/skips; native recording and 6 UI snapshots reviewed",
+  "sourceGitHub": {
+    "conclusion": "",
+    "jobs": [
+      {
+        "conclusion": "success",
+        "name": "Change classification and static checks",
+        "status": "completed"
+      },
+      {
+        "conclusion": "",
+        "name": "iOS build and unit checks",
+        "status": "in_progress"
+      },
+      {
+        "conclusion": "success",
+        "name": "Firebase and rules",
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Firebase affected checks",
+        "status": "completed"
+      }
+    ],
+    "status": "in_progress"
+  },
+  "sourceGitHubURL": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40687904736",
+  "physicalAcceptance": "User to verify actual iPhone tilt and smoothness. Previous physical audit remains paused.",
+  "scope": "Internal TestFlight; no public App Store release, no production theme-data writes."
+}
