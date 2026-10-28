@@ -16,12 +16,32 @@
       "result": "build/seasonal-pair-20261028/Verification.xcresult"
     },
     "visualReview": "All eight home/editor and post-cutoff UI captures reviewed in light/dark",
-    "actualNewsRootRecording": "pending",
+    "actualNewsRootRecording": {
+      "path": "build/seasonal-pair-20261028/final-news-flight.mp4",
+      "reviewedFramesSeconds": [
+        1,
+        8,
+        18,
+        32,
+        38,
+        42,
+        64,
+        70,
+        76
+      ],
+      "result": "Both spiders remain visible after the former 16-second cutoff and 68-second cycle boundary; four bats remain; upper web stays at cutout corridor",
+      "source": "Actual ContentView / NewsHomeView, disposable loopback theme and fixture content"
+    },
     "productionWrites": false,
     "physicalDevice": "Not performed; user will verify tilt, aesthetics and smoothness on iPhone"
   },
   "delivery": {
     "build": 135,
-    "status": "archive in progress"
+    "archive": "succeeded",
+    "upload": "succeeded",
+    "appleProcessing": "PROCESSING",
+    "internalBuildState": "pending",
+    "sourceGitHub": "queued",
+    "evidence": "TestFlight135.json"
   }
 }

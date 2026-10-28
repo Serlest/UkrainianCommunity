@@ -1,0 +1,44 @@
+{
+  "checkedAt": "2026-10-28T14:58:30.162242+00:00",
+  "version": "1.2.1",
+  "build": 135,
+  "sourceCommit": "c572f60fc9e7f1acabbd9936c577c162aa531b68",
+  "processingState": "PROCESSING",
+  "internalBuildState": "pending",
+  "groups": [],
+  "notesLocales": [],
+  "notesStatus": "Automatic helper build/testflight-135/set-notes.cjs waiting for build visibility; readback pending",
+  "archive": "ARCHIVE SUCCEEDED; version/encryption exemption and main app dSYM match verified",
+  "upload": "EXPORT SUCCEEDED; Apple upload state confirmed without errors",
+  "verification": "SeasonalPair20261028.json: 11 local tests passed, no failures/skips; eight UI captures and nine actual News-root recording frames reviewed",
+  "sourceGitHub": {
+    "status": "queued",
+    "conclusion": "",
+    "jobs": [
+      {
+        "name": "Change classification and static checks",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "iOS build and unit checks",
+        "status": "queued",
+        "conclusion": ""
+      },
+      {
+        "name": "Firebase and rules",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Firebase affected checks",
+        "status": "completed",
+        "conclusion": "skipped"
+      }
+    ]
+  },
+  "sourceGitHubURL": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40710514231",
+  "scope": "Internal TestFlight only. No production theme-data writes or public App Store release. Prior physical audit remains paused.",
+  "physicalAcceptance": "Actual sensor response, smoothness and aesthetic acceptance on iPhone remain for user verification",
+  "vendorSymbols": "Xcode warns about missing prebuilt FirebaseFirestoreInternal, absl, grpc, grpcpp and openssl_grpc dSYMs; main app UUID verified matching. Upload accepted."
+}
