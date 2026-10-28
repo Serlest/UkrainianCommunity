@@ -12,6 +12,8 @@ struct DonationSettingsView: View {
     @EnvironmentObject private var authState: AuthState
     @Environment(\.dismiss) private var dismiss
     @Environment(\.locale) private var locale
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.openURL) private var openURL
     @ObservedObject var viewModel: DonationConfigViewModel
     @State private var draft: DonationConfig = .defaults
@@ -36,7 +38,8 @@ struct DonationSettingsView: View {
 
     var body: some View {
         ScrollViewReader { proxy in
-            PushedScreenShell(title: ProjectSupportText.title, tabBarHidden: true, backAction: attemptDismiss) {
+            PushedScreenShell(title: ProjectSupportText.title, tabBarHidden: true,
+                              scrollsHeaderInCompactHeight: focusedField != nil, backAction: attemptDismiss) {
                 AppGroupedContentPlane(spacing: AppTheme.feedRowSpacing) {
                     if !scope.allowsOwner {
                         ErrorStateCard(systemImage: "lock.fill", title: DonationLocalization.ownerOnlyTitle(for: language),
@@ -146,11 +149,12 @@ struct DonationSettingsView: View {
             }
             AppEditorSectionCard {
                 Button { previewExpanded.toggle() } label: {
-                    HStack(alignment: .firstTextBaseline) {
+                    previewHeaderLayout {
                         Text(DonationLocalization.previewTitle(for: language)).font(.headline)
                             .fixedSize(horizontal: false, vertical: true)
-                        Spacer(minLength: 12)
+                        if !typeSize.isAccessibilitySize { Spacer(minLength: 12) }
                         Image(systemName: previewExpanded ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 18, weight: .semibold))
                             .accessibilityHidden(true)
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }.buttonStyle(.plain).foregroundStyle(AppTheme.accentPrimaryForeground)
@@ -169,6 +173,12 @@ struct DonationSettingsView: View {
         }.disabled(viewModel.isSaving || presentation != nil || !scope.allowsOwner)
     }
 
+    private var previewHeaderLayout: AnyLayout {
+        typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
+    }
+
     private var localizedTextSection: some View {
         let isUK = editLanguage == .ukrainian
         let title = isUK ? $draft.titleUK : $draft.titleDE
@@ -185,8 +195,8 @@ struct DonationSettingsView: View {
                 }
                 AppEditorField(title: DonationLocalization.messagePlaceholder(for: language)) {
                     TextEditor(text: message).focused($focusedField, equals: .message).id(DonationField.message)
-                        .frame(height: 180).scrollContentBackground(.hidden)
-                        .accessibilityIdentifier("donation.edit.message.\(editLanguage.rawValue)").appEditorInputStyle(minHeight: 180)
+                        .frame(height: messageEditorHeight).scrollContentBackground(.hidden)
+                        .accessibilityIdentifier("donation.edit.message.\(editLanguage.rawValue)").appEditorInputStyle(minHeight: messageEditorHeight)
                     fieldFeedback(message.wrappedValue, limit: 2000)
                 }
                 AppEditorField(title: DonationLocalization.buttonTextPlaceholder(for: language)) {
@@ -197,6 +207,10 @@ struct DonationSettingsView: View {
                 }
             }
         }
+    }
+
+    private var messageEditorHeight: CGFloat {
+        focusedField == .message && verticalSizeClass == .compact ? 100 : 180
     }
 
     private func revealFocus(with proxy: ScrollViewProxy) {

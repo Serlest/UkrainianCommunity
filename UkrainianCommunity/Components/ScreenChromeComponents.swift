@@ -171,11 +171,13 @@ extension PushedScreenHeader where TrailingContent == EmptyView {
 /// navigation behavior. Migrate screens individually.
 struct PushedScreenShell<Content: View, TrailingContent: View>: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     let title: String
     let pinsHeaderAtAccessibilitySizes: Bool
     let subtitle: String?
     let showsBackButton: Bool
     let tabBarHidden: Bool
+    let scrollsHeaderInCompactHeight: Bool
     let topPadding: CGFloat
     let bottomPadding: CGFloat
     let contentSpacing: CGFloat
@@ -189,6 +191,7 @@ struct PushedScreenShell<Content: View, TrailingContent: View>: View {
         subtitle: String? = nil,
         showsBackButton: Bool = true,
         tabBarHidden: Bool = false,
+        scrollsHeaderInCompactHeight: Bool = false,
         topPadding: CGFloat = AppTheme.pushedScreenTopPadding,
         bottomPadding: CGFloat = AppTheme.pushedScreenBottomPadding,
         contentSpacing: CGFloat = AppTheme.pushedScreenContentSpacing,
@@ -201,6 +204,7 @@ struct PushedScreenShell<Content: View, TrailingContent: View>: View {
         self.subtitle = subtitle
         self.showsBackButton = showsBackButton
         self.tabBarHidden = tabBarHidden
+        self.scrollsHeaderInCompactHeight = scrollsHeaderInCompactHeight
         self.topPadding = topPadding
         self.bottomPadding = bottomPadding
         self.contentSpacing = contentSpacing
@@ -215,7 +219,7 @@ struct PushedScreenShell<Content: View, TrailingContent: View>: View {
                 .allowsHitTesting(false)
 
             VStack(spacing: 0) {
-                if !dynamicTypeSize.isAccessibilitySize || pinsHeaderAtAccessibilitySizes {
+                if !headerScrollsWithContent {
                     paddedPushedHeader
                 }
 
@@ -224,7 +228,7 @@ struct PushedScreenShell<Content: View, TrailingContent: View>: View {
                         // Accessibility titles and subtitles can be several screens
                         // tall. Keeping that header outside the scroll view leaves
                         // lists and primary actions with a zero-height viewport.
-                        if dynamicTypeSize.isAccessibilitySize && !pinsHeaderAtAccessibilitySizes {
+                        if headerScrollsWithContent {
                             paddedPushedHeader
                         }
 
@@ -258,6 +262,11 @@ struct PushedScreenShell<Content: View, TrailingContent: View>: View {
         .observesKeyboardDismissTaps()
     }
 
+    private var headerScrollsWithContent: Bool {
+        (dynamicTypeSize.isAccessibilitySize && !pinsHeaderAtAccessibilitySizes)
+            || (scrollsHeaderInCompactHeight && verticalSizeClass == .compact)
+    }
+
     private var paddedPushedHeader: some View {
         PushedScreenHeader(
             title: title,
@@ -280,6 +289,7 @@ extension PushedScreenShell where TrailingContent == EmptyView {
         subtitle: String? = nil,
         showsBackButton: Bool = true,
         tabBarHidden: Bool = false,
+        scrollsHeaderInCompactHeight: Bool = false,
         topPadding: CGFloat = AppTheme.pushedScreenTopPadding,
         bottomPadding: CGFloat = AppTheme.pushedScreenBottomPadding,
         contentSpacing: CGFloat = AppTheme.pushedScreenContentSpacing,
@@ -291,6 +301,7 @@ extension PushedScreenShell where TrailingContent == EmptyView {
             subtitle: subtitle,
             showsBackButton: showsBackButton,
             tabBarHidden: tabBarHidden,
+            scrollsHeaderInCompactHeight: scrollsHeaderInCompactHeight,
             topPadding: topPadding,
             bottomPadding: bottomPadding,
             contentSpacing: contentSpacing,

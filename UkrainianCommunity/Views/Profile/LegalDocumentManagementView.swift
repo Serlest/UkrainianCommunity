@@ -1,5 +1,6 @@
 import Combine
 import SwiftUI
+import UIKit
 
 private enum LegalEditorPresentation: Identifiable {
     case preview(LegalDocument, String)
@@ -192,6 +193,7 @@ private struct LegalDocumentEditorView: View {
     @EnvironmentObject private var authState: AuthState
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     let type: LegalDocumentType
     let state: LegalDocumentManagementState?
     let repository: LegalDocumentRepository
@@ -209,6 +211,8 @@ private struct LegalDocumentEditorView: View {
     @State private var presentation: LegalEditorPresentation?
     @State private var editorScope: LegalAccessScope?
     @State private var operationID = UUID()
+    private enum FocusedField: Hashable { case summaryDE, summaryUK, title, markdown }
+    @FocusState private var focusedField: FocusedField?
 
     init(
         type: LegalDocumentType,
@@ -237,50 +241,67 @@ private struct LegalDocumentEditorView: View {
     }
 
     var body: some View {
-        PushedScreenShell(
-            title: LegalFlowText.editorTitle,
-            subtitle: type.title,
-            tabBarHidden: true,
-            backAction: handleBack
-        ) {
-            AppGroupedContentPlane(spacing: AppTheme.feedRowSpacing) {
-                editorContent
-            }
-        }
-        .safeAreaInset(edge: .bottom) {
-            HStack(spacing: 12) {
-                PrimaryActionButton(title: dynamicTypeSize.isAccessibilitySize ? LegalFlowText.save : AppStrings.LegalManagement.saveDraft,
-                                    loadingTitle: AppStrings.LegalManagement.saving,
-                                    isEnabled: (!hasPersistedDraft || hasUnsavedChanges) && !isPublishing && currentSession,
-                                    isLoading: isSaving, systemImage: "tray.and.arrow.down.fill") {
-                    Task { _ = await saveDraft() }
-                }.accessibilityIdentifier("legal.edit.save")
-                Menu {
-                    Button(AppStrings.LegalManagement.preview, systemImage: "doc.richtext") { presentation = .preview(previewDocument, selectedLocale) }.accessibilityIdentifier("legal.edit.preview")
-                    Button(AppStrings.LegalManagement.publish, systemImage: "paperplane", role: .destructive) { validateAndConfirmPublish() }.accessibilityIdentifier("legal.edit.publish")
-                    if hasPersistedDraft {
-                        Button(LegalEditorText.discard, systemImage: "trash", role: .destructive) { presentation = .discard(lastSavedDraft) }
-                            .accessibilityIdentifier("legal.edit.discard")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle").font(.system(size: 24, weight: .semibold))
-                        .frame(width: 44, height: 44).accessibilityLabel(LegalEditorText.actions)
+        ScrollViewReader { proxy in
+            PushedScreenShell(
+                title: LegalFlowText.editorTitle,
+                subtitle: type.title,
+                tabBarHidden: true,
+                scrollsHeaderInCompactHeight: focusedField != nil,
+                backAction: handleBack
+            ) {
+                AppGroupedContentPlane(spacing: AppTheme.feedRowSpacing) {
+                    editorContent
                 }
-                .accessibilityIdentifier("legal.edit.actions")
-                .disabled(isSaving || isPublishing || !currentSession)
             }
-            .padding(.horizontal, AppTheme.pageHorizontal)
-            .padding(.vertical, 10)
-            .background(.ultraThinMaterial)
+            .safeAreaInset(edge: .bottom) {
+                HStack(spacing: 12) {
+                    PrimaryActionButton(title: dynamicTypeSize.isAccessibilitySize ? LegalFlowText.save : AppStrings.LegalManagement.saveDraft,
+                                        loadingTitle: AppStrings.LegalManagement.saving,
+                                        isEnabled: (!hasPersistedDraft || hasUnsavedChanges) && !isPublishing && currentSession,
+                                        isLoading: isSaving, systemImage: "tray.and.arrow.down.fill") {
+                        focusedField = nil
+                        Task { _ = await saveDraft() }
+                    }.accessibilityIdentifier("legal.edit.save")
+                    Menu {
+                        Button(AppStrings.LegalManagement.preview, systemImage: "doc.richtext") { focusedField = nil; presentation = .preview(previewDocument, selectedLocale) }.accessibilityIdentifier("legal.edit.preview")
+                        Button(AppStrings.LegalManagement.publish, systemImage: "paperplane", role: .destructive) { validateAndConfirmPublish() }.accessibilityIdentifier("legal.edit.publish")
+                        if hasPersistedDraft {
+                            Button(LegalEditorText.discard, systemImage: "trash", role: .destructive) { presentation = .discard(lastSavedDraft) }
+                                .accessibilityIdentifier("legal.edit.discard")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle").font(.system(size: 24, weight: .semibold))
+                            .frame(width: 44, height: 44).accessibilityLabel(LegalEditorText.actions)
+                    }
+                    .accessibilityIdentifier("legal.edit.actions")
+                    .disabled(isSaving || isPublishing || !currentSession)
+                }
+                .padding(.horizontal, AppTheme.pageHorizontal)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial)
+            }
+            .task { if editorScope == nil { editorScope = LegalAccessScope(authState) } }
+            .onChange(of: LegalAccessScope(authState)) { _, _ in
+                operationID = UUID(); presentation = nil; isSaving = false; isPublishing = false; dismiss()
+            }
+            .onChange(of: draft) { _, _ in
+                if !isSaving && !isPublishing && hasUnsavedChanges { statusMessage = nil; validationErrors = [] }
+            }
+            .sheet(item: $presentation) { presentationContent($0) }
+            .onChange(of: focusedField) { _, _ in revealFocus(with: proxy) }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in revealFocus(with: proxy) }
+            .onChange(of: selectedLocale) { _, _ in focusedField = nil }
         }
-        .task { if editorScope == nil { editorScope = LegalAccessScope(authState) } }
-        .onChange(of: LegalAccessScope(authState)) { _, _ in
-            operationID = UUID(); presentation = nil; isSaving = false; isPublishing = false; dismiss()
+    }
+
+    private func revealFocus(with proxy: ScrollViewProxy) {
+        Task { @MainActor in
+            await Task.yield()
+            guard let focusedField, currentSession, !isSaving, !isPublishing else { return }
+            withAnimation(.easeOut(duration: 0.2)) {
+                proxy.scrollTo(focusedField, anchor: UnitPoint(x: 0.5, y: 0.1))
+            }
         }
-        .onChange(of: draft) { _, _ in
-            if !isSaving && !isPublishing && hasUnsavedChanges { statusMessage = nil; validationErrors = [] }
-        }
-        .sheet(item: $presentation) { presentationContent($0) }
     }
 
     @ViewBuilder private func presentationContent(_ route: LegalEditorPresentation) -> some View {
@@ -346,11 +367,13 @@ private struct LegalDocumentEditorView: View {
 
                     Text(AppStrings.LegalManagement.changeSummaryGerman).font(.subheadline.weight(.semibold))
                     TextField(AppStrings.LegalManagement.changeSummaryGerman, text: changeSummaryBinding(locale: "de"), axis: .vertical)
+                        .focused($focusedField, equals: .summaryDE).id(FocusedField.summaryDE)
                         .accessibilityIdentifier("legal.edit.summary.de")
                         .lineLimit(2...4)
                         .appEditorInputStyle(minHeight: 72)
                     Text(AppStrings.LegalManagement.changeSummaryUkrainian).font(.subheadline.weight(.semibold))
                     TextField(AppStrings.LegalManagement.changeSummaryUkrainian, text: changeSummaryBinding(locale: "uk"), axis: .vertical)
+                        .focused($focusedField, equals: .summaryUK).id(FocusedField.summaryUK)
                         .accessibilityIdentifier("legal.edit.summary.uk")
                         .lineLimit(2...4)
                         .appEditorInputStyle(minHeight: 72)
@@ -378,15 +401,17 @@ private struct LegalDocumentEditorView: View {
 
                     Text(AppStrings.LegalManagement.localizedTitle).font(.subheadline.weight(.semibold))
                     TextField(AppStrings.LegalManagement.localizedTitle, text: localizedTitleBinding, axis: .vertical)
+                        .focused($focusedField, equals: .title).id(FocusedField.title)
                         .lineLimit(1...4).accessibilityIdentifier("legal.edit.title")
                         .appEditorInputStyle()
 
                     Text(AppStrings.LegalManagement.localizedContent).font(.subheadline.weight(.semibold))
                     TextEditor(text: localizedMarkdownBinding)
+                        .focused($focusedField, equals: .markdown).id(FocusedField.markdown)
                         .accessibilityIdentifier("legal.edit.body")
-                        .frame(height: 320)
+                        .frame(height: focusedField == .markdown ? focusedBodyHeight : 320)
                         .scrollContentBackground(.hidden)
-                        .appEditorInputStyle(minHeight: 260)
+                        .appEditorInputStyle(minHeight: focusedField == .markdown ? focusedBodyHeight : 260)
                 }
             }
 
@@ -395,6 +420,8 @@ private struct LegalDocumentEditorView: View {
         .padding(.bottom, 16)
         .disabled(isSaving || isPublishing || presentation != nil || !currentSession)
     }
+
+    private var focusedBodyHeight: CGFloat { verticalSizeClass == .compact ? 100 : 180 }
 
     private func changeSummaryBinding(locale: String) -> Binding<String> {
         Binding(
@@ -420,16 +447,18 @@ private struct LegalDocumentEditorView: View {
     }
 
     private var localizedTitleBinding: Binding<String> {
-        Binding(
-            get: { draft.locales[selectedLocale]?.title ?? "" },
-            set: { updateLocale(title: $0, markdown: nil) }
+        let locale = selectedLocale
+        return Binding(
+            get: { draft.locales[locale]?.title ?? "" },
+            set: { updateLocale(title: $0, markdown: nil, locale: locale) }
         )
     }
 
     private var localizedMarkdownBinding: Binding<String> {
-        Binding(
-            get: { draft.locales[selectedLocale]?.contentMarkdown ?? "" },
-            set: { updateLocale(title: nil, markdown: $0) }
+        let locale = selectedLocale
+        return Binding(
+            get: { draft.locales[locale]?.contentMarkdown ?? "" },
+            set: { updateLocale(title: nil, markdown: $0, locale: locale) }
         )
     }
 
@@ -532,6 +561,7 @@ private struct LegalDocumentEditorView: View {
 
     private func handleBack() {
         guard !isSaving, !isPublishing else { return }
+        focusedField = nil
         guard hasUnsavedChanges else { dismiss(); return }
         presentation = .close(normalizedDraft)
     }
