@@ -1,7 +1,7 @@
 {
   "block": 19,
   "date": "2026-10-28",
-  "status": "in_progress_actual_read_only_check_passed",
+  "status": "recorded_owner_device_read_and_local_editor_scenarios_passed_with_explicit_limits",
   "artifactBase": "build/physical-acceptance11-19-20261027",
   "confirmedChecks": [
     {
@@ -43,13 +43,12 @@
     "isEnabled": false,
     "updateTime": "2026-09-09T15:44:18.535649Z",
     "conclusion": "Actual production config unchanged since September9, no save occurred during current test. Preview is explicitly hidden after save; no payment/external URL invoked.",
-    "independentFinal": "p17to19-final-production-readback.json:42actual documents read,0changed, including all captured legal pointers/versions and appConfig/donation."
+    "independentFinal": "build/physical-resume-20261028/final-production-readback.json:42 exact production documents compared;0 changed after final discard/reopen."
   },
   "remaining": [
-    "Full compact exit/cancel/discard repeat with corrected centred-Back driver",
-    "Focused actual maximum-text collapsed/expanded preview-header pixel review",
-    "Exact external merchant destination behind PayPal authentication remains separate unverified boundary; no financial sign-in requested",
-    "VoiceOver spoken interaction not claimed; separate existing SDK/emulator role/write/conflict evidence retained"
+    "Spoken VoiceOver interaction is unverified; existing isolated role/write/conflict evidence is separate from owner-device acceptance.",
+    "External native PayPal handoff and return were observed earlier; exact merchant screen behind authentication/payment was not verified or acted on.",
+    "Real external-provider translation quality and a physically dropped Firestore acknowledgement are unverified; existing SDK/contract/recovery evidence retained separately."
   ],
   "settingsRestoration": {
     "lastConfirmed": {
@@ -60,9 +59,8 @@
       "reduceTransparency": false
     },
     "restoreRequired": false,
-    "pendingCommand": null,
-    "native": "P19CompactFinalRestoreNative.xcresult passed",
-    "app": "P19SystemRestoreAfterInterruptedSliderAttempt.xcresult passed; exact language/appearance labels checked after selection."
+    "native": "build/physical-resume-20261028/RestoreNative.xcresult:1passed0failed0skipped",
+    "app": "build/physical-resume-20261028/RestoreApp.xcresult:1passed0failed0skipped; actual screenshot uk/system reviewed"
   },
   "maximumPixelReview": "All7named German/light/maximum fields, URL keyboard and bilingual preview captures inspected.",
   "partialAttempts": [
@@ -71,13 +69,29 @@
       "acceptedAsComplete": false,
       "scope": "Message typing/whole-field keyboard bounds passed. Traversal back to title failed before title/discard assertions; retained failed bundle.",
       "reason": "Recorded repeated downward scrolling at bottom while next intended target was above. Physical screenshot confirmed current bottom content; explicit toward-top intent now overrides offscreen AX bounds in driver. No server write occurred."
+    },
+    {
+      "result": "build/physical-resume-20261028/P19LandscapeComplete.xcresult",
+      "automatedResult": "1 passed / 0 failed / 0 skipped",
+      "acceptedAsLandscapeProof": false,
+      "reason": "Actual orientation changed from Landscape Right to Portrait at24.67s. All six final screenshots are portrait; software-keyboard nodes existed but pixels did not show keyboard. Preserved as local discard/reopen evidence only; strengthened capture guards and true landscape repeat required."
+    },
+    {
+      "result": "build/physical-resume-20261028/P19StrictLandscape.xcresult",
+      "acceptedAsComplete": false,
+      "reason": "Orientation remained landscape, but physical recording at67s shows local typed body and no software keyboard. Strict visible-keyboard geometry assertion correctly failed with0pt height. Testing isolation from Device Hub remote input; no app failure inferred or guard relaxed."
+    },
+    {
+      "result": "build/physical-resume-20261028/P19LandscapeWithoutRemoteInput.xcresult",
+      "acceptedAsComplete": false,
+      "reason": "Stopped own driver after observed alternating up/down gestures repeatedly overshot the message field. No keyboard-phase conclusion; source of absent keyboard not attributed to Device Hub. Changed landscape traversal to short slow drags."
     }
   ],
-  "previewFinding": "Actual max Ukrainian collapsed preview label broke a word because its scalable arrow consumed text width; use vertical title/chevron layout at accessibility sizes and fixed decorative arrow size. Final signed repeat pending.",
+  "previewFinding": "Resolved: signed maximum-text collapsed/expanded label captures inspected; see maximumPreviewFinal.",
   "landscapeFinding": {
     "firstResult": "P19ActualLandscapeLocalKeyboard.xcresult failed whole-field bound: active message maxY216, Save starts164.",
     "fix": "Opt-in scrolling header during compact-height input;100pt focused compact message,180pt in portrait/unfocused.",
-    "repeat": "Pending rebuilt signed copy."
+    "repeat": "Full final signed landscape repeat passed; see compactInputFinal."
   },
   "installedEditorSourceCommit": "e87fa424601fcc373fdf5e389204700c736d6699",
   "installedCopy": "install-compact-editor-followup.json; locally signed Release1.2.1(129); no TestFlight delivery in this follow-up.",
@@ -85,7 +99,7 @@
     "result": "P19FixedCompactLandscapeLocalKeyboard.xcresult",
     "acceptedAsComplete": false,
     "verifiedScope": "Actual landscape window, typed local title/body, complete active field bounds above Save/keyboard, preview opened. Input captures inspected.",
-    "remainingFailure": "Driver rejected centred Back button because its filter required minX<100. Full exit/cancel/discard repeat remains open; Back selector now accounts for centred landscape header and current identifier.",
+    "remainingFailure": "Resolved by compactInputFinal; older incomplete bundle is preserved as partial evidence.",
     "driverBuild": "build-focused-preview-driver.log TEST BUILD SUCCEEDED; not yet rerun while waiting for locked-push user step."
   },
   "externalLinkAttempt": {
@@ -94,5 +108,35 @@
     "evidence": "p19-external-first/actual-destination-at42.png extracted from real XCTest recording.",
     "boundary": "Safari-address assertion cannot prove a native financial app target. Exact merchant screen remains unverified behind external authentication; next app-preference run successfully returned to UAC.",
     "productionConfig": "No URL/config edit or financial transaction performed."
-  }
+  },
+  "maximumPreviewFinal": {
+    "result": "build/physical-acceptance11-19-20261027/P19FinalMaximumPreviewHeaderReadOnly.xcresult",
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "pixelReview": "All3 final captures inspected on resume: entire collapsed/expanded Ukrainian preview label wraps without split word; disabled Save; visibility notice and language picker. Real maximal text fixture on signed iPhone."
+  },
+  "keyboardIsolation": {
+    "result": "build/physical-resume-20261028/P19URLKeyboardProbe.xcresult",
+    "passed": 1,
+    "failed": 0,
+    "scope": "Actual landscape URL focus, visible software keyboard177pt high intersecting956x440 app window; screenshot and exact input geometry reviewed. URL/config untouched."
+  },
+  "driverCorrectionsOnResume": [
+    "Check landscape at every named key capture; initial orientation alone did not hold during first attempt.",
+    "Require visible keyboard intersection, not only an AX node. Save screenshots and geometry before failing a guard.",
+    "Use shorter slow compact-height drags to avoid repeated overshooting.",
+    "Wait for actual visible software keyboard and whole focused-field bounds before text injection; same strict assertions retained after typing."
+  ],
+  "compactInputFinal": {
+    "result": "build/physical-resume-20261028/P19FinalSettledLandscape.xcresult",
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "source": "dcc38651 app source; updated physical driver only",
+    "scope": "Actual signed owner iPhone, Ukrainian/system dark, landscape retained at every key capture. Visible software keyboard before and after typing; entire focused title/message above Save and keyboard. Preview expand, cancel exit, discard, exact independent reopened original title/body, Save disabled. No configuration save.",
+    "pixelReview": "All6 named final2868x1320 screenshots inspected; source captures, geometry, result and contact sheet retained in build/physical-resume-20261028/p19-final-settled.",
+    "settingsAfter": "Test teardown restores portrait and existing session; no appearance/native preference mutations."
+  },
+  "completedOnResume": "2026-10-28T17:55:20.866998+00:00"
 }

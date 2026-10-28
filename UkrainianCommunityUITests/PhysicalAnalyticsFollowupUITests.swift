@@ -623,6 +623,23 @@ final class PhysicalAnalyticsFollowupUITests: XCTestCase {
         testActualSupportLocalMessageKeyboardAndDiscard()
     }
 
+    func testActualSupportLandscapeURLKeyboardReadOnly() {
+        let app = XCUIApplication(); profileRoot(app)
+        let entry = app.buttons["profile.owner.donationSettings"].firstMatch
+        reveal(entry, app); entry.tap()
+        let url = app.textFields["donation.edit.url"].firstMatch
+        XCTAssertTrue(url.waitForExistence(timeout: 30))
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in app.frame.width > app.frame.height }, object: nil)], timeout: 10), .completed)
+        reveal(url, app); url.tap()
+        let visible = NSPredicate { _, _ in app.keyboards.firstMatch.exists && app.keyboards.firstMatch.frame.intersection(app.frame).height > 100 }
+        let result = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: visible, object: nil)], timeout: 10)
+        capture(app, "physical-p19-landscape-url-keyboard")
+        XCTAssertEqual(result, .completed)
+        app.coordinate(withNormalizedOffset: .init(dx: 0.02, dy: 0.35)).tap()
+        profileRoot(app)
+    }
+
     func testActualSupportExternalLinkReturn() throws {
         let app = XCUIApplication(); profileRoot(app)
         let entry = app.buttons["profile.owner.donationSettings"].firstMatch
@@ -703,7 +720,10 @@ final class PhysicalAnalyticsFollowupUITests: XCTestCase {
         reveal(title, app); let originalTitle = title.value as? String
         reveal(message, app); let originalMessage = message.value as? String
         let save = app.buttons["donation.edit.save"].firstMatch
-        message.tap(); message.typeText(" UAC TEST19")
+        message.tap()
+        waitForVisibleSoftwareKeyboard(app)
+        XCTAssertLessThan(message.frame.maxY, min(save.frame.minY, app.keyboards.firstMatch.frame.minY))
+        message.typeText(" UAC TEST19")
         XCTAssertTrue((message.value as? String ?? "").contains("UAC TEST19"))
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 10))
         capture(app, "physical-p19-actual-local-message-keyboard")
@@ -711,7 +731,10 @@ final class PhysicalAnalyticsFollowupUITests: XCTestCase {
         XCTAssertGreaterThanOrEqual(message.frame.minY, app.frame.minY)
         app.coordinate(withNormalizedOffset: .init(dx: 0.02, dy: 0.35)).tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 10))
-        reveal(title, app, towardTop: true); title.tap(); title.typeText(" UAC TEST19")
+        reveal(title, app, towardTop: true); title.tap()
+        waitForVisibleSoftwareKeyboard(app)
+        XCTAssertLessThan(title.frame.maxY, min(save.frame.minY, app.keyboards.firstMatch.frame.minY))
+        title.typeText(" UAC TEST19")
         XCTAssertTrue((title.value as? String ?? "").contains("UAC TEST19"))
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 10))
         XCTAssertLessThan(title.frame.maxY, min(save.frame.minY, app.keyboards.firstMatch.frame.minY))
@@ -795,7 +818,11 @@ final class PhysicalAnalyticsFollowupUITests: XCTestCase {
     private func profileRoot(_ app: XCUIApplication) {
         app.activate()
         for _ in 0..<8 { guard popOne(app, required: false) else { break } }
-        let profile = app.tabBars.buttons["tab.profile"].firstMatch
+        let taggedProfile = app.tabBars.buttons["tab.profile"].firstMatch
+        let nativeProfile = app.tabBars.buttons.matching(NSPredicate(format: "label IN %@", ["Профіль", "Profil", "Profile"])).firstMatch
+        // iOS can recreate native tab items during rotation without retaining
+        // the SwiftUI test identifier. Keep the same real tab/selection check.
+        let profile = taggedProfile.exists ? taggedProfile : nativeProfile
         XCTAssertTrue(profile.waitForExistence(timeout: 20))
         if profile.isHittable { profile.tap() }
         else {
@@ -843,8 +870,9 @@ final class PhysicalAnalyticsFollowupUITests: XCTestCase {
                     x = (editor.frame.maxX + 8) / app.frame.width
                 }
             }
-            app.coordinate(withNormalizedOffset: .init(dx: x, dy: down ? 0.35 : 0.65))
-                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: .init(dx: x, dy: down ? 0.65 : 0.35)))
+            let compact = app.frame.width > app.frame.height
+            app.coordinate(withNormalizedOffset: .init(dx: x, dy: down ? (compact ? 0.44 : 0.35) : (compact ? 0.56 : 0.65)))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: .init(dx: x, dy: down ? (compact ? 0.56 : 0.65) : (compact ? 0.44 : 0.35))), withVelocity: .slow, thenHoldForDuration: 0.2)
         }
         XCTAssertTrue(element.exists && element.isHittable,
                       "Unreached target \(element.identifier), frame \(element.frame), window \(app.frame)")
@@ -854,5 +882,26 @@ final class PhysicalAnalyticsFollowupUITests: XCTestCase {
         XCTAssertEqual(app.state, .runningForeground)
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
+        if self.name.contains("LandscapeLocalKeyboard") {
+            XCTAssertGreaterThan(app.frame.width, app.frame.height,
+                                 "The physical device must remain landscape throughout the scenario")
+        }
+        if name.hasSuffix("-keyboard") {
+            let geometry = XCTAttachment(string: "app=\(app.frame) keyboard=\(app.keyboards.firstMatch.frame)\n" + app.debugDescription)
+            geometry.name = name + "-visible-input-geometry"; geometry.lifetime = .keepAlways; add(geometry)
+            let visibleKeyboard = app.keyboards.firstMatch.frame.intersection(app.frame)
+            XCTAssertGreaterThan(visibleKeyboard.height, 100,
+                                 "An offscreen keyboard AX node is not evidence of visible software input")
+            XCTAssertGreaterThan(visibleKeyboard.width, 100)
+        }
+    }
+
+    private func waitForVisibleSoftwareKeyboard(_ app: XCUIApplication) {
+        let visible = NSPredicate { _, _ in
+            app.keyboards.firstMatch.exists
+                && app.keyboards.firstMatch.frame.intersection(app.frame).height > 100
+        }
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: visible, object: nil)], timeout: 10), .completed,
+                       "Wait for actual software input and focus scrolling before injecting text")
     }
 }

@@ -1,7 +1,7 @@
 {
   "block": 18,
   "date": "2026-10-28",
-  "status": "history_load_defect_fixed_actual_repeat_passed_remaining_physical_checks_open",
+  "status": "recorded_owner_device_read_and_local_editor_scenarios_passed",
   "artifactBase": "build/physical-acceptance11-19-20261027",
   "firstAttempt": {
     "result": "P18ActualOwnerReadersAndHistory.xcresult",
@@ -28,8 +28,7 @@
   },
   "productionSnapshot": "p18-documents-before-fix.json",
   "remaining": [
-    "Full compact exit/cancel/discard repeat with corrected centred-Back driver",
-    "VoiceOver spoken interaction/fresh legal-change APNs are separate unverified boundaries; no legal acceptance/registration/publication performed. Existing real SDK/handler role/publication evidence remains separate."
+    "Spoken VoiceOver interaction and fresh legal-change APNs remain explicitly unverified; no new legal acceptance/registration/publication performed. Existing role/handler evidence retained separately."
   ],
   "confirmedChecks": [
     {
@@ -80,12 +79,12 @@
     "normalRepeat": "P18FinalFocusBilingualNormal.xcresult passed; all4captures inspected.",
     "maximumRepeat": "P18FinalFocusBilingualMaximum.xcresult:1passed0failed, all4captures inspected; active TextEditor fits above Save and keyboard with inner content scrolling."
   },
-  "productionReadback": "p17to19-final-production-readback.json:42actual documents read,0changed versus captured legal pointers/versions and support config.",
+  "productionReadback": "build/physical-resume-20261028/final-production-readback.json:42 exact production documents compared after final local-only editor tests;0 changed.",
   "landscapeFinding": {
     "firstResult": "P18ActualLandscapeLocalKeyboard.xcresult failed strict whole-field keyboard bounds at body focus. Portrait title/local-language checks reached and passed; whole landscape scenario not accepted.",
     "pixel": "p18-first-landscape/failed-body-keyboard-at85s.png extracted from actual XCTest recording. Shows field under pinned Save/header.",
     "fix": "Opt-in scrolling header only during compact-height input,100pt focused compact body; normal portrait unchanged.",
-    "repeat": "Pending rebuilt signed copy."
+    "repeat": "Final full signed landscape repeat passed; see compactInputFinal."
   },
   "installedEditorSourceCommit": "e87fa424601fcc373fdf5e389204700c736d6699",
   "installedCopy": "install-compact-editor-followup.json; locally signed Release1.2.1(129); no TestFlight delivery in this follow-up.",
@@ -93,7 +92,7 @@
     "result": "P18FixedCompactLandscapeLocalKeyboard.xcresult",
     "acceptedAsComplete": false,
     "verifiedScope": "Actual landscape window, typed local title/body, complete active field bounds above Save/keyboard, preview opened. Input captures inspected.",
-    "remainingFailure": "Driver rejected centred Back button because its filter required minX<100. Full exit/cancel/discard repeat remains open; Back selector now accounts for centred landscape header and current identifier.",
+    "remainingFailure": "Resolved by P18FinalCentredBackLandscapeEditor.xcresult:1 passed/0 failed/0 skipped; current-width Back selector and local full exit/cancel/discard path passed.",
     "driverBuild": "build-focused-preview-driver.log TEST BUILD SUCCEEDED; not yet rerun while waiting for locked-push user step."
   },
   "settingsRestoration": {
@@ -105,8 +104,14 @@
       "reduceTransparency": false
     },
     "restoreRequired": false,
-    "pendingCommand": null,
-    "native": "P19CompactFinalRestoreNative.xcresult passed",
-    "app": "P19SystemRestoreAfterInterruptedSliderAttempt.xcresult passed; exact language/appearance labels checked after selection."
+    "native": "build/physical-resume-20261028/RestoreNative.xcresult:1passed0failed0skipped",
+    "app": "build/physical-resume-20261028/RestoreApp.xcresult:1passed0failed0skipped; exact uk/system labels and screenshot checked"
+  },
+  "compactInputFinal": {
+    "result": "build/physical-acceptance11-19-20261027/P18FinalCentredBackLandscapeEditor.xcresult",
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "pixelReview": "All four named final landscape captures inspected on resume: local title/body keyboard fully above Save and keyboard; draft preview; leave confirmation. No publish/save action performed."
   }
 }

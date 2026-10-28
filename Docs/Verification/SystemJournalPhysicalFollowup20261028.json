@@ -119,5 +119,11 @@
     "sha": "f7db35b217c0d7c56860e69bf380d88d4ff2f55f",
     "conclusion": "success",
     "scope": "Journal client layout/loading corrections, actual hosted iOS build/unit checks completed; Firebase affected checks skipped because unchanged in that commit."
+  },
+  "resumeVerification": {
+    "date": "2026-10-28T17:55:20.866998+00:00",
+    "pixelReview": "Both retained exact-target/review screenshots inspected; no new push or journal mutation.",
+    "productionReadback": "build/physical-resume-20261028/p17-controlled-record-after-review.json and p17-inbox-after-visible-target.json; actual isReviewed=true and isRead=true.",
+    "boundary": "Retained actual APNs/tap proof from prior run; not a fresh push."
   }
 }

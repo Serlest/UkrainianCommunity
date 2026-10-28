@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "status": "in_progress",
-  "updatedAt": "2026-10-28T07:06:00.184167+00:00",
+  "status": "recorded_paused_backlog_completed_with_explicit_limits",
+  "updatedAt": "2026-10-28T17:55:20.866998+00:00",
   "scope": "Only outstanding physical checks from blocks11–19; retain existing source/emulator/simulator evidence. Each remaining scenario is observed step by step.",
   "userConstraints": [
     "Primary iPhone is the visual/interaction acceptance device.",
@@ -15,8 +15,8 @@
     "iPhone": {
       "account": "Serlest",
       "role": "appOwner",
-      "sourceBase": "e87fa424601fcc373fdf5e389204700c736d6699 UI sources plus preserved pre-existing project/catalog changes; named physical driver follow-up uncommitted.",
-      "installation": "Locally signed Release1.2.1(129), install-compact-editor-followup.json. Source code committed locally; shared proof/test follow-up will be pushed together. No new TestFlight upload."
+      "sourceBase": "dcc38651419ad9704e7b9b0ad8bc13c007b6bbac product UI plus preserved pre-existing project/catalog changes; current physical test-driver follow-up.",
+      "installation": "Explicit locally signed Release1.2.1(136) installation: build/physical-resume-20261028/install.json. No new TestFlight upload in this run."
     },
     "Mac": {
       "account": "Serlest Gmail",
@@ -106,19 +106,21 @@
     {
       "block": 18,
       "name": "Правовые документы и согласия",
-      "status": "in_progress_actual_history_defect_fixed_repeat_passed",
+      "status": "recorded_owner_device_read_and_local_editor_scenarios_passed",
       "remainingBeforeThisRun": [
         "Signed physical iPhone, VoiceOver, increased contrast/reduced transparency and narrow/landscape acceptance; phone unavailable.",
         "No real registration per user boundary; no real external translation-provider quality assessment.",
         "New TestFlight delivery when requested; build129 excludes blocks17–18."
       ],
       "existingEvidence": "Docs/Verification/LegalFixes20261027.json",
-      "followupReport": "Docs/Verification/LegalPhysicalFollowup20261028.json"
+      "followupReport": "Docs/Verification/LegalPhysicalFollowup20261028.json",
+      "remainingAfterThisRun": [],
+      "acceptanceBoundary": "Agreed paused checkpoint scenarios complete; broader unverified/excluded scenarios remain explicitly listed in the per-block report and notCompleted."
     },
     {
       "block": 19,
       "name": "Поддержка проекта",
-      "status": "in_progress_actual_readonly_keyboard_preview_passed",
+      "status": "recorded_owner_device_read_and_local_editor_scenarios_passed_with_explicit_limits",
       "remainingBeforeThisRun": [
         "Signed physical iPhone, VoiceOver spoken interaction and OS transparency/contrast settings remain pending; Serlest Mobile unavailable.",
         "Real external-site return/payment and real provider translation quality were not invoked; provider-free UI/contract evidence is separate.",
@@ -126,7 +128,9 @@
         "Hosted CI status is recorded exactly above; a running or pending run is not passed. No TestFlight upload/public release in this turn."
       ],
       "existingEvidence": "Docs/Verification/ProjectSupportFixes20261027.json",
-      "followupReport": "Docs/Verification/ProjectSupportPhysicalFollowup20261028.json"
+      "followupReport": "Docs/Verification/ProjectSupportPhysicalFollowup20261028.json",
+      "remainingAfterThisRun": [],
+      "acceptanceBoundary": "Agreed paused checkpoint scenarios complete; broader unverified/excluded scenarios remain explicitly listed in the per-block report and notCompleted."
     }
   ],
   "acceptedChecks": [
@@ -273,9 +277,10 @@
     "Use only controlled test records for messages/status changes. Keep real user content, permissions and production publication unchanged."
   ],
   "notCompleted": [
-    "Blocks15–19 remain open;11–14 connected-device checks completed in their explicitly recorded scope.",
-    "Full physical role/OS accessibility matrix remains open until individually observed.",
-    "No claim that all tests or all19 blocks are physically complete."
+    "P16 measured cold service startup14.266s remains an open performance finding; warm requests0.163–0.290s. No scaling/billing change performed.",
+    "Spoken VoiceOver, a second smaller physical device and full all-role physical matrix are unverified; retained source/emulator/simulator role evidence is separate.",
+    "Exact merchant screen/payment behind external PayPal authentication, real provider translation quality and physically dropped Firestore acknowledgement are unverified.",
+    "No new registration/legal acceptance/publication; declined or unapproved consequential actions not performed. No claim that every possible19-block scenario has been executed on the physical phone."
   ],
   "notificationPermissionCheck": {
     "authorization": "User approved temporarily disabling UAC notifications in iOS and restoring initial state, 2026-10-27.",
@@ -303,30 +308,17 @@
     "result": "With iOS permission OFF, existing in-app push preference remains ON and explicit system-denied warning plus Open iPhone Settings button appeared. That button opened exact UAC system notification settings. Restored Allow Notifications ON; original three alert destinations, sounds, badges, Watch forwarding, temporary banner and Never previews retained. Returned via system UAC breadcrumb; warning disappeared without app restart."
   },
   "sourceCI": {
-    "headSha": "20d49e16f558856fd283d485bb710fbf603c5562",
-    "runID": 40574879365,
-    "status": "pending",
-    "conclusion": null,
-    "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40574879365",
-    "previousFailure": {
-      "runID": 40566011225,
-      "failedTest": "ProjectSupportRecoveryTests.checksumSurvivesJournalRedactionWithoutOpeningCredentialBypass",
-      "reason": "One stale assertion expected root tabs on notifications; intended new owning-stack policy hides them, confirmed on installed phone. 968 other tests passed.",
-      "fixCommit": "47264d81",
-      "localRegression": {
-        "result": "RouteAndSupportRegression.xcresult",
-        "passed": 11,
-        "failed": 0,
-        "skipped": 0
-      }
+    "headSha": "dcc38651419ad9704e7b9b0ad8bc13c007b6bbac",
+    "runID": 40726781677,
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40726781677",
+    "priorPausedDriver": {
+      "headSha": "bed7188465e3def343e7e6bb923fbf286979bf16",
+      "runID": 40648049651,
+      "conclusion": "success"
     },
-    "precedingCorrectedTestRun": {
-      "headSha": "47264d81a1dd72933314fb1b3cab39e80f624035",
-      "runID": 40570953176,
-      "status": "in_progress",
-      "conclusion": null
-    },
-    "boundary": "Pending hosted validation of the new banner tab-bar source fix; local regression16passed. No hosted pass claimed."
+    "boundary": "Product code unchanged during this resume. These hosted successes do not describe the later physical-driver/report-only follow-up commit."
   },
   "notificationPhysicalAcceptance": {
     "status": "passed_remaining_N13-57_conditions",
@@ -364,5 +356,45 @@
   },
   "bannerPhysicalFollowup": "Docs/Verification/BannersPhysicalFollowup20261027.json",
   "continuedOn": "2026-10-28",
-  "userActionPending": null
+  "userActionPending": null,
+  "pauseRequestedByUser": false,
+  "resumeCheckpoint": {
+    "reason": "User explicitly asked to stop for work and continue this evening. No automatic continuation, device input or additional push.",
+    "completed": "All agreed paused checkpoint items: P19 full strict landscape typing/preview/cancel/discard/reopen, final P17/P18/P19 pixels,42document independent production comparison, settings restoration and hosted CI reconciliation.",
+    "remaining": "None within the agreed paused checkpoint; broader explicit limits and P16 performance finding remain in notCompleted.",
+    "settings": {
+      "language": "uk",
+      "appearance": "system",
+      "largerDynamicType": false,
+      "textPercent": 50,
+      "reduceTransparency": false
+    },
+    "driverBuild": "build/physical-resume-20261028/build-settled-input-driver.log TEST BUILD SUCCEEDED",
+    "source": "Product source dcc38651; focused driver/docs handoff to be committed separately.",
+    "resumedOn": "2026-10-28",
+    "resumeAuthorization": "User is home and explicitly requested continuing all unfinished tests to completion.",
+    "currentRun": "build/physical-resume-20261028",
+    "closedAt": "2026-10-28T17:55:20.866998+00:00"
+  },
+  "resumeExecution": {
+    "artifactBase": "build/physical-resume-20261028",
+    "acceptedCurrentRuns": [
+      "P19FinalSettledLandscape.xcresult",
+      "P19URLKeyboardProbe.xcresult",
+      "RestoreNative.xcresult",
+      "RestoreApp.xcresult"
+    ],
+    "acceptedCurrentCounts": "Each1passed0failed0skipped; these4 scoped checks are not the total audit scenario count.",
+    "retainedPriorResultsReviewed": [
+      "P18FinalCentredBackLandscapeEditor.xcresult",
+      "P19FinalMaximumPreviewHeaderReadOnly.xcresult",
+      "P17ActualControlledPushTargetAndReview.xcresult"
+    ],
+    "supersededAttempts": [
+      "P19LandscapeComplete.xcresult:raw pass rejected as landscape proof because physical orientation changed to portrait.",
+      "P19StrictLandscape.xcresult:failed visible-keyboard guard; no false pass.",
+      "P19LandscapeWithoutRemoteInput.xcresult:interrupted oscillating scroll driver; no keyboard conclusion."
+    ],
+    "cleanup": "No new push/messages/config publication.42production documents unchanged; reviewed test journal entry retained. Original visual settings restored, primary account kept."
+  }
 }

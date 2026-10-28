@@ -509,7 +509,9 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         }
         returnFromPushedScreens(app)
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))
-        let profile = app.tabBars.buttons["tab.profile"].firstMatch
+        let taggedProfile = app.tabBars.buttons["tab.profile"].firstMatch
+        let nativeProfile = app.tabBars.buttons.matching(NSPredicate(format: "label IN %@", ["Профіль", "Profil", "Profile"])).firstMatch
+        let profile = taggedProfile.exists ? taggedProfile : nativeProfile
         XCTAssertTrue(profile.waitForExistence(timeout: 20), "Return from a tab-bar-hidden screen before selecting Profile")
         if profile.isHittable { profile.tap() }
         else {
