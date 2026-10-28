@@ -20,7 +20,13 @@ struct SeasonalAuditHarness: View {
     @State private var effects = ProcessInfo.processInfo.environment["UITestSeasonalEffects"] != "0"
     @State private var theme = Self.fixture()
     private static func fixture() -> SeasonalTheme {
-        var theme = SeasonalTheme.halloween()
+        let preset=ProcessInfo.processInfo.environment["UITestSeasonalScope"] ?? "home"
+        var theme:SeasonalTheme = switch preset {
+        case "gta": .gtaVI()
+        case "christmas": .christmas()
+        case "newyear": .newYear()
+        default: .halloween()
+        }
         if ProcessInfo.processInfo.environment["UITestSeasonalCustomArtwork"] == "1" {
             theme.elements[0].artwork = .image
             theme.elements[0].pngFrames = [UIColor.magenta, UIColor(red:1,green:0.1,blue:0.9,alpha:1)].map { color in
@@ -59,7 +65,7 @@ struct SeasonalAuditHarness: View {
                                             VStack(alignment: .leading) {
                                                 Text(AppStrings.Tabs.home).font(.caption).foregroundStyle(.green)
                                                 Text(AppStrings.Home.brandTitle).font(.headline)
-                                                Text(verbatim: "Halloween · 31.10").font(.subheadline).foregroundStyle(AppTheme.textSecondary)
+                                                Text(verbatim: scope == "scroll" ? "Halloween · 31.10" : theme.name).font(.subheadline).foregroundStyle(AppTheme.textSecondary)
                                             }
                                             Spacer()
                                         }.padding().background(AppTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: 18))
@@ -69,7 +75,7 @@ struct SeasonalAuditHarness: View {
                                 }.padding(.horizontal, AppTheme.pageHorizontal)
                             }
                             .background { AppBackgroundView() }
-                            .environment(\.seasonalHeaderActive,effects)
+                            .environment(\.seasonalHeaderActive,effects && theme.usesHeaderDock)
                             .environment(\.seasonalHeaderTheme,effects ? theme:nil)
                             .overlayPreferenceValue(SeasonalHeaderAnchors.self) { anchors in
                                 if effects { SeasonalDecorationLayer(theme:theme,anchors:anchors,embedsHeaderPumpkin:true).ignoresSafeArea(.container,edges:.top) }

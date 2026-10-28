@@ -13,6 +13,22 @@ import UIKit
     private func shot(_ name: String) {
         let attachment=XCTAttachment(screenshot:XCUIApplication().screenshot());attachment.name=name;attachment.lifetime = .keepAlways;add(attachment)
     }
+    func testPreparedScenesLightDarkAndSharedHeaderGeometry() throws {
+        let baselineApp=launch(scope:"gta",effects:false)
+        XCTAssertTrue(baselineApp.buttons["seasonal.fixture.bell"].waitForExistence(timeout:15))
+        let baseline=baselineApp.buttons["seasonal.fixture.bell"].frame.minY;baselineApp.terminate()
+        for scope in ["gta","christmas","newyear"] {
+            for appearance in ["light","dark"] {
+                let app=launch(scope:scope,appearance:appearance)
+                let bell=app.buttons["seasonal.fixture.bell"]
+                XCTAssertTrue(bell.waitForExistence(timeout:15));XCTAssertTrue(bell.isHittable)
+                XCTAssertEqual(bell.frame.minY,baseline,accuracy:1)
+                shot("Seasonal-Prepared-"+scope+"-"+appearance)
+                app.terminate()
+            }
+        }
+    }
+
     func testScenePreservesHeaderPositionAndShowsDescent() throws {
         let off=launch(scope:"home",effects:false)
         let original=off.buttons["seasonal.fixture.bell"]
@@ -69,7 +85,12 @@ import UIKit
         app.swipeUp();app.swipeUp()
         XCTAssertFalse(bell.isHittable,"The long feed must actually scroll, rather than measuring no-op swipes")
         shot("SeasonalHeader-ScrolledOut")
-        for _ in 0..<6 where !bell.isHittable { app.swipeDown() }
+        for _ in 0..<8 {
+            if bell.isHittable && abs(bell.frame.minY-baseline)<1 { break }
+            app.swipeDown()
+        }
+        let restored=NSPredicate { _,_ in bell.isHittable && abs(bell.frame.minY-baseline)<1 }
+        XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:restored,object:nil)],timeout:5),.completed)
         XCTAssertTrue(bell.isHittable)
         XCTAssertEqual(bell.frame.minY,baseline,accuracy:1)
         shot("SeasonalHeader-RestoredAfterRealScroll")
@@ -151,8 +172,8 @@ import UIKit
     }
     func testEnabledThemePublishesOnlyAfterExplicitConfirmation() throws {
         let app=launch(scope:"management")
-        let add=app.buttons["Додати Хелловін"]
-        XCTAssertTrue(add.waitForExistence(timeout:15));add.tap()
+        let add=app.buttons["seasonal.library.addScene"]
+        XCTAssertTrue(add.waitForExistence(timeout:15));add.tap();app.buttons["Хелловін"].tap()
         let toggle=app.switches["Додати до розкладу"]
         for _ in 0..<8 where !toggle.exists || !toggle.isHittable { app.swipeUp() }
         XCTAssertTrue(toggle.exists && toggle.isHittable)
@@ -177,9 +198,9 @@ import UIKit
     func testLibrarySaveAndPublishAreSeparate() throws {
         let app=launch(scope:"management")
         XCTAssertTrue(app.otherElements["seasonal.management"].waitForExistence(timeout:15))
-        let add=app.buttons["Додати Хелловін"]
+        let add=app.buttons["seasonal.library.addScene"]
         for _ in 0..<8 where !add.isHittable { app.swipeUp() }
-        XCTAssertTrue(add.waitForExistence(timeout:10));add.tap()
+        XCTAssertTrue(add.waitForExistence(timeout:10));add.tap();app.buttons["Хелловін"].tap()
         let apply=app.buttons["seasonal.editor.apply"]
         XCTAssertTrue(apply.waitForExistence(timeout:10));apply.tap()
         let save=app.buttons["seasonal.saveLibrary"]

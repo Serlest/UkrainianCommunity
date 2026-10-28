@@ -124,10 +124,15 @@ struct SeasonalManagementView: View {
                                 Button(AppStrings.Action.delete, role: .destructive) { confirmation = .remove(theme.id) }
                             }
                         }
-                        Button { editing = .halloween() } label: {
-                            Label(SeasonalText.value("add", "Halloween hinzufügen"), systemImage: "plus.circle")
+                        Menu {
+                            Button(SeasonalText.value("presetHalloween", "Halloween")) { editing = .halloween() }
+                            Button(SeasonalText.value("presetGTA", "GTA VI · Vice Nights")) { editing = .gtaVI() }
+                            Button(SeasonalText.value("presetChristmas", "Weihnachten")) { editing = .christmas() }
+                            Button(SeasonalText.value("presetNewYear", "Neujahr")) { editing = .newYear() }
+                        } label: {
+                            Label(SeasonalText.value("addScene", "Szene hinzufügen"), systemImage: "plus.circle")
                                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).contentShape(Rectangle())
-                        }.disabled(model.library.themes.count >= 12)
+                        }.accessibilityIdentifier("seasonal.library.addScene").disabled(model.library.themes.count >= 12)
                         Button { imports = true } label: {
                             Label(SeasonalText.value("import", "Themenpaket importieren"), systemImage: "square.and.arrow.down")
                                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).contentShape(Rectangle())

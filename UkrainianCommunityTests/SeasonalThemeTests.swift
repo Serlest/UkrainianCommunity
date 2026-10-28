@@ -7,6 +7,27 @@ import FirebaseFirestore
 @MainActor struct SeasonalThemeTests {
     private func date(_ value: String) -> Date { ISO8601DateFormatter().date(from: value)! }
 
+    @Test func legacyStaticWebKeepsSpidersAndExplicitStopSurvivesRoundTrip() throws {
+        var theme = SeasonalTheme.halloween()
+        let web = try #require(theme.elements.firstIndex { $0.artwork == .web })
+        theme.elements[web].sway = 0
+        let legacy = try SeasonalLibrary.decode(SeasonalLibrary(themes: [theme]).encoded())
+        #expect(legacy.themes[0].elements[web].spiderMotion == nil)
+        #expect(legacy.themes[0].elements[web].motionStrength == 0.25)
+        theme.elements[web].spiderMotion = 0
+        let stopped = try SeasonalLibrary.decode(SeasonalLibrary(themes: [theme]).encoded())
+        #expect(stopped.themes[0].elements[web].motionStrength == 0)
+        theme.elements[web].spiderMotion = 0.7
+        #expect(try SeasonalLibrary.decode(SeasonalLibrary(themes: [theme]).encoded()) == SeasonalLibrary(themes: [theme]))
+        theme.elements[web].spiderMotion = .nan
+        #expect(throws: (any Error).self) { try theme.validate() }
+        theme.elements[web].spiderMotion = -0.1
+        #expect(throws: (any Error).self) { try theme.validate() }
+        theme.elements[web].spiderMotion = nil
+        theme.elements[0].spiderMotion = 0.2
+        #expect(throws: (any Error).self) { try theme.validate() }
+    }
+
     @Test func exactBoundariesAndSectionFiltering() throws {
         var theme = SeasonalTheme.halloween(now: date("2026-10-28T12:00:00Z"))
         theme.isEnabled = true; theme.sections = [.news]
@@ -182,5 +203,31 @@ import FirebaseFirestore
         guard documents[path]?.revision == expectedRevision else { throw SeasonalError.conflict }
         let result = SeasonalDocument(library: try library.validated(), revision: UUID().uuidString)
         documents[path] = result; return result
+    }
+}
+
+@MainActor struct SeasonalPreparedScenesTests {
+    @Test func draftsAreReusableBoundedAndNeverEnableThemselves() throws {
+        let themes=[SeasonalTheme.halloween(),.gtaVI(),.christmas(),.newYear()]
+        let library=SeasonalLibrary(themes:themes)
+        #expect(try SeasonalLibrary.decode(library.encoded()) == library)
+        for theme in themes {
+            #expect(!theme.isEnabled)
+            #expect(theme.sections == SeasonalSection.allCases)
+            #expect(theme.elements.count<=3)
+            #expect(library.active(at:theme.startsAt,section:.news)==nil)
+        }
+        #expect(!themes[1].repeatsYearly)
+        #expect(themes[2].repeatsYearly && themes[3].repeatsYearly)
+        #expect(!themes[1].usesHeaderDock && !themes[2].usesHeaderDock && !themes[3].usesHeaderDock)
+    }
+    @Test func annualNewYearKeepsOneWindowAcrossJanuary() throws {
+        let now=ISO8601DateFormatter().date(from:"2026-12-31T12:00:00Z")!
+        let scene=SeasonalTheme.newYear(now:now)
+        #expect(scene.contains(ISO8601DateFormatter().date(from:"2027-01-03T12:00:00Z")!))
+        #expect(scene.contains(ISO8601DateFormatter().date(from:"2028-01-03T12:00:00Z")!))
+        #expect(!scene.contains(ISO8601DateFormatter().date(from:"2027-07-01T12:00:00Z")!))
+        let christmas=SeasonalTheme.christmas(now:now)
+        #expect(christmas.contains(ISO8601DateFormatter().date(from:"2027-12-25T12:00:00Z")!))
     }
 }

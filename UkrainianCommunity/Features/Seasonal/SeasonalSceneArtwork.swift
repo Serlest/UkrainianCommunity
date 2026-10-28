@@ -1,7 +1,7 @@
 import SceneKit
 import UIKit
 
-/// Original procedural meshes and materials: no network assets, emoji or SF-symbol stand-ins.
+/// Original procedural 3D meshes and cached materials; no downloaded executable code.
 @MainActor enum SeasonalSceneArtwork {
     static func material(_ color: UIColor, roughness: CGFloat = 0.5, metalness: CGFloat = 0) -> SCNMaterial {
         let m = SCNMaterial(); m.lightingModel = .physicallyBased
@@ -43,11 +43,8 @@ import UIKit
         return false
     }
 
-    static func pumpkin() -> (root: SCNNode, ember: SCNMaterial, light: SCNLight) {
-        let root = SCNNode()
-        let skin = material(UIColor(red:0.86,green:0.29,blue:0.025,alpha:1),roughness:0.42)
-        // Fine skin variation keeps highlights from looking like smooth plastic.
-        let texture = UIGraphicsImageRenderer(size:CGSize(width:256,height:128)).image { context in
+    private static let pumpkinSkinTexture: UIImage = {
+        return UIGraphicsImageRenderer(size:CGSize(width:256,height:128)).image { context in
             for y in 0..<128 { for x in 0..<256 {
                 let grain = sin(Double(x)*37.1+Double(y)*71.7)*0.026
                 let rib = cos(Double(x)/256 * .pi * 20)*0.08
@@ -55,7 +52,13 @@ import UIKit
                 context.cgContext.fill(CGRect(x:x,y:y,width:1,height:1))
             } }
         }
-        skin.diffuse.contents = texture; skin.isDoubleSided = true
+    }()
+
+    static func pumpkin() -> (root: SCNNode, ember: SCNMaterial, light: SCNLight) {
+        let root = SCNNode()
+        let skin = material(UIColor(red:0.86,green:0.29,blue:0.025,alpha:1),roughness:0.42)
+        // Fine skin variation keeps highlights from looking like smooth plastic.
+        skin.diffuse.contents = pumpkinSkinTexture; skin.isDoubleSided = true
         var vertices:[SCNVector3]=[], normals:[SCNVector3]=[], uv:[CGPoint]=[], indices:[Int32]=[]
         let rows=72, columns=128
         for row in 0...rows {
@@ -96,72 +99,6 @@ import UIKit
 
     /// One cached antialiased silk mask on an 81-vertex sheet. The spiders stay 3D.
     /// Fine thread cylinders do not need thousands of lit/morphed vertices each frame.
-    static func web() -> SCNNode {
-        let root=SCNNode();root.name="web"
-        let silk=SCNMaterial();silk.lightingModel = .constant
-        silk.diffuse.contents=webTexture;silk.diffuse.minificationFilter = .linear
-        silk.diffuse.magnificationFilter = .linear;silk.diffuse.mipFilter = .linear
-        silk.isDoubleSided=true;silk.writesToDepthBuffer=false;silk.transparencyMode = .aOne
-        var vertices:[SCNVector3]=[],uv:[CGPoint]=[],indices:[Int32]=[]
-        // An explicit row at -42 keeps the whole upper attachment corridor pinned.
-        let rows:[Double]=[80,40,0,-42,-62,-82,-102,-122,-140]
-        for y in rows { for column in 0...8 {
-            let x = -140+Double(column)*35
-            vertices.append(SCNVector3(x,y,0));uv.append(CGPoint(x:(x+140)/280,y:(80-y)/220))
-        } }
-        for row in 0..<8 { for column in 0..<8 {
-            let a=Int32(row*9+column),b=a+1,c=a+9,d=c+1
-            indices += [a,c,b,b,c,d]
-        } }
-        let normals=Array(repeating:SCNVector3(0,0,1),count:vertices.count)
-        func geometry(_ points:[SCNVector3]) -> SCNGeometry {
-            let g=SCNGeometry(sources:[SCNGeometrySource(vertices:points),SCNGeometrySource(normals:normals),SCNGeometrySource(textureCoordinates:uv)],
-                              elements:[SCNGeometryElement(indices:indices,primitiveType:.triangles)])
-            g.firstMaterial=silk;return g
-        }
-        let mesh=SCNNode(geometry:geometry(vertices)),morph=SCNMorpher();morph.calculationMode = .additive
-        morph.targets=[1.0,-1.0].map { amount in geometry(vertices.map { vertex in
-            let p=SeasonalWebShape.displaced(CGPoint(x:Double(vertex.x),y:Double(vertex.y)),amount:amount)
-            return SCNVector3(Float(p.x),Float(p.y),vertex.z)
-        }) }
-        mesh.morpher=morph;root.addChildNode(mesh);return root
-    }
-
-    private static let webTexture:UIImage = {
-        let format=UIGraphicsImageRendererFormat();format.scale=3;format.opaque=false
-        return UIGraphicsImageRenderer(size:CGSize(width:280,height:220),format:format).image { renderer in
-            let context=renderer.cgContext
-            context.translateBy(x:140,y:80);context.scaleBy(x:1,y:-1)
-            context.setStrokeColor(UIColor.white.cgColor);context.setLineCap(.round);context.setLineJoin(.round)
-            let hub=CGPoint(x:-14,y:-23)
-            let angles:[Double]=[-0.12,0.24,0.68,1.10,1.49,1.97,2.39,2.86,3.35,3.81,4.25,4.82,5.29,5.81]
-            let lengths:[Double]=[1.05,0.88,1.12,0.94,1.08,0.90,1.03,0.86,1.10,0.93,1.05,0.89,1.12,0.97]
-            func point(_ ray:Int,_ fraction:Double) -> CGPoint {
-                let i=ray % angles.count,a=angles[i],r=fraction*lengths[i]
-                return CGPoint(x:hub.x+cos(a)*112*r,y:hub.y-sin(a)*82*r)
-            }
-            func curve(_ a:CGPoint,_ b:CGPoint,_ sag:Double,_ radius:CGFloat) {
-                context.beginPath();context.move(to:SeasonalWebShape.tapered(a))
-                for step in 1...6 {
-                    let t=Double(step)/6
-                    context.addLine(to:SeasonalWebShape.tapered(CGPoint(x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t-sin(t * .pi)*sag)))
-                }
-                context.setLineWidth(radius*2);context.strokePath()
-            }
-            for ray in angles.indices { curve(hub,point(ray,1.12),1.2,0.36) }
-            for ring in 1...7 { for ray in angles.indices {
-                if (ring==7 && [1,5,10].contains(ray)) || (ring==5 && ray==8) { continue }
-                let f=Double(ring)/7,jitter=sin(Double(ray)*2.3+Double(ring)*1.8)*0.022
-                curve(point(ray,f+jitter),point(ray+1,f+sin(Double(ray+1)*2.3+Double(ring)*1.8)*0.022),1.3+f*2.1,0.25+CGFloat(f)*0.05)
-            } }
-            curve(point(2,1.12),CGPoint(x:80,y:-112),2.8,0.23)
-            curve(point(5,1.12),CGPoint(x:-73,y:-116),1.9,0.22)
-            for (index,attachment) in SeasonalWebShape.attachments.enumerated() {
-                curve(point(index==0 ? 5:2,0.92),attachment,1.1,0.29)
-            }
-        }
-    }()
-
     static func spider() -> (root:SCNNode,legs:[SCNNode]) {
         let root=SCNNode(),shell=material(UIColor(red:0.085,green:0.055,blue:0.035,alpha:1),roughness:0.36,metalness:0.08)
         let body=sphere(3.6,material:shell);body.scale=SCNVector3(0.83,1.15,0.8);root.addChildNode(body)
@@ -178,22 +115,57 @@ import UIKit
         return (root,legs)
     }
 
+    private static let batFurTexture: UIImage = {
+        UIGraphicsImageRenderer(size: CGSize(width:128,height:128)).image { renderer in
+            UIColor(red:0.16,green:0.105,blue:0.075,alpha:1).setFill();renderer.fill(CGRect(x:0,y:0,width:128,height:128))
+            let c=renderer.cgContext;c.setLineWidth(0.45)
+            for i in 0..<1500 {
+                let x=Double((i*47)%128),y=Double((i*73)%128)
+                c.setStrokeColor(UIColor(white:i.isMultiple(of:3) ? 0.35:0.08,alpha:0.22).cgColor)
+                c.move(to:CGPoint(x:x,y:y));c.addLine(to:CGPoint(x:x+sin(Double(i))*1.2,y:y+3));c.strokePath()
+            }
+        }
+    }()
+    private static let batMembraneTexture: UIImage = {
+        UIGraphicsImageRenderer(size: CGSize(width:128,height:128)).image { renderer in
+            let c=renderer.cgContext
+            for y in 0..<128 {
+                let shade=0.10+Double(y)/128*0.07
+                c.setFillColor(UIColor(red:shade+0.08,green:shade,blue:shade-0.015,alpha:1).cgColor)
+                c.fill(CGRect(x:0,y:y,width:128,height:1))
+            }
+            c.setLineWidth(0.4);c.setStrokeColor(UIColor(red:0.04,green:0.025,blue:0.018,alpha:0.23).cgColor)
+            for i in 0..<34 {
+                let x=Double(i)*4
+                c.move(to:CGPoint(x:x,y:0));c.addQuadCurve(to:CGPoint(x:x+8,y:128),control:CGPoint(x:x+sin(Double(i))*4,y:66));c.strokePath()
+            }
+        }
+    }()
+
     static func bat() -> (root:SCNNode,wings:[SCNNode]) {
-        let root=SCNNode(),fur=material(UIColor(red:0.12,green:0.085,blue:0.13,alpha:1),roughness:0.72)
+        let root=SCNNode(),fur=material(UIColor(red:0.16,green:0.105,blue:0.075,alpha:1),roughness:0.9)
+        fur.diffuse.contents=batFurTexture
         let body=sphere(2.5,material:fur);body.scale=SCNVector3(0.85,1.5,0.8);root.addChildNode(body)
         let head=sphere(1.8,material:fur);head.position=SCNVector3(0,3.5,0);root.addChildNode(head)
         for side in [-1.0,1.0] {
-            let cone=SCNCone(topRadius:0.12,bottomRadius:0.75,height:2.8);cone.firstMaterial=fur
+            let cone=SCNCapsule(capRadius:0.48,height:2.6);cone.radialSegmentCount=10;cone.firstMaterial=fur
             let ear=SCNNode(geometry:cone);ear.position=SCNVector3(side,5.3,0);ear.eulerAngles.z=Float(-side*0.2);root.addChildNode(ear)
         }
-        let membrane=material(UIColor(red:0.20,green:0.105,blue:0.12,alpha:1),roughness:0.38,metalness:0.04);membrane.isDoubleSided=true
+        let muzzle=sphere(0.7,material:fur);muzzle.position=SCNVector3(0,3.2,1.3);root.addChildNode(muzzle)
+        let eyeMaterial=material(UIColor(white:0.018,alpha:1),roughness:0.15)
+        for side in [-1.0,1.0] {
+            let eye=sphere(0.20,material:eyeMaterial);(eye.geometry as? SCNSphere)?.segmentCount=8
+            eye.position=SCNVector3(side*0.63,3.9,1.55);root.addChildNode(eye)
+        }
+        let membrane=material(UIColor(red:0.20,green:0.12,blue:0.09,alpha:1),roughness:0.74)
+        membrane.diffuse.contents=batMembraneTexture;membrane.isDoubleSided=true
         var wings:[SCNNode]=[]
         for side in [-1.0,1.0] {
             let p=UIBezierPath();p.move(to:CGPoint(x:0,y:2));p.addCurve(to:CGPoint(x:side*17,y:8),controlPoint1:CGPoint(x:side*7,y:6),controlPoint2:CGPoint(x:side*11,y:12))
             p.addQuadCurve(to:CGPoint(x:side*12,y:-4),controlPoint:CGPoint(x:side*14,y:0))
             p.addQuadCurve(to:CGPoint(x:side*7,y:-3),controlPoint:CGPoint(x:side*10,y:0))
             p.addQuadCurve(to:CGPoint(x:0,y:-3),controlPoint:CGPoint(x:side*4,y:0));p.close()
-            let g=SCNShape(path:p,extrusionDepth:0.28);g.chamferRadius=0.12;g.firstMaterial=membrane
+            let g=SCNShape(path:p,extrusionDepth:0.14);g.chamferRadius=0.06;g.firstMaterial=membrane
             let wing=SCNNode();wing.addChildNode(SCNNode(geometry:g))
             for end in [SCNVector3(side*17,8,0.4),SCNVector3(side*12,-4,0.4),SCNVector3(side*7,-3,0.4)] {
                 wing.addChildNode(strand(from:SCNVector3(0,1,0.4),to:end,radius:0.16,material:fur))

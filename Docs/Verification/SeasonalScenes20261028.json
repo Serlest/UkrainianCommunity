@@ -1,0 +1,211 @@
+{
+  "date": "2026-10-28",
+  "scope": "Static realistic Halloween composition and reusable GTA VI, Christmas and New Year scene templates",
+  "sourceBase": "d176e074ce02206a3ae2d7b02ac2bf8dde63688d",
+  "status": "implemented_and_locally_verified_physical_acceptance_pending",
+  "implemented": [
+    "Cached upper-left quarter silk web; no animated mesh or morphers",
+    "First persistent spider on web strand; second below system cutout, via public window safe area",
+    "One motion source for bounded spider response; no pumpkin motion source or bobbing",
+    "Pumpkin candle fades near extinguished; small viewport follows real scrolling header",
+    "Cached realistic autumn leaves, fur/leather bat materials, four rare staggered approved flight paths",
+    "GTA VI original palm scene with cyan/pink point lights, no game images or assumed release date",
+    "Christmas fir/bell scene with warm tiny lights and capped sparse snow",
+    "New Year gold ornament scene without baked year, annual December-January scheduling",
+    "Three disabled reusable factories in owner Add scene menu; save and publish stay separate",
+    "Web-only optional spiderMotion overrides legacy sway; zero legacy web sway still permits requested spiders",
+    "Pause/resume during descent preserves pose; idle 3D scene avoids unchanged submissions; adaptive 10/30 fps clocks",
+    "New image ornaments use no display link, no Core Motion, no 3D; at most six tiny CA light animations and six live snow particles"
+  ],
+  "assets": [
+    {
+      "asset": "SeasonalAutumnLeaves",
+      "path": "UkrainianCommunity/Assets.xcassets/SeasonalAutumnLeaves.imageset/leaves.png",
+      "dimensions": [
+        341,
+        512
+      ],
+      "bytes": 167941,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ]
+    },
+    {
+      "asset": "SeasonalPalm",
+      "path": "UkrainianCommunity/Assets.xcassets/SeasonalPalm.imageset/artwork.png",
+      "dimensions": [
+        341,
+        512
+      ],
+      "bytes": 234305,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ]
+    },
+    {
+      "asset": "SeasonalChristmas",
+      "path": "UkrainianCommunity/Assets.xcassets/SeasonalChristmas.imageset/artwork.png",
+      "dimensions": [
+        341,
+        512
+      ],
+      "bytes": 186124,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ]
+    },
+    {
+      "asset": "SeasonalNewYear",
+      "path": "UkrainianCommunity/Assets.xcassets/SeasonalNewYear.imageset/artwork.png",
+      "dimensions": [
+        341,
+        512
+      ],
+      "bytes": 80221,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ]
+    }
+  ],
+  "assetProvenance": "Docs/SeasonalSceneAssets.json",
+  "verification": {
+    "initialFailure": {
+      "bundle": "build/seasonal-autumn-20261028/Functional.xcresult",
+      "passed": 24,
+      "failed": 1,
+      "resolution": "Scroll driver formerly stopped at hittable header; now waits for actual original Y within 1 point, retains assertion"
+    },
+    "shippingBeforeIndependentSpiderField": {
+      "bundle": "build/seasonal-autumn-20261028/ShippingVerification.xcresult",
+      "passed": 33,
+      "failed": 0,
+      "skipped": 0
+    },
+    "final": {
+      "bundle": "build/seasonal-autumn-20261028/IndependentSpidersVerification.xcresult",
+      "passed": 39,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Final source: 26 Swift Testing model/dynamics/management cases, four actual view rendering cases including legacy web sway zero descent pause/resume, nine UI cases"
+    },
+    "sdk": {
+      "bundle": "build/seasonal-autumn-20261028/FourScenesSDK.xcresult",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Five model role/conflict/save tests plus actual Firebase Auth+Firestore SDK isolated emulator scenario, four-theme persistence, publication/readback/live cache, stale write, guest read and admin write denial, disable retaining owner library",
+      "independentReadback": "build/seasonal-autumn-20261028/emulator-independent-readback.json",
+      "productionWrites": false
+    },
+    "visual": {
+      "reviewed": "All 22 final IndependentSpidersVerification screenshots, including six prepared light/dark roots, Halloween roots/editors, maximum German input/date sheet, scroll restore, persistent spiders and bat flight",
+      "contactSheets": "build/seasonal-autumn-20261028/independent-images/review-0.jpg through review-3.jpg",
+      "scope": "Simulator fixtures; not physical production screen proof"
+    },
+    "performance": {
+      "bundle": "build/seasonal-autumn-20261028/ScrollPerformance.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "iterations": 3,
+      "metrics": {
+        "CPU Time (UkrainianCommunity)": {
+          "samples": [
+            4.505371756000001,
+            4.704976771,
+            4.510082164
+          ],
+          "mean": 4.573476897,
+          "unit": "s",
+          "previous136Mean": 4.714230662333334,
+          "changePercent": -2.9857207976256905
+        },
+        "CPU Instructions Retired (UkrainianCommunity)": {
+          "samples": [
+            32503647.149,
+            32914941.832,
+            31854126.026
+          ],
+          "mean": 32424238.335666668,
+          "unit": "kI",
+          "previous136Mean": 34588546.722333334,
+          "changePercent": -6.257297839198328
+        },
+        "CPU Cycles (UkrainianCommunity)": {
+          "samples": [
+            13127816.456,
+            13801176.539,
+            13112340.305
+          ],
+          "mean": 13347111.1,
+          "unit": "kC",
+          "previous136Mean": 12509310.387666667,
+          "changePercent": 6.697417254586213
+        },
+        "Duration (Scroll_Dragging)": {
+          "samples": [
+            0.16686208300000002,
+            0.183241708,
+            0.166860542
+          ],
+          "mean": 0.17232144433333335,
+          "unit": "s",
+          "previous136Mean": 0.17746944433333334,
+          "changePercent": -2.9007810439360515
+        }
+      },
+      "comparison": "Same simulator, 60-row fixture and original fixed caption; six real swipes each iteration; no concurrent build/emulator workload",
+      "interpretation": "CPU time about 3 percent lower than prior 136, instructions about 6 percent lower, cycles higher. Small mixed simulator measurements, not a physical FPS or energy claim. Structural idle redraw and sensor budgets verified separately.",
+      "physicalFPSVerified": false
+    },
+    "runtimeDiagnostics": {
+      "shippingBeforeIndependentSpiderField": [
+        "Six internal QoS priority-inversion warnings",
+        "Invalid frame dimension emitted during maximum Dynamic Type name-field tap; screenshot input and date sheet checked, no clipped controls or assertion failure; source stack unavailable in xcresult"
+      ],
+      "claim": "Do not interpret passing tests as zero runtime warnings",
+      "finalSameWarnings": true
+    },
+    "device": {
+      "udid": "00008140-00160CA20AFB001C",
+      "model": "iPhone 16 Pro Max",
+      "localVersion": "1.2.1 (136)",
+      "status": "Final independent-spider Release build succeeded and installed on physical phone",
+      "launch": "Blocked by locked device; no unlock credential or protection changed",
+      "physicalVisualTiltScrollAcceptance": "pending",
+      "installEvidence": "build/seasonal-autumn-20261028/install-independent-spiders-device.json",
+      "launchEvidence": "build/seasonal-autumn-20261028/launch-independent-spiders-device.json"
+    },
+    "offlineReleaseConfiguration": "Passed; build 136. No TestFlight upload this task.",
+    "builds": {
+      "debug": "build-final-debug.log: TEST BUILD SUCCEEDED",
+      "release": "build-final-device.log: BUILD SUCCEEDED",
+      "remainingBuildWarning": "Existing DirectoryEditorAccessStore isolated Decodable conformance warning outside seasonal scope"
+    }
+  },
+  "productionReadback": {
+    "publicSchedule": "build/seasonal-autumn-20261028/public-schedule-before.json",
+    "observedLegacyWebSway": 0,
+    "reactsToTilt": true,
+    "dataChanged": false
+  },
+  "compatibility": "Schema 1 unchanged. Optional spiderMotion ignored by older clients. New palm enum requires this binary; unsupported packages fail closed. Disabled drafts excluded by publication model.",
+  "delivery": {
+    "testFlightUploaded": false,
+    "publicRelease": false,
+    "globalThemesEnabled": false,
+    "hostedCI": "Pending source push; not represented as passed"
+  },
+  "limits": [
+    "Physical iPhone launch/tilt/scroll acceptance remains blocked by lock state while owner away",
+    "Simulator CPU results do not establish physical frame rate",
+    "No new push or previous audit scenario repeated; older broader external-provider/payment/role gates remain separate"
+  ]
+}

@@ -55,15 +55,15 @@ struct SeasonalDynamicsTests {
             }
         }
     }
-    @Test func calmScenesUseFifteenAndOnlyActiveMotionUsesSixty() {
-        #expect(SeasonalFramePacing.rate(at:20,hasWeb:true,hasBat:true,preview:false,moving:false)==15)
-        #expect(SeasonalFramePacing.rate(at:20,hasWeb:false,hasBat:false,preview:false,moving:false)==15)
-        #expect(SeasonalFramePacing.rate(at:5,hasWeb:true,hasBat:false,preview:false,moving:false)==60)
-        #expect(SeasonalFramePacing.rate(at:20,hasWeb:false,hasBat:false,preview:false,moving:true)==60)
+    @Test func calmScenesUseTenAndActiveMotionIsCappedAtThirty() {
+        #expect(SeasonalFramePacing.rate(at:20,hasWeb:true,hasBat:true,preview:false,moving:false)==10)
+        #expect(SeasonalFramePacing.rate(at:20,hasWeb:false,hasBat:false,preview:false,moving:false)==10)
+        #expect(SeasonalFramePacing.rate(at:5,hasWeb:true,hasBat:false,preview:false,moving:false)==30)
+        #expect(SeasonalFramePacing.rate(at:20,hasWeb:false,hasBat:false,preview:false,moving:true)==30)
         for preview in [true,false] {
             let start=preview ? 18.0:32.0
-            #expect(SeasonalFramePacing.rate(at:start+10,hasWeb:true,hasBat:true,preview:preview,moving:false)==60)
-            #expect(SeasonalFramePacing.rate(at:start+11,hasWeb:true,hasBat:true,preview:preview,moving:false)==15)
+            #expect(SeasonalFramePacing.rate(at:start+10,hasWeb:true,hasBat:true,preview:preview,moving:false)==30)
+            #expect(SeasonalFramePacing.rate(at:start+11,hasWeb:true,hasBat:true,preview:preview,moving:false)==10)
         }
     }
     @Test func sustainedTiltReachesStableAngleAndDampingSettles() {
@@ -107,19 +107,25 @@ struct SeasonalDynamicsTests {
         #expect(SeasonalChoreography.batProgress(at:20,preview:false)==nil)
         #expect(SeasonalChoreography.batProgress(at:33,preview:false) != nil)
     }
-    @Test func upperWebIsPinnedAndLowerAttachmentsFollowBoundedBend() {
-        for x in stride(from:-120.0,through:120,by:20) {
-            for y in stride(from:-42.0,through:30,by:12) {
-                let point=CGPoint(x:x,y:y)
-                for amount in [-1.0,0,1] { #expect(SeasonalWebShape.displaced(point,amount:amount)==point) }
+    @Test func cornerAndCutoutHaveSeparateStableAnchors() {
+        for width in [320.0,393,440,768] {
+            for size in [16.0,30,44] {
+                let corner=SeasonalDecorationGeometry.spiderAnchor(index:0,width:width,top:0,safeTop:62,elementSize:size)
+                let island=SeasonalDecorationGeometry.spiderAnchor(index:1,width:width,top:0,safeTop:62,elementSize:size)
+                #expect(corner.x>0 && corner.x<width*0.36)
+                #expect(corner.y>50 && corner.y<154)
+                #expect(island.x>width/2 && island.x<width/2+40)
+                #expect(island.y>=40 && island.y<62)
+                #expect(hypot(corner.x-island.x,corner.y-island.y)>45)
+                let shifted=SeasonalDecorationGeometry.spiderAnchor(index:0,width:width,top:12,safeTop:62,elementSize:size)
+                #expect(shifted.x==corner.x && shifted.y==corner.y+12)
             }
         }
-        for point in SeasonalWebShape.attachments {
-            let base=SeasonalWebShape.tapered(point)
-            let left=SeasonalWebShape.displaced(base,amount:-1),right=SeasonalWebShape.displaced(base,amount:1)
-            #expect(left.x<base.x && right.x>base.x)
-            #expect(abs(right.x-left.x)<18.1)
-            #expect(abs(right.y-left.y)<=3)
-        }
+    }
+    @Test func candleHasSmoothBrightAndNearlyExtinguishedIntervals() {
+        let values=(0...720).map{SeasonalChoreography.candle(at:Double($0)/60)}
+        #expect(values.min()!<0.04);#expect(values.max()!>0.95)
+        for pair in zip(values,values.dropFirst()) { #expect(abs(pair.0-pair.1)<0.03) }
+        #expect(SeasonalChoreography.candle(at:.nan).isFinite)
     }
 }

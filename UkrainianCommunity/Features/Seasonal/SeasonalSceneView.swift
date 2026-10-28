@@ -34,7 +34,6 @@ struct SeasonalScene: UIViewRepresentable {
     private let world = SCNNode()
     private let cameraNode = SCNNode()
     private var pumpkinNodes:[(SCNNode,SCNMaterial,SCNLight,SeasonalElement)] = []
-    private var webNode:SCNNode?
     private var spiders:[(root:SCNNode,legs:[SCNNode],silk:SCNNode,pendulum:SeasonalPendulum)]=[]
     private var bats:[(root:SCNNode,wings:[SCNNode])]=[]
     private var elements:[SeasonalElement]=[]
@@ -48,6 +47,9 @@ struct SeasonalScene: UIViewRepresentable {
     private var elapsed=0.0,lastTime=0.0
     private var fastMotionUntil=0.0
     private var lastMotion=SeasonalMotionSample()
+    private var needsRedraw = true
+    private var previouslyActive = false
+    private(set) var renderedFrameCount = 0
 
     override init(frame:CGRect) {
         super.init(frame:frame)
@@ -72,6 +74,7 @@ struct SeasonalScene: UIViewRepresentable {
     override func layoutSubviews() {
         super.layoutSubviews()
         guard renderer.frame != bounds else { return }
+        needsRedraw = true
         renderer.frame=bounds
         cameraNode.camera?.orthographicScale=Double(max(1,bounds.height)/2)
         world.position=SCNVector3(-Float(bounds.width)/2,Float(bounds.height)/2,0)
@@ -93,10 +96,11 @@ struct SeasonalScene: UIViewRepresentable {
                 if let current=elements.first(where:{$0.id==pumpkinNodes[index].3.id}) { pumpkinNodes[index].3=current }
             }
         }
+        needsRedraw = true
         updateMaterialAppearance()
         self.animated=animated
         if animationChanged || themeChanged || restartClock {
-            motion.setEnabled(animated && theme.reactsToTilt && theme.elements.contains{$0.sway > 0})
+            motion.setEnabled(animated && theme.reactsToTilt && theme.elements.contains{$0.artwork == .web && $0.motionStrength > 0})
         }
         if themeChanged {
             // Bloom/HDR stay in the tiny header pumpkin viewport, not the full-screen web.
@@ -121,22 +125,21 @@ struct SeasonalScene: UIViewRepresentable {
         renderer.rendersContinuously=false;renderer.isPlaying=false;lastTime=0
     }
     override func didMoveToWindow() { super.didMoveToWindow();if window == nil { stop() } }
-    fileprivate func tick(_ timestamp:Double) {
-        guard window != nil,animated else { return }
+    func tick(_ timestamp:Double) {
+        guard let window,animated,convert(bounds,to:window).intersects(window.bounds) else { return }
         let dt=lastTime == 0 ? 0 : min(0.1,max(0,timestamp-lastTime));lastTime=timestamp;elapsed += dt
         draw(delta:dt)
     }
 
     private func buildObjects() {
         materialSignature=nil
-        world.childNodes.forEach{$0.removeFromParentNode()};pumpkinNodes=[];webNode=nil;bats=[];spiders=[]
+        world.childNodes.forEach{$0.removeFromParentNode()};pumpkinNodes=[];bats=[];spiders=[]
         for element in elements where element.artwork == .pumpkin {
             let p=SeasonalSceneArtwork.pumpkin();world.addChildNode(p.root);pumpkinNodes.append((p.root,p.ember,p.light,element))
         }
         if elements.contains(where:{$0.artwork == .web}) {
-            let web=SeasonalSceneArtwork.web();world.addChildNode(web);webNode=web
             for _ in 0..<SeasonalChoreography.spiderCount {
-                let spider=SeasonalSceneArtwork.spider();world.addChildNode(spider.root)
+                let spider=SeasonalSceneArtwork.spider();spider.root.name="seasonal.spider.\(spiders.count)";world.addChildNode(spider.root)
                 let g=SCNCylinder(radius:0.25,height:1);g.radialSegmentCount=5
                 let m=SCNMaterial();m.lightingModel = .constant;g.firstMaterial=m
                 let silk=SCNNode(geometry:g);world.addChildNode(silk)
@@ -152,73 +155,69 @@ struct SeasonalScene: UIViewRepresentable {
 
     /// Theme/material properties change on configuration, never during each animation tick.
     private func updateMaterialAppearance() {
-        let web=elements.first{$0.artwork == .web}
         let glow=elements.first{$0.artwork == .bat}?.glow ?? false
-        let signature="\(dark)|\(web?.glow ?? false)|\(glow)"
+        let signature="\(dark)|\(glow)"
         guard signature != materialSignature else { return }
         materialSignature=signature
-        webNode?.enumerateChildNodes { node,_ in node.geometry?.materials.forEach {
-            $0.multiply.contents=dark ? UIColor(white:0.69,alpha:0.84):UIColor(white:0.20,alpha:0.78)
-            $0.emission.contents=UIColor(white:0.12,alpha:1);$0.emission.intensity=(web?.glow ?? false) ? 0.035:0
-        } }
         for spider in spiders {
             spider.silk.geometry?.firstMaterial?.diffuse.contents=dark ? UIColor(white:0.77,alpha:0.8):UIColor(white:0.24,alpha:0.68)
         }
         for bat in bats { bat.root.enumerateChildNodes { node,_ in node.geometry?.materials.forEach {
-            $0.emission.contents=UIColor(red:0.22,green:0.11,blue:0.12,alpha:1);$0.emission.intensity=glow ? 0.3:0
+            $0.emission.contents=UIColor(red:0.12,green:0.07,blue:0.035,alpha:1);$0.emission.intensity=glow ? 0.025:0
         } } }
     }
 
     private func draw(delta:Double) {
         guard let theme else { return }
-        SCNTransaction.begin();SCNTransaction.animationDuration=0;SCNTransaction.disableActions=true
-        defer { SCNTransaction.commit() }
-        let input=animated && theme.reactsToTilt ? motion.sample() : SeasonalMotionSample()
+        let input=animated && theme.reactsToTilt && !spiders.isEmpty ? motion.sample() : SeasonalMotionSample()
+        let moved=abs(input.acceleration)>0.025 || abs(input.x-lastMotion.x)>0.003 || abs(input.y-lastMotion.y)>0.003
+        if moved { fastMotionUntil=elapsed+0.8 }
+        lastMotion=input
+        let swinging=spiders.contains{abs($0.pendulum.velocity)>0.003}
+        let hasWeb=elements.contains{$0.artwork == .web && $0.motionStrength>0}
+        let hasBat=elements.contains{$0.artwork == .bat && $0.sway>0}
+        let arriving=hasWeb && elapsed<9
+        let flying=hasBat && (0..<SeasonalChoreography.batCount).contains{
+            SeasonalChoreography.batProgress(at:elapsed,preview:preview,index:$0) != nil
+        }
+        let active=elapsed<fastMotionUntil || swinging || arriving || flying
         if animated {
-            let moved=abs(input.acceleration)>0.025 || abs(input.x-lastMotion.x)>0.003 || abs(input.y-lastMotion.y)>0.003
-            if moved { fastMotionUntil=elapsed+0.8 }
-            lastMotion=input
-            let swinging=spiders.contains{abs($0.pendulum.velocity)>0.03}
-            let rate=SeasonalFramePacing.rate(at:elapsed,
-                hasWeb:elements.contains{$0.artwork == .web && $0.sway>0},
-                hasBat:elements.contains{$0.artwork == .bat && $0.sway>0},preview:preview,
-                moving:elapsed<fastMotionUntil || swinging)
+            let rate=SeasonalFramePacing.rate(at:elapsed,hasWeb:hasWeb,hasBat:hasBat,preview:preview,moving:elapsed<fastMotionUntil || swinging)
             if link?.preferredFramesPerSecond != rate { link?.preferredFramesPerSecond=rate }
             if renderer.preferredFramesPerSecond != rate { renderer.preferredFramesPerSecond=rate }
         }
+        // Poll gravity at the calm clock rate, but do not redraw an unmoving full-window
+        // scene. The final active frame still hides departed bats and settles the legs.
+        let wasActive=previouslyActive;previouslyActive=active
+        guard needsRedraw || !animated || active || wasActive || pumpkinNodes.contains(where:{$0.3.glow}) else { return }
+        needsRedraw=false;renderedFrameCount += 1
+        SCNTransaction.begin();SCNTransaction.animationDuration=0;SCNTransaction.disableActions=true
+        defer { SCNTransaction.commit() }
         let intensity=theme.intensity
         for (index,p) in pumpkinNodes.enumerated() {
             let scale=p.3.size * 0.53 * Double(placement.objectScale)
             p.0.scale=SCNVector3(scale,scale,scale)
-            p.0.position=SCNVector3(placement.pumpkin.x + CGFloat(index)*12,-placement.pumpkin.y + (animated ? sin(elapsed*1.1)*1.2*intensity*p.3.sway:0),35)
-            p.0.eulerAngles=SCNVector3(-0.08 + input.y*0.20*p.3.sway,-0.10 + input.x*0.38*p.3.sway + (animated ? sin(elapsed*0.6)*0.045*p.3.sway*intensity:0),-0.05)
-            let candle=p.3.glow ? (animated ? max(0.12,0.6+sin(elapsed*1.6)*0.29+sin(elapsed*3.2)*0.07) : 0.65) : 0.08
-            p.1.emission.intensity=CGFloat(candle*0.9);p.2.intensity=CGFloat(candle*20)
+            p.0.position=SCNVector3(placement.pumpkin.x + CGFloat(index)*12,-placement.pumpkin.y,35)
+            p.0.eulerAngles=SCNVector3(-0.08,-0.10,-0.05)
+            let candle=p.3.glow ? ((animated || elapsed>0) ? SeasonalChoreography.candle(at:elapsed) : 0.65) : 0.035
+            p.1.diffuse.intensity=CGFloat(candle);p.1.emission.intensity=CGFloat(candle*0.8);p.2.intensity=CGFloat(candle*20)
         }
-        let top=Double(placement.webTop),center=Double(bounds.width)/2
+        let top=Double(placement.webTop)
         let webElement=elements.first{$0.artwork == .web}
         let webScale=min((webElement?.size ?? 44)/44,Double(bounds.width)/300)
-        // The upper anchors never rotate. The mesh bends below the cutout on the GPU.
-        webNode?.position=SCNVector3(center,-top,22);webNode?.scale=SCNVector3(webScale,webScale,webScale)
-        let webStrength=animated ? (webElement?.sway ?? 0)*intensity : 0
-        let bend=max(-1,min(1,(sin(elapsed*0.65)*0.55+input.x*1.5)*webStrength))
-        webNode?.enumerateChildNodes { node,_ in
-            node.morpher?.setWeight(CGFloat(max(0,bend)),forTargetAt:0)
-            node.morpher?.setWeight(CGFloat(max(0,-bend)),forTargetAt:1)
-        }
         for index in spiders.indices {
-            let progress=animated && (webElement?.sway ?? 0)>0
+            let progress=(animated || elapsed>0) && (webElement?.motionStrength ?? 0)>0
                 ? SeasonalChoreography.spiderProgress(at:elapsed,preview:preview,index:index):1
             if animated {
-                spiders[index].pendulum.step(delta:delta,tilt:input.gravityX*(webElement?.sway ?? 0)*2,
-                    acceleration:input.acceleration*(index==0 ? 1:0.72),intensity:intensity*(webElement?.sway ?? 0))
+                spiders[index].pendulum.step(delta:delta,tilt:input.gravityX*(webElement?.motionStrength ?? 0)*2,
+                    acceleration:input.acceleration*(index==0 ? 1:0.72),intensity:intensity*(webElement?.motionStrength ?? 0))
             }
-            let tapered=SeasonalWebShape.tapered(SeasonalWebShape.attachments[index])
-            let point=SeasonalWebShape.displaced(tapered,amount:bend)
-            let anchor=webNode?.convertPosition(SCNVector3(point.x,point.y,0),to:world) ?? SCNVector3(center,-top,33)
-            let restingDepth=Double(placement.descent)*(index==0 ? 1:0.82)
-            let length=8+max(18,restingDepth+Double(point.y)*webScale)*progress
-            let angle=animated ? spiders[index].pendulum.angle:0
+            let point=SeasonalDecorationGeometry.spiderAnchor(index:index,width:bounds.width,top:top,
+                safeTop:preview ? 38:Double(window?.safeAreaInsets.top ?? 0),elementSize:webElement?.size ?? 44)
+            let anchor=SCNVector3(point.x,-point.y,33)
+            let restingDepth=top+Double(placement.descent)*(index==0 ? 1:0.82)
+            let length=8+max(24,restingDepth-point.y)*progress
+            let angle=(animated || elapsed>0) ? spiders[index].pendulum.angle:0
             let x=Double(anchor.x)+sin(angle)*length,y=Double(-anchor.y)+cos(angle)*length
             let spider=spiders[index]
             spider.root.position=SCNVector3(x,-y,34);spider.root.eulerAngles.z=Float(angle)
@@ -230,7 +229,7 @@ struct SeasonalScene: UIViewRepresentable {
             spider.silk.position=SCNVector3((start.x+end.x)/2,(start.y+end.y)/2,33)
             spider.silk.simdOrientation=simd_quatf(from:SIMD3<Float>(0,1,0),to:SIMD3<Float>(dx,dy,0)/max(len,0.001))
             for (i,leg) in spider.legs.enumerated() {
-                leg.eulerAngles.z=animated ? Float(sin(elapsed*(index==0 ? 2.6:2.1)+Double(i))*0.045*intensity):0
+                leg.eulerAngles.z=(animated || elapsed>0) && progress<1 ? Float(sin(elapsed*(index==0 ? 2.6:2.1)+Double(i))*0.045*intensity):0
             }
         }
         let batElement=elements.first{$0.artwork == .bat}

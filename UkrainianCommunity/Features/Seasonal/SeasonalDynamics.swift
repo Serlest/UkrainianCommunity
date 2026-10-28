@@ -62,6 +62,11 @@ enum SeasonalChoreography {
         let q=min(1,max(0,(time-start)/(preview ? 3.2:4.2)))
         return q*q*(3-2*q)
     }
+    /// Slow ember breathing, including a genuinely dim interval.
+    static func candle(at time: Double) -> Double {
+        guard time.isFinite else { return 0.65 }
+        return 0.025 + pow((sin(time * 1.05) + 1) / 2, 1.7) * 0.95
+    }
     static let batCount = 4
     static func batProgress(at time: Double, preview: Bool, index: Int = 0) -> Double? {
         let phase = time.truncatingRemainder(dividingBy: preview ? 32 : 68)
@@ -101,27 +106,11 @@ enum SeasonalFlightPath {
     }
 }
 
-/// Shared by GPU morph targets and the two silk attachment points.
-/// Points are expressed in native SceneKit coordinates: negative Y goes down.
-enum SeasonalWebShape {
-    static let attachments=[CGPoint(x:-40,y:-94),CGPoint(x:36,y:-103)]
-    static func tapered(_ point:CGPoint) -> CGPoint {
-        let q=min(1,max(0,(-point.y-38)/62))
-        return CGPoint(x:point.x*(0.52+0.48*q*q*(3-2*q)),y:point.y)
-    }
-    static func displaced(_ point:CGPoint,amount:Double) -> CGPoint {
-        let q=min(1,max(0,(-point.y-42)/80)),weight=q*q*(3-2*q)
-        let bend=min(1,max(-1,amount))
-        return CGPoint(x:point.x+bend*(7+sin(point.x*0.028)*2)*weight,
-                       y:point.y+bend*sin(point.x*0.022)*1.5*weight)
-    }
-}
-
 /// Keep the calm scene inexpensive; short motion/flight bursts get full-rate updates.
 enum SeasonalFramePacing {
     static func rate(at time:Double,hasWeb:Bool,hasBat:Bool,preview:Bool,moving:Bool) -> Int {
-        if moving || (hasWeb && time<9) { return 60 }
-        if hasBat && (0..<SeasonalChoreography.batCount).contains(where:{SeasonalChoreography.batProgress(at:time,preview:preview,index:$0) != nil}) { return 60 }
-        return 15
+        if moving || (hasWeb && time<9) { return 30 }
+        if hasBat && (0..<SeasonalChoreography.batCount).contains(where:{SeasonalChoreography.batProgress(at:time,preview:preview,index:$0) != nil}) { return 30 }
+        return 10
     }
 }

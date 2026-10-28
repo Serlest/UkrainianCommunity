@@ -13,7 +13,7 @@ import FirebaseFirestore
     private var libraryRevision: String?
     private var presentationRevision: String?
     private let repository: any SeasonalRepositoryProtocol
-    init(repository: any SeasonalRepositoryProtocol = SeasonalRepository()) { self.repository = repository }
+    init(repository: (any SeasonalRepositoryProtocol)? = nil) { self.repository = repository ?? SeasonalRepository() }
     private var principal: String?
     private var generation = UUID()
     var hasChanges: Bool { library != savedLibrary }

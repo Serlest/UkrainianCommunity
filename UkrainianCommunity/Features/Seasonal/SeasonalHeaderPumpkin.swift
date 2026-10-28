@@ -17,15 +17,16 @@ struct SeasonalHeaderPumpkin:View {
     }
     private var animated:Bool {
         visible && scenePhase == .active && !reduceMotion && !lowPower && !typeSize.isAccessibilitySize
-            && localTheme.elements.contains{$0.sway>0 || $0.glow}
+            && localTheme.elements.contains{$0.glow}
     }
     var body:some View {
         GeometryReader { geometry in
             let count=localTheme.elements.count
             SeasonalScene(theme:localTheme,
-                placement:SeasonalScenePlacement(pumpkin:CGPoint(x:geometry.size.width/2,y:geometry.size.height/2),objectScale:min(1,geometry.size.width/40)),
+                placement:SeasonalScenePlacement(pumpkin:CGPoint(x:geometry.size.width/2+8,y:geometry.size.height/2),objectScale:min(1,geometry.size.width/40)),
                 animated:animated,dark:scheme == .dark)
-                .frame(width:geometry.size.width+CGFloat(max(0,count-1))*12,height:geometry.size.height)
+                .frame(width:geometry.size.width+16+CGFloat(max(0,count-1))*12,height:geometry.size.height)
+                .offset(x:-8)
         }
         .allowsHitTesting(false).accessibilityHidden(true)
         .onAppear { visible=true }

@@ -93,7 +93,9 @@ struct SeasonalThemeEditor: View {
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 Section(SeasonalText.value("motion", "Bewegung")) {
-                    Toggle(SeasonalText.value("tilt", "Auf die Geräteneigung reagieren"), isOn: $draft.reactsToTilt)
+                    if draft.elements.contains(where:{$0.artwork == .web}) {
+                        Toggle(SeasonalText.value("tilt", "Auf die Geräteneigung reagieren"), isOn: $draft.reactsToTilt)
+                    }
                     Text(SeasonalText.value("intensity", "Intensität"))
                     Slider(value: $draft.intensity, in: 0.2...1)
                         .accessibilityLabel(SeasonalText.value("intensity", "Intensität"))
@@ -119,7 +121,7 @@ struct SeasonalThemeEditor: View {
                                 }.buttonStyle(.borderless).disabled(draft.elements.count <= 1)
                             }
                             if [.pumpkin,.web,.bat].contains(element.artwork) {
-                                Text(SeasonalText.value("scenePlacement", "Kürbis neben dem Logo, Netz am oberen Rand mit einem hängenden Spinnenpendel. Die Fledermaus fliegt gelegentlich durch das Bild. Inhalte werden nicht verschoben."))
+                                Text(SeasonalText.value("scenePlacement", "Ruhendes Ecknetz und Herbstlaub. Eine Spinne hängt am Netz, eine am oberen Ausschnitt. Der Kürbis glimmt neben dem Logo; Fledermäuse fliegen selten vorbei."))
                                     .font(.footnote).foregroundStyle(.secondary)
                             } else {
                                 Picker(SeasonalText.value("position", "Position"), selection: $element.anchor) {
@@ -129,9 +131,18 @@ struct SeasonalThemeEditor: View {
                             }
                             Text(SeasonalText.value("size", "Größe"))
                             Slider(value: $element.size, in: 16...44).accessibilityLabel(SeasonalText.value("size", "Größe"))
-                            Text(SeasonalText.value("sway", "Bewegungsstärke"))
-                            Slider(value: $element.sway, in: 0...1).accessibilityLabel(SeasonalText.value("sway", "Bewegungsstärke"))
-                            Toggle(SeasonalText.value("glow", "Leuchten"), isOn: $element.glow)
+                            if ![SeasonalArtwork.pumpkin,.palm,.pine,.star].contains(element.artwork) {
+                                let motionLabel = element.artwork == .web
+                                    ? SeasonalText.value("spiderMotion", "Schwingen der Spinnen")
+                                    : SeasonalText.value("sway", "Bewegungsstärke")
+                                Text(motionLabel)
+                                Slider(value: Binding(get: { element.motionStrength }, set: { value in
+                                    if element.artwork == .web { element.spiderMotion = value } else { element.sway = value }
+                                }), in: 0...1).accessibilityLabel(motionLabel)
+                            }
+                            if ![SeasonalArtwork.web,.snowflake].contains(element.artwork) {
+                                Toggle(SeasonalText.value("glow", "Leuchten"), isOn: $element.glow)
+                            }
                         }.padding(.vertical, 6)
                     }
                     Menu {

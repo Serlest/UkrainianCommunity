@@ -30,7 +30,7 @@ import UIKit
         theme.elements[0].artwork = .image
         let png = try XCTUnwrap(customImage.pngData()).base64EncodedString()
         theme.elements[0].pngFrames = [png,png]
-        let package = SeasonalLibrary(themes: [theme])
+        let package = SeasonalLibrary(themes: [theme, .gtaVI(), .christmas(), .newYear()])
         let saved = try await repository.save(package, path: SeasonalRepository.libraryPath, expectedRevision: nil, userID: owner.uid)
         XCTAssertEqual(saved.library, package)
         let publicBefore = try await repository.fetch(path: SeasonalRepository.presentationPath)

@@ -171,7 +171,7 @@ struct AppBrandHeader<TrailingContent: View>: View {
                     }
                     .anchorPreference(key:SeasonalHeaderAnchors.self,value:.bounds) { anchor in
                         // Only legacy imported artwork needs a moving screen-space anchor.
-                        seasonalHeaderTheme?.elements.contains(where:{![SeasonalArtwork.pumpkin,.web,.bat].contains($0.artwork)}) == true
+                        seasonalHeaderTheme?.elements.contains(where:{$0.artwork == .image}) == true
                             ? [.pumpkin:anchor]:[:]
                     }
             }

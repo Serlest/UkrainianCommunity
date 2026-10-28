@@ -37,9 +37,9 @@ struct SeasonalDecorationLayer: View {
 
     private var animated: Bool {
         visible && scenePhase == .active && !reduceMotion && !lowPower && !typeSize.isAccessibilitySize
-            && theme.elements.contains { $0.sway>0 || $0.glow || $0.pngFrames.count>1 }
+            && theme.elements.contains { $0.motionStrength>0 || $0.glow || $0.pngFrames.count>1 }
     }
-    private var customElements: [SeasonalElement] { theme.elements.filter { ![SeasonalArtwork.pumpkin,.web,.bat].contains($0.artwork) } }
+    private var customElements: [SeasonalElement] { theme.elements.filter { $0.artwork == .image } }
 
     private var sceneTheme:SeasonalTheme {
         var result=theme
@@ -59,6 +59,10 @@ struct SeasonalDecorationLayer: View {
                 descent: preview ? 116 : 180,
                 objectScale: dock.map { min(1,$0.width/40) } ?? 0.85)
             ZStack(alignment:.topLeading) {
+                if let web = theme.elements.first(where: { $0.artwork == .web }) {
+                    SeasonalStaticDecorations(element: web, top: top, dark: scheme == .dark, preview: preview)
+                }
+                SeasonalAmbientOrnaments(elements:theme.elements,animated:animated,intensity:theme.intensity,preview:preview)
                 if sceneTheme.elements.contains(where:{[SeasonalArtwork.pumpkin,.web,.bat].contains($0.artwork)}) {
                     SeasonalScene(theme:sceneTheme,placement:placement,animated:animated,dark:scheme == .dark,preview:preview)
                         .frame(width:geometry.size.width,height:geometry.size.height)
@@ -91,7 +95,7 @@ struct SeasonalPreview: View {
                 .padding(.horizontal,12).padding(.top,54)
             RoundedRectangle(cornerRadius:14).fill(AppTheme.accentPrimary.opacity(0.12)).frame(height:58).padding(12)
         }
-        .environment(\.seasonalHeaderActive,true)
+        .environment(\.seasonalHeaderActive,theme.usesHeaderDock)
         .environment(\.seasonalHeaderTheme,theme)
         .overlayPreferenceValue(SeasonalHeaderAnchors.self) { anchors in
             SeasonalDecorationLayer(theme:theme,anchors:anchors,preview:true,embedsHeaderPumpkin:true)
@@ -118,7 +122,7 @@ struct SeasonalRootDecoration: ViewModifier {
             let theme = enabled && isEligible && verticalSizeClass != .compact && !typeSize.isAccessibilitySize
                 ? store.library.active(at:context.date,section:section) : nil
             content
-                .environment(\.seasonalHeaderActive,theme != nil)
+                .environment(\.seasonalHeaderActive,theme?.usesHeaderDock ?? false)
                 .environment(\.seasonalHeaderTheme,theme)
                 .overlayPreferenceValue(SeasonalHeaderAnchors.self) { anchors in
                     if let theme {

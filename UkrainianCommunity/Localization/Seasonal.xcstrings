@@ -35,6 +35,28 @@
         }
       }
     },
+    "seasonal.addScene": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Szene hinzufügen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add scene"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Додати сцену"
+          }
+        }
+      }
+    },
     "seasonal.appearance": {
       "extractionState": "manual",
       "localizations": {
@@ -579,6 +601,28 @@
         }
       }
     },
+    "seasonal.palm": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palmwedel"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palm fronds"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пальмове листя"
+          }
+        }
+      }
+    },
     "seasonal.pine": {
       "extractionState": "manual",
       "localizations": {
@@ -660,6 +704,94 @@
           "stringUnit": {
             "state": "translated",
             "value": "Прикраси на головних екранах. Враховуються зменшення руху та режим енергозбереження."
+          }
+        }
+      }
+    },
+    "seasonal.presetChristmas": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weihnachten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Christmas"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Різдво"
+          }
+        }
+      }
+    },
+    "seasonal.presetGTA": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GTA VI · Vice Nights"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GTA VI · Vice Nights"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GTA VI · Vice Nights"
+          }
+        }
+      }
+    },
+    "seasonal.presetHalloween": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Halloween"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Halloween"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Хелловін"
+          }
+        }
+      }
+    },
+    "seasonal.presetNewYear": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neujahr"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Year"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новий рік"
           }
         }
       }
@@ -919,6 +1051,28 @@
         }
       }
     },
+    "seasonal.scenePlacement": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ruhendes Ecknetz und Herbstlaub. Eine Spinne hängt am Netz, eine am oberen Ausschnitt. Der Kürbis glimmt neben dem Logo; Fledermäuse fliegen selten vorbei."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A still corner web and autumn leaves. One spider hangs from the web, another below the top cutout. The pumpkin glows beside the logo; bats pass occasionally."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нерухома кутова павутинка й осіннє листя. Один павук висить на павутинці, другий — під верхнім вирізом. Гарбуз жевріє біля логотипа; кажани зрідка пролітають повз."
+          }
+        }
+      }
+    },
     "seasonal.schedule": {
       "extractionState": "manual",
       "localizations": {
@@ -1034,6 +1188,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Сніжинка"
+          }
+        }
+      }
+    },
+    "seasonal.spiderMotion": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schwingen der Spinnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spider sway"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Розгойдування павуків"
           }
         }
       }
@@ -1221,22 +1397,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Повторювати щороку"
-          }
-        }
-      }
-    },
-    "seasonal.scenePlacement": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kürbis neben dem Logo, Netz am oberen Rand mit einem hängenden Spinnenpendel. Die Fledermaus fliegt gelegentlich durch das Bild. Inhalte werden nicht verschoben."
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Гарбуз біля логотипа, павутиння від верхнього краю та павук на нитці. Кажан зрідка пролітає екраном. Вміст не зміщується."
           }
         }
       }

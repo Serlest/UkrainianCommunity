@@ -1,0 +1,27 @@
+{
+  "mode": "built-in image_gen.imagegen",
+  "transparent_background": true,
+  "packaging": "sips -Z 512; original generated files preserved",
+  "assets": [
+    {
+      "name": "SeasonalAutumnLeaves",
+      "runtime": "UkrainianCommunity/Assets.xcassets/SeasonalAutumnLeaves.imageset/leaves.png",
+      "prompt": "See SeasonalAutumnArtwork.md"
+    },
+    {
+      "name": "SeasonalPalm",
+      "runtime": "UkrainianCommunity/Assets.xcassets/SeasonalPalm.imageset/artwork.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: transparent PNG botanical edge ornament for a premium iPhone UI. Generate one narrow vertical cluster of two realistic palm fronds, fine slender leaflets, natural gracefully curved stems, detailed waxy dark tropical green surfaces. Cinematic dusk illumination with subtle magenta light on the upper edges and soft cyan rim lighting on the lower edges, sophisticated Miami night atmosphere inspired by a tropical driving-game setting, entirely original botanical artwork. Leaves naturally curl in dimensional perspective, believable texture. All fronds completely within frame, generous transparent margin. Truly transparent background, no landscape, no text, no game logos, no vehicles, no weapons, no neon rectangle, no glow cloud or backdrop. Composition clustered along the left side, leaflets fanning toward the right. Intended as a quiet static narrow screen-edge decoration."
+    },
+    {
+      "name": "SeasonalChristmas",
+      "runtime": "UkrainianCommunity/Assets.xcassets/SeasonalChristmas.imageset/artwork.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: transparent PNG Christmas edge ornament for a premium iPhone UI. One slender vertical sprig of extremely realistic blue-green noble fir with dense delicate individual needles, tiny natural red berries, a single small muted deep-red velvet ribbon knot and one small warm brushed-brass bell, very light frost on just a few needle tips. Elegant restrained European Christmas, botanical macro detail, natural three-dimensional material and curved stems. Soft warm neutral light and extremely subtle self-shadow only. Entire sprig and bell visible with generous transparent margin. Truly transparent background, no surface, no rectangular shadows, no lettering, no snowfall, no glow backdrop. Cluster stems along the left edge with fir tips extending right, sparse narrow composition suitable for static screen gutters."
+    },
+    {
+      "name": "SeasonalNewYear",
+      "runtime": "UkrainianCommunity/Assets.xcassets/SeasonalNewYear.imageset/artwork.png",
+      "prompt": "Use case: product-mockup. Asset type: transparent PNG New Year edge ornament for a premium iPhone UI. One narrow cascading arrangement of two small luxurious metallic champagne-gold five-point star ornaments on hair-thin gold hanging cords, one tiny brushed-gold bauble, and a delicate curled gold ribbon. Ultra-realistic macro product photography, subtle physically accurate reflections, refined champagne-gold palette, dimensional star folds and satin ribbon material, soft neutral studio lighting, no excessive shine. Entire ornament arrangement visible with generous transparent padding, vertical narrow composition weighted to the left with empty space to right. Truly transparent background; no opaque surface, no rectangular shadow or glow cloud, no text, no year digits, no confetti cloud, no fireworks. Intended as quiet static ornaments along an app screen edge."
+    }
+  ]
+}

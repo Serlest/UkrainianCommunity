@@ -39,7 +39,7 @@ enum SeasonalSection: String, Codable, CaseIterable, Identifiable {
 }
 
 enum SeasonalArtwork: String, Codable, CaseIterable, Identifiable {
-    case pumpkin, web, bat, snowflake, star, pine, image
+    case pumpkin, web, bat, snowflake, star, pine, palm, image
     var id: String { rawValue }
 }
 
@@ -55,6 +55,10 @@ struct SeasonalElement: Codable, Equatable, Identifiable {
     var size: Double = 30
     var sway: Double = 0.5
     var glow = false
+    /// Independent from legacy web sway: the web is static; only its spiders move.
+    var spiderMotion: Double? = nil
+
+    var motionStrength: Double { artwork == .web ? (spiderMotion ?? max(0.25, sway)) : sway }
     /// Optional PNG artwork, embedded so a downloaded package works fully offline.
     /// Up to 8 small frames allow new animated artwork without an application build.
     var pngFrames: [String] = []
@@ -65,6 +69,9 @@ struct SeasonalElement: Codable, Equatable, Identifiable {
               sway.isFinite, (0...1).contains(sway), frameDuration.isFinite,
               (0.1...2).contains(frameDuration), pngFrames.count <= 8,
               (artwork == .image ? !pngFrames.isEmpty : pngFrames.isEmpty) else { throw SeasonalError.invalidPackage }
+        if let spiderMotion {
+            guard artwork == .web, spiderMotion.isFinite, (0...1).contains(spiderMotion) else { throw SeasonalError.invalidPackage }
+        }
         for frame in pngFrames {
             guard let data = Data(base64Encoded: frame), data.count <= 48_000,
                   data.starts(with: [137,80,78,71,13,10,26,10]),
@@ -91,6 +98,8 @@ struct SeasonalTheme: Codable, Equatable, Identifiable {
     var reactsToTilt = true
     var sections = SeasonalSection.allCases
     var elements: [SeasonalElement]
+
+    var usesHeaderDock: Bool { elements.contains { $0.artwork == .pumpkin || $0.artwork == .image } }
 
     var validationMessage: String? {
         if name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || name.count > 80 || name.utf8.count > 320 {
@@ -143,6 +152,30 @@ struct SeasonalTheme: Codable, Equatable, Identifiable {
             if start <= date && date < end { return true }
         }
         return false
+    }
+
+    /// Prepared drafts only: neither enabling nor publication is implicit.
+    static func gtaVI(now: Date = Date()) -> Self {
+        let start=Date(timeIntervalSince1970:floor(now.timeIntervalSince1970))
+        return Self(name:"GTA VI · Vice Nights",startsAt:start,endsAt:start.addingTimeInterval(14*86400),reactsToTilt:false,
+             elements:[SeasonalElement(artwork:.palm,anchor:.leading,size:38,sway:0,glow:true),
+                       SeasonalElement(artwork:.palm,anchor:.trailing,size:32,sway:0,glow:true)])
+    }
+    static func christmas(now: Date = Date()) -> Self { winter(now:now,newYear:false) }
+    static func newYear(now: Date = Date()) -> Self { winter(now:now,newYear:true) }
+    private static func winter(now: Date,newYear: Bool) -> Self {
+        var calendar=Calendar(identifier:.gregorian);calendar.timeZone=TimeZone(identifier:"Europe/Vienna")!
+        var year=calendar.component(.year,from:now)
+        // Opening a reusable winter draft in early January should show this winter.
+        if calendar.component(.month,from:now)==1 { year -= 1 }
+        let start=calendar.date(from:DateComponents(year:year,month:12,day:newYear ? 28:15))!
+        let end=calendar.date(from:DateComponents(year:newYear ? year+1:year,month:newYear ? 1:12,day:newYear ? 8:28))!
+        let artwork:SeasonalArtwork=newYear ? .star:.pine
+        var ornaments=[SeasonalElement(artwork:artwork,anchor:.leading,size:36,sway:0,glow:true),
+                       SeasonalElement(artwork:artwork,anchor:.trailing,size:30,sway:0,glow:true)]
+        if !newYear { ornaments.append(SeasonalElement(artwork:.snowflake,anchor:.leading,size:18,sway:0.3)) }
+        return Self(name:newYear ? "New Year · Golden Midnight":"Christmas · Warm Evergreen",startsAt:start,endsAt:end,
+                    repeatsYearly:true,reactsToTilt:false,elements:ornaments)
     }
 
     static func halloween(now: Date = Date()) -> Self {
