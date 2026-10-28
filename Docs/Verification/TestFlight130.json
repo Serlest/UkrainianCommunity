@@ -1,0 +1,45 @@
+{
+  "checkedAt": "2026-10-28T10:45:51.087177+00:00",
+  "version": "1.2.1",
+  "build": 130,
+  "sourceCommit": "415f05fcd0f6fa6724eeb2b94105c122dc36162e",
+  "releaseCommit": "604434e8dc3a5bccdf3d2509dd6fcc76c7cc737e",
+  "archive": "succeeded",
+  "upload": "succeeded",
+  "processingState": "VALID",
+  "internalBuildState": "IN_BETA_TESTING",
+  "assignedGroups": [
+    "Beta Tester"
+  ],
+  "notesLocales": [
+    "uk",
+    "en-US",
+    "de-DE"
+  ],
+  "deployedAnalyticsContracts": "verified before archive; all 3 handlers have current contracts",
+  "sourceGitHub": {
+    "conclusion": "",
+    "jobs": [
+      {
+        "conclusion": "success",
+        "name": "Change classification and static checks",
+        "status": "completed"
+      },
+      {
+        "conclusion": "",
+        "name": "iOS build and unit checks",
+        "status": "in_progress"
+      },
+      {
+        "conclusion": "",
+        "name": "Firebase affected checks",
+        "status": "in_progress"
+      }
+    ],
+    "status": "in_progress"
+  },
+  "localVerification": "See SeasonalAppearance20261028.json: 32 logic/SDK, 6 UI, 243 rules checks passed, plus cache and initial-state followups.",
+  "seasonalPresentation": "No public theme activated or production theme documents created.",
+  "physicalDeviceAcceptance": "Pending; phone audit remains paused.",
+  "releaseScope": "Internal TestFlight only; no public App Store release."
+}
