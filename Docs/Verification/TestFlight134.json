@@ -1,0 +1,342 @@
+{
+  "checkedAt": "2026-10-28T14:29:26.373744+00:00",
+  "version": "1.2.1",
+  "build": 134,
+  "sourceCommit": "867c68da056fa8582a91d49bacd7c80ca4551e14",
+  "processingState": "PROCESSING",
+  "internalBuildState": "pending",
+  "groups": [],
+  "notesLocales": [],
+  "archive": "ARCHIVE SUCCEEDED; version/encryption exemption and app dSYM UUID verified",
+  "upload": "EXPORT SUCCEEDED; buildUploads PROCESSING without errors/warnings",
+  "verification": "SeasonalFlock20261028.json: final 9 local tests passed, no failures/skips; six final UI captures and actual News-root animation frames reviewed",
+  "sourceGitHub": {
+    "conclusion": "success",
+    "jobs": [
+      {
+        "completedAt": "2026-10-28T13:42:23Z",
+        "conclusion": "success",
+        "databaseId": 122852819919,
+        "name": "Change classification and static checks",
+        "startedAt": "2026-10-28T13:42:07Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-10-28T13:42:08Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-10-28T13:42:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:42:18Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v7",
+            "number": 2,
+            "startedAt": "2026-10-28T13:42:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:42:18Z",
+            "conclusion": "success",
+            "name": "Classify changed paths",
+            "number": 3,
+            "startedAt": "2026-10-28T13:42:18Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:42:18Z",
+            "conclusion": "success",
+            "name": "Report required local UI validation",
+            "number": 4,
+            "startedAt": "2026-10-28T13:42:18Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:42:18Z",
+            "conclusion": "success",
+            "name": "Test change classifier",
+            "number": 5,
+            "startedAt": "2026-10-28T13:42:18Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:42:18Z",
+            "conclusion": "success",
+            "name": "Validate repository structure",
+            "number": 6,
+            "startedAt": "2026-10-28T13:42:18Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:42:19Z",
+            "conclusion": "success",
+            "name": "Validate localization catalog",
+            "number": 7,
+            "startedAt": "2026-10-28T13:42:18Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:42:19Z",
+            "conclusion": "success",
+            "name": "Validate shared content category contract",
+            "number": 8,
+            "startedAt": "2026-10-28T13:42:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:42:19Z",
+            "conclusion": "success",
+            "name": "Validate Firestore index uniqueness",
+            "number": 9,
+            "startedAt": "2026-10-28T13:42:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:42:19Z",
+            "conclusion": "success",
+            "name": "Validate property lists and privacy manifests",
+            "number": 10,
+            "startedAt": "2026-10-28T13:42:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:42:19Z",
+            "conclusion": "success",
+            "name": "Validate release configuration",
+            "number": 11,
+            "startedAt": "2026-10-28T13:42:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:42:19Z",
+            "conclusion": "success",
+            "name": "Validate bilingual legal document structure",
+            "number": 12,
+            "startedAt": "2026-10-28T13:42:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:42:19Z",
+            "conclusion": "success",
+            "name": "Verify full offline legal documents match published sources",
+            "number": 13,
+            "startedAt": "2026-10-28T13:42:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:42:19Z",
+            "conclusion": "success",
+            "name": "Show legal and App Store impact of this change",
+            "number": 14,
+            "startedAt": "2026-10-28T13:42:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:42:20Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v7",
+            "number": 28,
+            "startedAt": "2026-10-28T13:42:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:42:20Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 29,
+            "startedAt": "2026-10-28T13:42:20Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40698844467/job/122852819919"
+      },
+      {
+        "completedAt": "2026-10-28T14:14:38Z",
+        "conclusion": "success",
+        "databaseId": 122852990267,
+        "name": "iOS build and unit checks",
+        "startedAt": "2026-10-28T13:42:27Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-10-28T13:42:29Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-10-28T13:42:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:42:51Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v7",
+            "number": 2,
+            "startedAt": "2026-10-28T13:42:29Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:43:22Z",
+            "conclusion": "success",
+            "name": "Verify pinned Xcode and simulator",
+            "number": 3,
+            "startedAt": "2026-10-28T13:42:51Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:48:44Z",
+            "conclusion": "success",
+            "name": "Build app target",
+            "number": 4,
+            "startedAt": "2026-10-28T13:43:22Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T14:02:37Z",
+            "conclusion": "success",
+            "name": "Build Release configuration",
+            "number": 5,
+            "startedAt": "2026-10-28T13:48:44Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T14:10:06Z",
+            "conclusion": "success",
+            "name": "Run Swift unit tests",
+            "number": 6,
+            "startedAt": "2026-10-28T14:02:37Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T14:14:05Z",
+            "conclusion": "success",
+            "name": "Run timeout-sensitive unit tests in isolation",
+            "number": 7,
+            "startedAt": "2026-10-28T14:10:06Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T14:14:15Z",
+            "conclusion": "success",
+            "name": "Verify Swift unit tests were discovered",
+            "number": 8,
+            "startedAt": "2026-10-28T14:14:05Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T14:14:20Z",
+            "conclusion": "success",
+            "name": "Preserve Swift test diagnostics",
+            "number": 9,
+            "startedAt": "2026-10-28T14:14:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T14:14:21Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v7",
+            "number": 18,
+            "startedAt": "2026-10-28T14:14:20Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T14:14:22Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 19,
+            "startedAt": "2026-10-28T14:14:21Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40698844467/job/122852990267"
+      },
+      {
+        "completedAt": "2026-10-28T13:42:30Z",
+        "conclusion": "success",
+        "databaseId": 122852990996,
+        "name": "Firebase and rules",
+        "startedAt": "2026-10-28T13:42:26Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-10-28T13:42:27Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-10-28T13:42:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:42:27Z",
+            "conclusion": "success",
+            "name": "Preserve required-check status",
+            "number": 2,
+            "startedAt": "2026-10-28T13:42:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T13:42:27Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 3,
+            "startedAt": "2026-10-28T13:42:27Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40698844467/job/122852990996"
+      },
+      {
+        "completedAt": "2026-10-28T13:42:23Z",
+        "conclusion": "skipped",
+        "databaseId": 122852993797,
+        "name": "Firebase affected checks",
+        "startedAt": "2026-10-28T13:42:24Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40698844467/job/122852993797"
+      },
+      {
+        "completedAt": "2026-10-28T14:14:43Z",
+        "conclusion": "success",
+        "databaseId": 122871121337,
+        "name": "iOS build and unit tests",
+        "startedAt": "2026-10-28T14:14:40Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-10-28T14:14:41Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-10-28T14:14:41Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T14:14:41Z",
+            "conclusion": "success",
+            "name": "Preserve required-check status",
+            "number": 2,
+            "startedAt": "2026-10-28T14:14:41Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-28T14:14:42Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 3,
+            "startedAt": "2026-10-28T14:14:41Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40698844467/job/122871121337"
+      }
+    ],
+    "status": "completed"
+  },
+  "sourceGitHubURL": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40698844467",
+  "physicalAcceptance": "User to verify aesthetics, actual tilt and smoothness on iPhone; prior physical audit remains paused",
+  "scope": "Internal TestFlight only; no production theme-data writes or public App Store release",
+  "vendorSymbols": "Xcode export warns about missing prebuilt FirebaseFirestoreInternal, absl, grpc, grpcpp and openssl_grpc dSYMs. Main app dSYM UUID verified matching; upload accepted.",
+  "notesStatus": "Automatic helper build/testflight-134/set-notes.cjs is waiting for build visibility; no note update is yet confirmed"
+}

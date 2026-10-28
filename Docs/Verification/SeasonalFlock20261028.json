@@ -26,7 +26,34 @@
       "visualReview": "All six final light/dark home/editor captures reviewed; clock and battery clear, header position unchanged"
     },
     "productionWrites": false,
-    "physicalDevice": "not performed; user requested TestFlight self-check"
+    "physicalDevice": "not performed; user requested TestFlight self-check",
+    "finalActualRootRecording": {
+      "path": "build/seasonal-flock-20261028/final-news-flight.mp4",
+      "reviewedFramesSeconds": [
+        6,
+        36,
+        38,
+        40,
+        42,
+        44
+      ],
+      "contactSheet": "build/seasonal-flock-20261028/final-flight-review.jpg",
+      "notes": "Actual ContentView NewsHomeView under disposable loopback emulators; final tapered web, independent four-bat group visible; no production writes"
+    },
+    "sourceCI": {
+      "commit": "867c68da056fa8582a91d49bacd7c80ca4551e14",
+      "run": 40698844467,
+      "conclusion": "success",
+      "firebaseAffected": "skipped because unaffected"
+    }
   },
-  "delivery": "pending"
+  "delivery": {
+    "build": 134,
+    "version": "1.2.1",
+    "archive": "succeeded",
+    "upload": "succeeded",
+    "appleProcessing": "PROCESSING",
+    "notes": "Automatic metadata helper waiting for Apple build visibility",
+    "evidence": "TestFlight134.json"
+  }
 }
