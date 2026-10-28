@@ -35,7 +35,8 @@ export async function notifyJournalIssue(logId: string, now = new Date()): Promi
       const language = [currentOwner.get("appLanguage"), currentOwner.get("language"), currentOwner.get("preferredLanguage")].find(v => typeof v === "string") ?? "uk";
       const de = language.startsWith("de"), warning = data.severity === "warning";
       const title = de ? (warning ? "Systemwarnung" : "Systemfehler") : (warning ? "Системне попередження" : "Системна помилка");
-      const message = de ? "Eine Aktion ist fehlgeschlagen. Öffnen Sie den Protokolleintrag für Ursache und Auswirkungen." : "Дію не завершено. Відкрийте запис журналу, щоб перевірити причину та наслідки.";
+      // Diagnostic warnings can report a condition without a failed user action.
+      const message = de ? "Öffnen Sie den Protokolleintrag, um Ursache und Auswirkungen zu prüfen." : "Відкрийте запис журналу, щоб перевірити причину та наслідки.";
       tx.set(ref, buildUserNotificationDocument({notificationId, targetUserId: uid, type: "systemAnnouncement",
         title, message, severity: warning ? "warning" : "critical", actionType: "openProfile", actionTargetId: logId,
         sourceType: "system", sourceId: logId, dedupeKey: notificationId,
