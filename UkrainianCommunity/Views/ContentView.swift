@@ -215,14 +215,28 @@ struct ContentView: View {
         }
     }
 
+    private var seasonalEligible:Bool {
+        canExposeRootChrome && !seasonalKeyboardVisible && quickCreation == nil && !isShowingNotificationInbox
+            && contentReportCoordinator.target == nil && notificationPopupCoordinator.activeNotification == nil && !isShowingPasskeyOffer
+            && !(selectedTab == .profile && profileNavigationPath.contains(.seasonalManagement))
+    }
+    private var selectedSeasonalRoot:Bool {
+        switch selectedTab {
+        case .home:homeNavigationPath.isEmpty
+        case .events:eventsNavigationPath.isEmpty
+        case .organizations:organizationsNavigationPath.isEmpty
+        case .directory:directoryNavigationPath.isEmpty
+        case .profile:profileNavigationPath.isEmpty
+        }
+    }
     private func seasonalDecoration(_ section: SeasonalSection, isRoot: Bool) -> SeasonalRootDecoration {
-        SeasonalRootDecoration(store: seasonalStore, section: section,
-            isEligible: selectedSeasonalSection == section && canExposeRootChrome
-                && !seasonalKeyboardVisible && quickCreation == nil && !isShowingNotificationInbox
-                && contentReportCoordinator.target == nil
-                && notificationPopupCoordinator.activeNotification == nil && !isShowingPasskeyOffer,
-            includesChrome:isRoot,
-            showsNavigationDecoration:section != .profile || profileNavigationPath.last?.hidesRootTabBar != true)
+        SeasonalRootDecoration(store:seasonalStore,section:section,
+            isEligible:selectedSeasonalSection == section && seasonalEligible,includesChrome:isRoot,headerOnly:true)
+    }
+    private var globalSeasonalDecoration:SeasonalRootDecoration {
+        SeasonalRootDecoration(store:seasonalStore,section:selectedSeasonalSection,isEligible:seasonalEligible,
+            includesChrome:selectedSeasonalRoot,
+            showsNavigationDecoration:selectedTab != .profile || profileNavigationPath.last?.hidesRootTabBar != true)
     }
 
     private var directoryAccessKey: String {
@@ -234,6 +248,20 @@ struct ContentView: View {
         ZStack(alignment: .top) {
             TabView(selection: tabSelection) {
                 rootTabs
+            }
+            .modifier(globalSeasonalDecoration)
+            .modifier(SeasonalKeepAwake(enabled:seasonalStore.localPreview != nil))
+            .overlay(alignment:.bottomTrailing) {
+                if seasonalStore.localPreview != nil && seasonalEligible {
+                    Button { seasonalStore.preview(nil) } label: {
+                        Label(SeasonalText.value("endLocalPreview","Vorschau beenden"),systemImage:"xmark.circle.fill")
+                            .font(.caption.bold()).padding(10).frame(minHeight:44).background(AppTheme.surfaceElevated,in:Capsule())
+                    }.buttonStyle(.plain).accessibilityIdentifier("seasonal.localPreview.stop")
+                        .padding(.trailing,18).padding(.bottom,90)
+                }
+            }
+            .onChange(of:ProfileAccessIdentity(user:authState.user)) { _,_ in
+                if !PermissionService.isAppOwner(user:authState.user) { seasonalStore.preview(nil) }
             }
             .toolbarBackground(.visible, for: .tabBar)
             .tint(Color(uiColor: AppTheme.tabSelectedColor))

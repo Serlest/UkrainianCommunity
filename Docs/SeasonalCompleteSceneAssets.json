@@ -48,6 +48,16 @@
       "runtime": "UkrainianCommunity/Assets.xcassets/SeasonalSnowLedge.imageset/artwork.png",
       "prompt": "Photorealistic horizontal narrow strip of fresh white snow resting along a thin curved ledge, isolated on true transparent background. Very wide shallow composition, about five times wider than tall. Upper surface has gently irregular tiny soft mounds, subtle crystalline grains, cold blue ambient occlusion under the lip, bright clean white top, a few very short rounded snow overhangs below. Elegant believable fresh powder, not cartoon icing, not clouds. Entire strip fully visible with generous transparent margin. No visible ledge object, no text, no background, no large icicles, no glow. Intended as a static thin snow cap above an iPhone tab bar without covering any buttons.",
       "transparent_background": true
+    },
+    {
+      "name": "christmas-tree",
+      "asset": "SeasonalChristmasTree",
+      "source": "/Users/serlest/.codex/generated_images/01a11559-70e2-7563-bf0b-6b743c40d10a/exec-36cf01a7-4883-404a-b81a-5a542a66e301.png",
+      "runtime": "UkrainianCommunity/Assets.xcassets/SeasonalChristmasTree.imageset/artwork.png",
+      "prompt": "One full realistic miniature Christmas fir tree isolated on true transparent background, straight-on product photography. Tall elegant conical natural dark green spruce with layered individual needles, small warm white fairy-light bulbs arranged along three diagonal curved garland strands, restrained tiny champagne gold ornaments and a small gold star at the top, small natural wood pedestal. The entire tree and pedestal fully visible and centered with only modest transparent margins. Physically convincing branch depth, refined European Christmas, not plastic, not cartoon. No glass globe, no text, no scenery, no background, no big glow cloud or rectangular shadow. Readable clear silhouette for a small premium iPhone header decoration. Fairy-light bulbs should be tiny and dim enough that native animated lights can be placed on top later.",
+      "transparent_background": true,
+      "runtimeSizeMaximumPixels": 384,
+      "animation": "Nine native staggered opacity light layers; bitmap itself remains static"
     }
   ]
 }

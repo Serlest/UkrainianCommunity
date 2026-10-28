@@ -77,7 +77,7 @@ import FirebaseFirestore
 
     @Test func unsafeOrUnsupportedPackagesFailClosed() throws {
         var library = SeasonalLibrary(themes:[.halloween()])
-        library.schemaVersion = 3
+        library.schemaVersion = 4
         #expect(throws:(any Error).self) { try library.encoded() }
         library.schemaVersion = 1
         library.themes[0].elements[0].size = .infinity

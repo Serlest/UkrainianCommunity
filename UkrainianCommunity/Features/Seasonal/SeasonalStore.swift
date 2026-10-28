@@ -5,9 +5,17 @@ import Foundation
 /// Public presentation is independent of login and never blocks the startup gate.
 @MainActor final class SeasonalStore: ObservableObject {
     @Published private(set) var library = SeasonalLibrary()
+    @Published private(set) var localPreview:SeasonalTheme?
+    func preview(_ theme:SeasonalTheme?) { localPreview=theme }
+    func active(at date:Date,section:SeasonalSection) -> SeasonalTheme? {
+        if let localPreview { return localPreview.sections.contains(section) ? localPreview:nil }
+        return library.active(at:date,section:section)
+    }
     private var listener: ListenerRegistration?
     private let cacheURL: URL
     private var generation = UUID()
+    private var lastRevision:String?
+    private var lastPayload:String?
 
     init(cacheURL: URL? = nil) {
         self.cacheURL = cacheURL ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
@@ -27,13 +35,18 @@ import Foundation
                     // An empty offline snapshot does not invalidate a complete cached package.
                     if !snapshot.exists && snapshot.metadata.isFromCache { return }
                     do {
+                        let raw=snapshot.data()
+                        if let revision=raw?["revision"] as? String,let payload=raw?["payload"] as? String,
+                           revision==self.lastRevision,payload==self.lastPayload { return }
                         let document = try SeasonalRepository.decode(snapshot)
                         if self.library != document.library { self.library = document.library }
+                        self.lastRevision=document.revision;self.lastPayload=raw?["payload"] as? String
                         if let data = try? document.library.encoded() {
                             try? data.write(to: self.cacheURL, options: .atomic)
                         }
                     } catch {
                         // A malformed/unsupported published package must not keep an old decoration active.
+                        self.lastRevision=nil;self.lastPayload=nil
                         self.library = SeasonalLibrary()
                         try? FileManager.default.removeItem(at: self.cacheURL)
                     }

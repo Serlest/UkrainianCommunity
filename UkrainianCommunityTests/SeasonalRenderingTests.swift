@@ -83,6 +83,22 @@ import SceneKit
         }
     }
 
+    func testHangingVisibilityDoesNotRecreateOrRestartObjects() throws {
+        let window=UIWindow(frame:CGRect(x:0,y:0,width:430,height:932))
+        let view=SeasonalSceneView(frame:window.bounds);window.addSubview(view)
+        defer { view.stop();view.removeFromSuperview() }
+        var theme=SeasonalTheme.halloweenScene();theme.elements.removeAll{$0.zone == .brand}
+        view.configure(theme:theme,placement:SeasonalScenePlacement(),animated:true,dark:false,preview:false);view.layoutIfNeeded()
+        for i in 0...210 { view.tick(1000+Double(i)/10) }
+        let scene=try XCTUnwrap(view.subviews.compactMap{$0 as? SCNView}.first?.scene)
+        let spider=try XCTUnwrap(scene.rootNode.childNode(withName:"seasonal.spider.0",recursively:true))
+        let y=spider.position.y
+        view.setHangingVisible(false);XCTAssertTrue(spider.isHidden)
+        view.setHangingVisible(true);XCTAssertFalse(spider.isHidden)
+        XCTAssertTrue(scene.rootNode.childNode(withName:"seasonal.spider.0",recursively:true) === spider)
+        XCTAssertEqual(spider.position.y,y,accuracy:0.001)
+    }
+
     func testPreparedAmbientScenesUseOnlyBoundedCompositorEffects() throws {
         for theme in [SeasonalTheme.gtaVI(),.christmas(),.newYear()] {
             let view=SeasonalAmbientView(frame:CGRect(x:0,y:0,width:393,height:852))
@@ -94,10 +110,10 @@ import SceneKit
                 XCTAssertLessThanOrEqual(cg.width,image.accessibilityIdentifier?.contains("navigation") == true ? 768:512);XCTAssertLessThanOrEqual(cg.height,512)
             }
             let animatedLayers=(view.layer.sublayers ?? []).filter{!($0.animationKeys() ?? []).isEmpty}
-            XCTAssertLessThanOrEqual(animatedLayers.count,26)
+            XCTAssertLessThanOrEqual(animatedLayers.count,54)
             let snowLayers=(view.layer.sublayers ?? []).filter{$0.name=="seasonal.snow"}
-            XCTAssertLessThanOrEqual(snowLayers.count,20)
-            if theme.elements.contains(where:{$0.artwork == .snowflake}) { XCTAssertGreaterThanOrEqual(snowLayers.count,8) }
+            XCTAssertLessThanOrEqual(snowLayers.count,48)
+            if theme.elements.contains(where:{$0.artwork == .snowflake}) { XCTAssertGreaterThanOrEqual(snowLayers.count,18) }
             var particleBudget=0.0
             for emitter in (view.layer.sublayers ?? []).compactMap({$0 as? CAEmitterLayer}) {
                 for cell in emitter.emitterCells ?? [] { particleBudget += Double(cell.birthRate)*Double(cell.lifetime) }

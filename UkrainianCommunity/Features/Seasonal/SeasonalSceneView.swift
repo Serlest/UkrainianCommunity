@@ -15,10 +15,12 @@ struct SeasonalScene: UIViewRepresentable {
     let animated: Bool
     let dark: Bool
     var preview = false
+    var hangingVisible = true
 
     func makeUIView(context: Context) -> SeasonalSceneView { SeasonalSceneView() }
     func updateUIView(_ view: SeasonalSceneView, context: Context) {
         view.configure(theme:theme,placement:placement,animated:animated,dark:dark,preview:preview)
+        view.setHangingVisible(hangingVisible)
     }
     static func dismantleUIView(_ view:SeasonalSceneView,coordinator:()) { view.stop() }
 }
@@ -42,10 +44,11 @@ struct SeasonalScene: UIViewRepresentable {
         elements.first { $0.zone == .hanging } ?? (theme?.isComposedScene == true ? nil:elements.first{$0.artwork == .web})
     }
     private var hangingFrames:[UIImage]=[]
+    private var hangingVisible=true
     private var lastHangingFrame = -1
     private var hangingMoves:Bool {
         guard let hanger=hangingElement else { return false }
-        return hanger.motionStrength>0 && (hanger.zone == nil || hanger.effectiveMotion == .swing)
+        return hangingVisible && hanger.motionStrength>0 && (hanger.zone == nil || hanger.effectiveMotion == .swing)
     }
     private var materialSignature:String?
     private var placement=SeasonalScenePlacement()
@@ -129,6 +132,14 @@ struct SeasonalScene: UIViewRepresentable {
         if !animated { draw(delta:0) }
     }
 
+    func setHangingVisible(_ visible:Bool) {
+        guard hangingVisible != visible else { return }
+        hangingVisible=visible;needsRedraw=true
+        for spider in spiders { spider.root.isHidden = !visible;spider.silk.isHidden = !visible }
+        motion.setEnabled(animated && (theme?.reactsToTilt ?? false) && hangingMoves)
+        if !animated { draw(delta:0) }
+    }
+
     func stop() {
         link?.invalidate();link=nil;motion.setEnabled(false)
         renderer.rendersContinuously=false;renderer.isPlaying=false;lastTime=0
@@ -168,6 +179,7 @@ struct SeasonalScene: UIViewRepresentable {
                 let g=SCNCylinder(radius:0.25,height:1);g.radialSegmentCount=5
                 let m=SCNMaterial();m.lightingModel = .constant;g.firstMaterial=m
                 let silk=SCNNode(geometry:g);world.addChildNode(silk)
+                root.isHidden = !hangingVisible;silk.isHidden = !hangingVisible
                 spiders.append((root,legs,silk,SeasonalPendulum()))
             }
         }
@@ -197,7 +209,7 @@ struct SeasonalScene: UIViewRepresentable {
 
     private func draw(delta:Double) {
         guard let theme else { return }
-        let input=animated && theme.reactsToTilt && !spiders.isEmpty ? motion.sample() : SeasonalMotionSample()
+        let input=animated && hangingVisible && theme.reactsToTilt && !spiders.isEmpty ? motion.sample() : SeasonalMotionSample()
         let moved=abs(input.acceleration)>0.025 || abs(input.x-lastMotion.x)>0.003 || abs(input.y-lastMotion.y)>0.003 || abs(input.gravityX-lastMotion.gravityX)>0.003
         if moved { fastMotionUntil=elapsed+0.8 }
         lastMotion=input
@@ -208,7 +220,7 @@ struct SeasonalScene: UIViewRepresentable {
         let flying=hasBat && (0..<SeasonalChoreography.batCount).contains{
             SeasonalChoreography.batProgress(at:elapsed,preview:preview,index:$0) != nil
         }
-        let spriteAnimating=animated && hangingFrames.count>1 && hangingElement?.effectiveMotion != .still
+        let spriteAnimating=animated && hangingVisible && hangingFrames.count>1 && hangingElement?.effectiveMotion != .still
         let spriteFrame=spriteAnimating ? Int(elapsed/(hangingElement?.frameDuration ?? 0.2)) % hangingFrames.count:nil
         let active=elapsed<fastMotionUntil || swinging || arriving || flying || (spriteFrame != nil && spriteFrame != lastHangingFrame)
         if animated {
@@ -255,7 +267,7 @@ struct SeasonalScene: UIViewRepresentable {
                 point=CGPoint(x:bounds.width/2+(spiders.count == 1 ? 18:(index == 0 ? 6:30)),y:top+max(18,safeTop-12))
             }
             let anchor=SCNVector3(point.x,-point.y,33)
-            let restingDepth=top+Double(placement.descent)*(nativeSpider ? (index==0 ? 1:0.82):(index==0 ? 0.82:0.65))
+            let restingDepth=nativeSpider ? top+Double(placement.descent)*(index==0 ? 1:0.82):top+safeTop+(index==0 ? 30:15)
             let length=8+max(24,restingDepth-point.y)*progress
             let angle=(animated || elapsed>0) && hangingMoves ? spiders[index].pendulum.angle*(nativeSpider ? 1:0.55):0
             let x=Double(anchor.x)+sin(angle)*length,y=Double(-anchor.y)+cos(angle)*length

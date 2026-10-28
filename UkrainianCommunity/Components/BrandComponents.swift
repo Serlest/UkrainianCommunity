@@ -133,6 +133,8 @@ struct AdaptiveBrandLockupView: View {
 
 struct AppBrandHeader<TrailingContent: View>: View {
     @Environment(\.seasonalHeaderActive) private var seasonalHeaderActive
+    @Environment(\.seasonalSectionActive) private var seasonalSectionActive
+    @State private var headerVisible=false
     @Environment(\.seasonalHeaderTheme) private var seasonalHeaderTheme
     @ViewBuilder let trailingContent: TrailingContent
 
@@ -154,6 +156,12 @@ struct AppBrandHeader<TrailingContent: View>: View {
                 HStack { Spacer(minLength: 0); trailingContent }
             }
         }
+        .onGeometryChange(for:Bool.self) { proxy in
+            let frame=proxy.frame(in:.global)
+            return frame.minY>32 && frame.minY<160 && frame.maxY>80
+                && frame.minX>=(-4) && frame.minX<max(80,frame.width*0.5)
+        } action: { headerVisible=$0 }
+        .preference(key:SeasonalHeaderPresence.self,value:seasonalSectionActive && headerVisible)
         .frame(maxWidth: .infinity, minHeight: AppTheme.appHeaderLogoSize.height)
         .padding(.leading, AppTheme.appHeaderLeadingAdjustment)
     }

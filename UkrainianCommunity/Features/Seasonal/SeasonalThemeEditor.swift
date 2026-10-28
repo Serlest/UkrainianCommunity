@@ -74,7 +74,7 @@ struct SeasonalThemeEditor: View {
             Form {
                 Section(SeasonalText.value("preview", "Vorschau")) {
                     SeasonalPreview(theme: draft).environment(\.colorScheme, previewScheme)
-                        .environment(\.scenePhase,fullPreview ? .inactive:scenePhase)
+                        .environment(\.scenePhase,(fullPreview || importingArtwork || editingDate != nil || confirmDiscard || nameFocused) ? .inactive:scenePhase)
                     Picker(SeasonalText.value("appearance", "Darstellung"), selection: $previewScheme) {
                         Text(SeasonalText.value("light", "Hell")).tag(ColorScheme.light)
                         Text(SeasonalText.value("dark", "Dunkel")).tag(ColorScheme.dark)

@@ -43,7 +43,7 @@ struct SeasonalAuditHarness: View {
         Group {
             if scope == "management" {
                 NavigationStack { SeasonalManagementView(model: model) }
-                    .environmentObject(AuthService.shared.authState)
+                    .environmentObject(AuthService.shared.authState).environmentObject(SeasonalStore())
             } else if scope.hasPrefix("editor") {
                 SeasonalThemeEditor(theme: theme) { theme = $0 }
             } else {
@@ -60,7 +60,7 @@ struct SeasonalAuditHarness: View {
                                         .frame(height: 130).frame(maxWidth: .infinity)
                                         .foregroundStyle(.orange.gradient).background(.blue.opacity(0.12))
                                         .clipShape(RoundedRectangle(cornerRadius: 20))
-                                    ForEach(0..<(scope == "scroll" ? 60:3),id:\.self) { _ in
+                                    ForEach(0..<(scope == "scroll" || ProcessInfo.processInfo.environment["UITestSeasonalLongFeed"] == "1" ? 60:3),id:\.self) { _ in
                                         HStack {
                                             Image(systemName: "newspaper").font(.title)
                                             VStack(alignment: .leading) {

@@ -1,0 +1,182 @@
+{
+  "date": "2026-10-29",
+  "scope": "Post-review seasonal scene controls, shared renderer, visible winter snow, tree garland and bounded navigation snow rim",
+  "baselineCommit": "269744ceeaf9e80d640507a11c1b416facc316ee",
+  "delivery": {
+    "version": "1.2.1",
+    "build": "138",
+    "localDeviceInstallVerified": true,
+    "installedVersionReadback": "build/seasonal-polish-20261028/device-version-final138.json",
+    "signatureVerified": "build/seasonal-polish-20261028/codesign-final138.log",
+    "testFlightUploaded": false,
+    "productionScenesPublished": false,
+    "productionRulesDeployed": false
+  },
+  "behavior": {
+    "quickEnableReplacesPreviousScene": true,
+    "manualModeRetainsPrivateCalendarPlans": true,
+    "manualModeFormat": 3,
+    "legacyFormats": [
+      1,
+      2
+    ],
+    "separatePrivatePublicWrites": "Both revision checked; old public scene remains if second write fails; exact public readback required",
+    "localPreview": "Owner only, actual content roots, never saves or publishes; ignores local effects opt-out temporarily without changing it",
+    "sharedRootRenderer": true,
+    "continuityScope": "Ordinary tabs and eligible details; authentication, modal, background and compact landscape gates can suppress effects",
+    "displayWake": "Scoped preview leases restore original application idle-timer state after last preview; cannot unlock an already locked phone",
+    "readDeadlineSeconds": 20,
+    "repeatedMetadataDoesNotRedecodeOrRewriteCache": true,
+    "unsavedDraftSafety": "Preview cannot dismiss management while dirty; quick settings reopen current private draft; current publication can still be disabled without discarding draft"
+  },
+  "winter": {
+    "snowLayersMaximum": 48,
+    "particleEngine": "Seeded small CALayers with compositor position/drift; no per-frame SwiftUI updates or queries",
+    "lightSnow": "Filled blue-gray with soft highlight",
+    "darkSnow": "White core and cool contour",
+    "liveAppearanceChange": "Existing particle textures recolored in place; no particle reallocation or fall restart",
+    "tree": "Original 384px transparent asset plus nine native staggered light layers",
+    "snowRim": "Small cached 2x raster above native tab bar, no icon/label coverage",
+    "accumulation": "Optional bounded 60-to-100 percent mask reveal over 90 seconds; not persisted physical snow",
+    "reducedMotionAndLowPower": "Animation suppressed"
+  },
+  "verification": {
+    "modelRenderingAndActualFirebaseSDK": {
+      "result": "Passed",
+      "totalTestCount": 51,
+      "passedTests": 51,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "startTime": 1793231109.289,
+      "finishTime": 1793231116.033
+    },
+    "functionalUIBeforeLastInPlaceColorPatch": {
+      "result": "Passed",
+      "totalTestCount": 18,
+      "passedTests": 18,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "startTime": 1793230221.588,
+      "finishTime": 1793230856.63
+    },
+    "finalColorAndPerformance": {
+      "result": "Passed",
+      "totalTestCount": 4,
+      "passedTests": 4,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "startTime": 1793231137.538,
+      "finishTime": 1793231406.731,
+      "scope": "Two UI appearance reruns on final source plus two opt-in scroll benchmarks, three measurement iterations each"
+    },
+    "sourceHashes": "build/seasonal-polish-20261028/frozen-source-hashes.json",
+    "visualContactSheet": "build/seasonal-polish-20261028/final-contact-review.jpg",
+    "firebaseProject": "demo-uac-release-audit",
+    "firebaseTransport": "Loopback Auth 19099 / Firestore 28080; no production writes",
+    "actualRulesPath": "Firebase/firestore.rules",
+    "actualRulesSHA256": "d1fed7047076d19b6e1ccdb35fba47b84e7f4035759e129e851450ad54294312",
+    "localization": "3598 entries and Swift references checked",
+    "releaseConfiguration": "Passed build 138",
+    "simulatorScrollComparison": {
+      "testABaselineWinterFeedWithoutEffects": {
+        "Memory Physical (UkrainianCommunity)": {
+          "unit": "kB",
+          "average": 5.461
+        },
+        "CPU Instructions Retired (UkrainianCommunity)": {
+          "unit": "kI",
+          "average": 30100461.003
+        },
+        "CPU Cycles (UkrainianCommunity)": {
+          "unit": "kC",
+          "average": 12888308.538
+        },
+        "CPU Time (UkrainianCommunity)": {
+          "unit": "s",
+          "average": 4.301
+        },
+        "Memory Peak Physical (UkrainianCommunity)": {
+          "unit": "kB",
+          "average": 53092.213
+        },
+        "Absolute Memory Physical (UkrainianCommunity)": {
+          "unit": "kB",
+          "average": 52906.528
+        },
+        "Duration (Scroll_Dragging)": {
+          "unit": "s",
+          "average": 0.167
+        }
+      },
+      "testBWinterFeedWithSharedSnowAndGarland": {
+        "Memory Physical (UkrainianCommunity)": {
+          "unit": "kB",
+          "average": 0.0
+        },
+        "CPU Instructions Retired (UkrainianCommunity)": {
+          "unit": "kI",
+          "average": 30833405.076
+        },
+        "CPU Cycles (UkrainianCommunity)": {
+          "unit": "kC",
+          "average": 13331981.892
+        },
+        "CPU Time (UkrainianCommunity)": {
+          "unit": "s",
+          "average": 4.349
+        },
+        "Memory Peak Physical (UkrainianCommunity)": {
+          "unit": "kB",
+          "average": 55489.763
+        },
+        "Absolute Memory Physical (UkrainianCommunity)": {
+          "unit": "kB",
+          "average": 55276.771
+        },
+        "Duration (Scroll_Dragging)": {
+          "unit": "s",
+          "average": 0.178
+        }
+      }
+    },
+    "simulatorScrollLimit": "Exploratory three-sample simulator comparison, not a physical-device FPS or GPU measurement and not an established performance regression threshold",
+    "finalDraftSafetyUI": {
+      "result": "Passed",
+      "passedTests": 4,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "startTime": 1793231612.404,
+      "finishTime": 1793231708.101,
+      "scope": "New unsaved-draft preservation case, repeated active Update, quick exclusive switching and maximum German controls"
+    },
+    "uniqueFunctionalUICasesCovered": 19
+  },
+  "physicalDevice": {
+    "model": "iPhone 16 Pro Max",
+    "system": "iOS 27.2",
+    "installation": "Verified 1.2.1 (138)",
+    "visualAndPerformanceCasesExecuted": 0,
+    "status": "Blocked by lock screen / Code eingeben, visually observed through Device Hub at 00:40 CET; no passcode entered, security settings unchanged",
+    "launchAttempt": "build/seasonal-polish-20261028/device-launch-final138.log",
+    "launchOutcome": "20 second command timeout; not a successful app launch",
+    "preparedSuite": "PhysicalSeasonalExperienceUITests",
+    "pending": [
+      "Four scenes across five real feed roots in light and dark",
+      "Actual scrolling cost with effects off/on",
+      "Snow movement and 90 second rim growth",
+      "Rotation and return",
+      "Real-device sensor response and visual acceptance"
+    ],
+    "transientTestSettings": "Launch arguments only; tearDown restores normal launch and portrait; no community publication"
+  },
+  "earlierFailuresRetained": [
+    "FinalModelsSDK.xcresult used an incorrect emulator rules path; SDK access-denial assertions correctly failed. Fixed config to actual firebase.json rules, restarted and reseeded isolated demo. SDKVerifiedRules and final model runs passed with real rules. Production rules unchanged.",
+    "One test-only CGImage conditional cast did not compile; corrected to object identity and final build/tests rerun."
+  ],
+  "sourceCI": {
+    "baselineRun": 40775350650,
+    "baselineResult": "success",
+    "currentSource": "Track the commit containing this receipt in GitHub Actions; baseline run is not counted as current verification"
+  },
+  "originalDirtyWork": "Main Localizable catalog restored to its exact pre-existing backup; project file pre-existing reorder preserved, only build-number hunks staged."
+}

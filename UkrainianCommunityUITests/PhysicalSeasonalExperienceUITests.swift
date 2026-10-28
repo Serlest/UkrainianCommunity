@@ -1,0 +1,106 @@
+import XCTest
+import UIKit
+
+/// Explicit opt-in production reads and LOCAL previews only. Never publishes or saves a library.
+@MainActor final class PhysicalSeasonalExperienceUITests:XCTestCase {
+    override func setUpWithError() throws {
+        continueAfterFailure=false
+        #if targetEnvironment(simulator)
+        throw XCTSkip("Physical iPhone required")
+        #else
+        guard ProcessInfo.processInfo.environment["UACPhysicalSeasonal"]=="1" else { throw XCTSkip("Opt-in physical visual audit") }
+        #endif
+        let context=XCTAttachment(string:"Low Power Mode: \(ProcessInfo.processInfo.isLowPowerModeEnabled); Reduce Motion: \(UIAccessibility.isReduceMotionEnabled)")
+        context.name="Physical-Seasonal-Accessibility-And-Power";context.lifetime = .keepAlways;add(context)
+    }
+    override func tearDown() {
+        XCUIDevice.shared.orientation = .portrait
+        let app=XCUIApplication();app.terminate();app.launchArguments=[];app.launch()
+        super.tearDown()
+    }
+    private func capture(_ app:XCUIApplication,_ name:String) {
+        XCTAssertEqual(app.state,.runningForeground)
+        let a=XCTAttachment(screenshot:app.screenshot());a.name=name;a.lifetime = .keepAlways;add(a)
+    }
+    private func reveal(_ item:XCUIElement,_ app:XCUIApplication,down:Bool=false) {
+        for _ in 0..<20 where !item.exists || !item.isHittable || item.frame.midY<100 || item.frame.midY>app.frame.height-110 {
+            if down || (item.exists && item.frame.midY<100) { app.swipeDown() } else { app.swipeUp() }
+        }
+        XCTAssertTrue(item.exists && item.isHittable)
+    }
+    private func management(_ app:XCUIApplication) {
+        let stop=app.buttons["seasonal.localPreview.stop"];if stop.exists { stop.tap() }
+        let profile=app.tabBars.buttons.matching(NSPredicate(format:"identifier == %@ OR label IN %@","tab.profile",["Профіль","Profil","Profile"])).firstMatch
+        XCTAssertTrue(profile.waitForExistence(timeout:20));profile.tap()
+        let entry=app.buttons["profile.seasonalManagement"];reveal(entry,app);entry.tap()
+        XCTAssertTrue(app.buttons["seasonal.quick.preview.uac.preset.halloween"].waitForExistence(timeout:25))
+    }
+    private func measureFeed(_ app:XCUIApplication) {
+        let news=app.tabBars.buttons["Новини"];XCTAssertTrue(news.waitForExistence(timeout:15));news.tap()
+        Thread.sleep(forTimeInterval:5)
+        app.swipeUp();app.swipeDown()
+        let options=XCTMeasureOptions();options.iterationCount=3
+        measure(metrics:[XCTOSSignpostMetric.scrollDraggingMetric,XCTCPUMetric(application:app),XCTMemoryMetric(application:app)],options:options) {
+            app.swipeUp();app.swipeUp();app.swipeUp()
+            app.swipeDown();app.swipeDown();app.swipeDown()
+        }
+        capture(app,"Physical-Winter-Scroll-Benchmark")
+    }
+    func testABaselinePhysicalScrollWithoutEffects() {
+        let app=XCUIApplication();app.launchArguments=["-selectedAppAppearance","light","-seasonalEffectsEnabled","NO"];app.launch()
+        measureFeed(app)
+        app.launchArguments=[];app.launch()
+    }
+    func testBWinterPhysicalScrollWithSharedSnowAndTree() {
+        let app=XCUIApplication();app.launchArguments=["-selectedAppAppearance","light","-seasonalEffectsEnabled","NO"];app.launch()
+        management(app)
+        let preview=app.buttons["seasonal.quick.preview.uac.preset.christmas"];reveal(preview,app);preview.tap()
+        measureFeed(app)
+        app.buttons["seasonal.localPreview.stop"].tap()
+        app.launchArguments=[];app.launch()
+    }
+    func testFourScenesOnRealFeedsInLightAndDarkWithoutPublishing() throws {
+        let app=XCUIApplication()
+        for appearance in ["light","dark"] {
+            app.launchArguments=["-selectedAppAppearance",appearance];app.launch()
+            for scene in ["halloween","gta","christmas","newyear"] {
+                management(app)
+                let preview=app.buttons["seasonal.quick.preview.uac.preset."+scene];reveal(preview,app);preview.tap()
+                let stop=app.buttons["seasonal.localPreview.stop"];XCTAssertTrue(stop.waitForExistence(timeout:10))
+                for (index,label) in ["Новини","Події","Організації","Довідник","Профіль"].enumerated() {
+                    let tab=app.tabBars.buttons[label];XCTAssertTrue(tab.isHittable);tab.tap();XCTAssertTrue(tab.isSelected)
+                    Thread.sleep(forTimeInterval:1)
+                    capture(app,"Physical-Seasonal-"+scene+"-"+appearance+"-tab-"+String(index))
+                }
+                app.tabBars.buttons["Новини"].tap()
+                app.swipeUp();app.swipeUp();capture(app,"Physical-Seasonal-"+scene+"-"+appearance+"-scroll")
+                app.swipeDown();app.swipeDown()
+                if scene=="christmas" {
+                    Thread.sleep(forTimeInterval:3);capture(app,"Physical-Seasonal-Snow-"+appearance+"-frame-A")
+                    Thread.sleep(forTimeInterval:2);capture(app,"Physical-Seasonal-Snow-"+appearance+"-frame-B")
+                }
+                stop.tap();XCTAssertTrue(stop.waitForNonExistence(timeout:5))
+            }
+        }
+        // Remove only transient launch arguments; user defaults are not changed.
+        app.launchArguments=[];app.launch()
+    }
+    func testLocalWinterPreviewIdleAccumulationAndOrientation() throws {
+        let app=XCUIApplication();app.launchArguments=["-selectedAppAppearance","light"];app.launch()
+        management(app)
+        let preview=app.buttons["seasonal.quick.preview.uac.preset.christmas"];reveal(preview,app);preview.tap()
+        app.tabBars.buttons["Новини"].tap()
+        capture(app,"Physical-Winter-Accumulation-Start")
+        for _ in 0..<6 { Thread.sleep(forTimeInterval:15);XCTAssertEqual(app.state,.runningForeground) }
+        capture(app,"Physical-Winter-Accumulation-90s")
+        XCUIDevice.shared.orientation = .landscapeLeft;Thread.sleep(forTimeInterval:2)
+        let landscape=NSPredicate { _,_ in app.frame.width>app.frame.height }
+        XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:landscape,object:nil)],timeout:10),.completed)
+        capture(app,"Physical-Winter-Landscape")
+        XCUIDevice.shared.orientation = .portrait;Thread.sleep(forTimeInterval:2)
+        XCTAssertGreaterThan(app.frame.height,app.frame.width)
+        capture(app,"Physical-Winter-Portrait-Return")
+        app.buttons["seasonal.localPreview.stop"].tap()
+        app.launchArguments=[];app.launch()
+    }
+}

@@ -2,6 +2,12 @@ import Combine
 import SwiftUI
 import UIKit
 
+struct SeasonalHeaderPresence:PreferenceKey {
+    static let defaultValue=false
+    static func reduce(value:inout Bool,nextValue:()->Bool) { value=value || nextValue() }
+}
+private struct SeasonalSectionActiveKey:EnvironmentKey { static let defaultValue=true }
+
 enum SeasonalHeaderAnchor: Hashable { case pumpkin }
 struct SeasonalHeaderAnchors: PreferenceKey {
     static let defaultValue: [SeasonalHeaderAnchor: Anchor<CGRect>] = [:]
@@ -12,6 +18,7 @@ struct SeasonalHeaderAnchors: PreferenceKey {
 private struct SeasonalHeaderActiveKey: EnvironmentKey { static let defaultValue = false }
 private struct SeasonalHeaderThemeKey: EnvironmentKey { static let defaultValue:SeasonalTheme? = nil }
 extension EnvironmentValues {
+    var seasonalSectionActive:Bool { get { self[SeasonalSectionActiveKey.self] } set { self[SeasonalSectionActiveKey.self]=newValue } }
     var seasonalHeaderTheme:SeasonalTheme? {
         get { self[SeasonalHeaderThemeKey.self] }
         set { self[SeasonalHeaderThemeKey.self] = newValue }
@@ -28,6 +35,9 @@ struct SeasonalDecorationLayer: View {
     let anchors: [SeasonalHeaderAnchor: Anchor<CGRect>]
     var preview = false
     var embedsHeaderPumpkin = false
+    var includesChrome = true
+    var showsNavigation = true
+    var hangingVisible = true
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -37,7 +47,7 @@ struct SeasonalDecorationLayer: View {
 
     private var animated: Bool {
         visible && scenePhase == .active && !reduceMotion && !lowPower && !typeSize.isAccessibilitySize
-            && theme.visibleElements.contains { $0.motionStrength>0 || $0.glow || $0.pngFrames.count>1 }
+            && theme.visibleElements.contains(where:\.needsAnimation)
     }
     private var customElements: [SeasonalElement] { theme.visibleElements.filter { $0.artwork == .image && $0.zone == nil } }
 
@@ -69,20 +79,22 @@ struct SeasonalDecorationLayer: View {
             ZStack(alignment:.topLeading) {
                 if let web = theme.visibleElements.first(where: { $0.artwork == .web }) {
                     SeasonalStaticDecorations(element: web, top: top, dark: scheme == .dark, preview: preview, includeLeaves: !theme.isComposedScene)
+                        .opacity(includesChrome ? 1:0)
                 }
-                SeasonalAmbientOrnaments(elements:theme.visibleElements,animated:animated,intensity:theme.intensity,preview:preview)
+                SeasonalAmbientOrnaments(elements:theme.visibleElements,animated:animated,intensity:theme.intensity,preview:preview,includesChrome:includesChrome,showsNavigation:showsNavigation)
                 if sceneTheme.elements.contains(where:{[SeasonalArtwork.pumpkin,.web,.bat,.spider,.keychain,.glassBauble].contains($0.artwork) || ($0.artwork == .image && $0.zone == .hanging)}) {
-                    SeasonalScene(theme:sceneTheme,placement:placement,animated:animated && sceneTheme.elements.contains{ $0.motionStrength>0 || ($0.glow && $0.motionStyle != .still) || ($0.pngFrames.count>1 && $0.motionStyle != .still) },dark:scheme == .dark,preview:preview)
+                    SeasonalScene(theme:sceneTheme,placement:placement,animated:animated && includesChrome && sceneTheme.elements.contains{ $0.motionStrength>0 || ($0.glow && $0.motionStyle != .still) || ($0.pngFrames.count>1 && $0.motionStyle != .still) },dark:scheme == .dark,preview:preview,hangingVisible:hangingVisible)
                         .frame(width:geometry.size.width,height:geometry.size.height)
+                        .opacity(includesChrome ? 1:0)
                 }
                 if !customElements.isEmpty {
-                    TimelineView(.animation(minimumInterval:0.1,paused:!animated)) { context in
+                    TimelineView(.animation(minimumInterval:0.1,paused:!animated || !includesChrome)) { context in
                         ForEach(Array(customElements.enumerated()),id:\.element.id) { index,element in
                             let point = CGPoint(x:placement.pumpkin.x+CGFloat(index)*18,y:placement.pumpkin.y)
                             SeasonalArtworkView(element:element,phase:animated ? context.date.timeIntervalSinceReferenceDate:0,animated:animated)
                                 .position(point)
                         }
-                    }
+                    }.opacity(includesChrome ? 1:0)
                 }
             }
         }
@@ -104,7 +116,7 @@ struct SeasonalPreview: View {
             RoundedRectangle(cornerRadius:14).fill(AppTheme.accentPrimary.opacity(0.12)).frame(height:58).padding(12)
             HStack {
                 ForEach(["newspaper.fill","calendar","building.2.fill","books.vertical.fill","person.circle.fill"],id:\.self) { symbol in
-                    Image(systemName:symbol).font(.system(size:13)).frame(maxWidth:.infinity)
+                    Image(systemName:symbol).font(.system(size:13)).frame(maxWidth:.infinity).frame(height:16)
                 }
             }.padding(8).background(.thinMaterial,in:Capsule()).padding(.horizontal,14).padding(.bottom,10)
         }
@@ -128,21 +140,25 @@ struct SeasonalRootDecoration: ViewModifier {
     let isEligible: Bool
     var includesChrome = true
     var showsNavigationDecoration = true
+    var headerOnly = false
+    @State private var headerPresent=false
     @AppStorage("seasonalEffectsEnabled") private var enabled = true
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.dynamicTypeSize) private var typeSize
 
     func body(content: Content) -> some View {
-        TimelineView(.animation(minimumInterval:1,paused:scenePhase != .active || !isEligible || !enabled || store.library.themes.isEmpty)) { context in
-            let theme = enabled && isEligible && verticalSizeClass != .compact && !typeSize.isAccessibilitySize
-                ? store.library.active(at:context.date,section:section)?.presentation(includesChrome:includesChrome,showsNavigation:showsNavigationDecoration) : nil
+        TimelineView(.animation(minimumInterval:1,paused:scenePhase != .active || !isEligible || (!enabled && store.localPreview == nil) || (store.library.themes.isEmpty && store.localPreview == nil))) { context in
+            let theme = (enabled || store.localPreview != nil) && isEligible && verticalSizeClass != .compact && !typeSize.isAccessibilitySize
+                ? store.active(at:context.date,section:section) : nil
             content
-                .environment(\.seasonalHeaderActive,theme?.usesHeaderDock ?? false)
+                .environment(\.seasonalSectionActive,isEligible)
+                .onPreferenceChange(SeasonalHeaderPresence.self) { headerPresent=$0 }
+                .environment(\.seasonalHeaderActive,includesChrome && (theme?.usesHeaderDock ?? false))
                 .environment(\.seasonalHeaderTheme,theme)
                 .overlayPreferenceValue(SeasonalHeaderAnchors.self) { anchors in
-                    if let theme, !theme.visibleElements.isEmpty {
-                        SeasonalDecorationLayer(theme:theme,anchors:anchors,embedsHeaderPumpkin:true)
+                    if !headerOnly, let theme, !theme.visibleElements.isEmpty {
+                        SeasonalDecorationLayer(theme:theme,anchors:anchors,embedsHeaderPumpkin:true,includesChrome:includesChrome,showsNavigation:showsNavigationDecoration,hangingVisible:headerPresent)
                             .ignoresSafeArea(.container,edges:[.top,.bottom])
                     }
                 }

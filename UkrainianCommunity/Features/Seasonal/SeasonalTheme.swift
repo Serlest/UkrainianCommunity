@@ -4,34 +4,42 @@ import ImageIO
 /// Data, never downloaded executable code. Unknown versions/effects fail closed.
 struct SeasonalLibrary: Codable, Equatable {
     var schemaVersion = 1
+    var manualThemeID:String? = nil { didSet { if manualThemeID != nil { schemaVersion=3 } } }
     var themes: [SeasonalTheme] = [] {
         didSet { if schemaVersion == 1 && themes.contains(where: \.isComposedScene) { schemaVersion=2 } }
     }
-    init(schemaVersion:Int=1,themes:[SeasonalTheme]=[]) {
+    init(schemaVersion:Int=1,themes:[SeasonalTheme]=[],manualThemeID:String?=nil) {
         self.schemaVersion=schemaVersion == 1 && themes.contains(where: \.isComposedScene) ? 2:schemaVersion
-        self.themes=themes
+        self.themes=themes;self.manualThemeID=manualThemeID
+        if manualThemeID != nil { self.schemaVersion=3 }
     }
-    private enum CodingKeys:String,CodingKey { case schemaVersion,themes }
+    private enum CodingKeys:String,CodingKey { case schemaVersion,themes,manualThemeID }
     init(from decoder:Decoder) throws {
         let container=try decoder.container(keyedBy:CodingKeys.self)
         let version=try container.decode(Int.self,forKey:.schemaVersion)
-        guard version == 1 || version == 2 else { throw SeasonalError.invalidPackage }
+        guard (1...3).contains(version) else { throw SeasonalError.invalidPackage }
         let scenes=try container.decode([SeasonalTheme].self,forKey:.themes)
-        guard version == 2 || !scenes.contains(where: \.isComposedScene) else { throw SeasonalError.invalidPackage }
-        schemaVersion=version;themes=scenes
+        guard version >= 2 || !scenes.contains(where: \.isComposedScene) else { throw SeasonalError.invalidPackage }
+        let manual=try container.decodeIfPresent(String.self,forKey:.manualThemeID)
+        guard manual == nil || version == 3 else { throw SeasonalError.invalidPackage }
+        schemaVersion=version;themes=scenes;manualThemeID=manual
     }
 
     func validated() throws -> Self {
-        guard (schemaVersion == 1 || schemaVersion == 2), themes.count <= 12,
-              (schemaVersion == 2 || !themes.contains(where: \.isComposedScene)),
+        guard (1...3).contains(schemaVersion), themes.count <= 12,
+              (schemaVersion >= 2 || !themes.contains(where: \.isComposedScene)),
               Set(themes.map(\.id)).count == themes.count else { throw SeasonalError.invalidPackage }
+        if let manualThemeID { guard schemaVersion == 3, themes.contains(where:{$0.id == manualThemeID && $0.isEnabled}), themes.filter(\.isEnabled).count == 1 else { throw SeasonalError.invalidPackage } }
         for theme in themes { try theme.validate() }
         return self
     }
 
     func active(at date: Date, section: SeasonalSection) -> SeasonalTheme? {
-        themes.filter { $0.isEnabled && $0.sections.contains(section) && $0.contains(date) }
-            .sorted { $0.priority == $1.priority ? $0.id < $1.id : $0.priority > $1.priority }.first
+        let candidate:SeasonalTheme?
+        if let manualThemeID { candidate=themes.first{$0.id == manualThemeID && $0.isEnabled} }
+        else { candidate=themes.filter{$0.isEnabled && $0.contains(date)}
+            .sorted{$0.priority == $1.priority ? $0.id<$1.id:$0.priority>$1.priority}.first }
+        return candidate?.sections.contains(section) == true ? candidate:nil
     }
 
     static func decode(_ data: Data) throws -> Self {
@@ -56,7 +64,7 @@ enum SeasonalSection: String, Codable, CaseIterable, Identifiable {
 
 enum SeasonalArtwork: String, Codable, CaseIterable, Identifiable {
     case pumpkin, web, bat, snowflake, star, pine, palm, image
-    case viceHeader, christmasGlobe, newYearHeader, keychain, glassBauble, snowLedge, leaves, spider, sparkle
+    case christmasTree, viceHeader, christmasGlobe, newYearHeader, keychain, glassBauble, snowLedge, leaves, spider, sparkle
     var id: String { rawValue }
 }
 
@@ -78,6 +86,7 @@ struct SeasonalElement: Codable, Equatable, Identifiable {
     var motionStyle: SeasonalMotionStyle? = nil
     var isEnabled: Bool? = nil
     var accentHex: String? = nil
+    var accumulatesSnow:Bool? = nil
 
     var motionStrength: Double { motionStyle == .still ? 0 : (artwork == .web || artwork == .spider ? (spiderMotion ?? max(0.25, sway)) : sway) }
     /// Optional PNG artwork, embedded so a downloaded package works fully offline.
@@ -94,6 +103,7 @@ struct SeasonalElement: Codable, Equatable, Identifiable {
         if let zone {
             guard zone.artworks.contains(artwork), motionStyle.map({ motionChoices.contains($0) }) ?? true else { throw SeasonalError.invalidPackage }
         } else if motionStyle != nil || isEnabled != nil || accentHex != nil { throw SeasonalError.invalidPackage }
+        if accumulatesSnow != nil && artwork != .snowLedge { throw SeasonalError.invalidPackage }
         if let accentHex {
             guard accentHex.count == 6, accentHex.utf8.allSatisfy({ (48...57).contains($0) || (65...70).contains($0) || (97...102).contains($0) }) else { throw SeasonalError.invalidPackage }
         }
@@ -205,7 +215,7 @@ struct SeasonalTheme: Codable, Equatable, Identifiable {
         let start=calendar.date(from:DateComponents(year:year,month:12,day:newYear ? 28:15))!
         let end=calendar.date(from:DateComponents(year:newYear ? year+1:year,month:newYear ? 1:12,day:newYear ? 8:28))!
         let ornaments:[SeasonalElement]=[
-            .scene(newYear ? .newYearHeader:.christmasGlobe,.brand,size:40,motion:.glow,glow:true),
+            .scene(newYear ? .newYearHeader:.christmasTree,.brand,size:44,motion:newYear ? .glow:.twinkle,glow:true),
             .scene(newYear ? .star:.pine,.corner,size:38,motion:.glow,glow:true),
             .scene(.glassBauble,.hanging,size:32,motion:.swing,glow:true,accent:newYear ? "FFD580":"F4C56A"),
             .scene(newYear ? .star:.pine,.edges,size:32,motion:.glow,glow:true),

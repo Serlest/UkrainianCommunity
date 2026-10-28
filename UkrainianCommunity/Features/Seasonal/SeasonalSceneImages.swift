@@ -6,6 +6,7 @@ import UIKit
     static func image(_ element:SeasonalElement) -> UIImage? {
         if element.artwork == .image { return frames(element).first }
         let name:String = switch element.artwork {
+        case .christmasTree:"SeasonalChristmasTree"
         case .viceHeader:"SeasonalViceHeader"
         case .christmasGlobe:"SeasonalChristmasGlobe"
         case .newYearHeader:"SeasonalNewYearHeader"
@@ -67,6 +68,8 @@ struct SeasonalHeaderImage:UIViewRepresentable {
     private let imageView=UIImageView()
     private let shine=CAGradientLayer()
     private let silhouette=CALayer()
+    private var bulbs:[CALayer]=[]
+    private let bulbPoints:[CGPoint]=[.init(x:0.43,y:0.28),.init(x:0.58,y:0.3),.init(x:0.48,y:0.42),.init(x:0.36,y:0.47),.init(x:0.62,y:0.59),.init(x:0.39,y:0.65),.init(x:0.55,y:0.75),.init(x:0.27,y:0.8),.init(x:0.68,y:0.86)]
     private var element:SeasonalElement?,animated=false,intensity=0.0
     override init(frame:CGRect) {
         super.init(frame:frame);backgroundColor = .clear;isUserInteractionEnabled=false;isAccessibilityElement=false
@@ -86,7 +89,9 @@ struct SeasonalHeaderImage:UIViewRepresentable {
         shine.opacity=0
         if animated {
             if frames.count>1 { imageView.animationImages=frames;imageView.animationDuration=element.frameDuration*Double(frames.count);imageView.startAnimating() }
-            if element.glow { addGlow(intensity:intensity) }
+            if element.glow {
+                if element.artwork == .christmasTree { addGarland(element) } else { addGlow(intensity:intensity) }
+            }
             switch element.effectiveMotion {
             case .glow:break
             case .float,.rotate:
@@ -99,6 +104,17 @@ struct SeasonalHeaderImage:UIViewRepresentable {
         }
         setNeedsLayout()
     }
+    private func addGarland(_ element:SeasonalElement) {
+        for i in bulbPoints.indices {
+            let bulb=CALayer();bulb.name="seasonal.garland";bulb.backgroundColor=element.accentColor.cgColor;bulb.cornerRadius=0.8
+            bulb.bounds=CGRect(x:0,y:0,width:1.6,height:1.6);bulb.opacity=0.85
+            layer.addSublayer(bulb);bulbs.append(bulb)
+            let pulse=CAKeyframeAnimation(keyPath:"opacity");pulse.values=[0.12,0.95,0.55,0.12];pulse.keyTimes=[0,0.3,0.62,1]
+            pulse.duration=element.effectiveMotion == .twinkle ? 2.6:4.8;pulse.repeatCount = .infinity
+            pulse.timeOffset=(CACurrentMediaTime()+Double(i)*(element.effectiveMotion == .twinkle ? 0.24:0.03)).truncatingRemainder(dividingBy:pulse.duration)
+            pulse.calculationMode = .cubic;bulb.add(pulse,forKey:"seasonal.garland")
+        }
+    }
     private func addGlow(intensity:Double) {
         let breath=CABasicAnimation(keyPath:"opacity");breath.fromValue=0.70;breath.toValue=1
         breath.duration=2.8;breath.autoreverses=true;breath.repeatCount = .infinity
@@ -109,10 +125,14 @@ struct SeasonalHeaderImage:UIViewRepresentable {
     }
     override func layoutSubviews() {
         super.layoutSubviews();CATransaction.begin();CATransaction.setDisableActions(true);defer{CATransaction.commit()}
-        let side=min(bounds.height,CGFloat(element?.size ?? 40))
+        let side=min(bounds.height,CGFloat(element?.size ?? 40)*(element?.artwork == .christmasTree ? 1.27:1))
         let rect=CGRect(x:(bounds.width-side)/2,y:(bounds.height-side)/2,width:side,height:side)
         imageView.frame=rect;shine.frame=rect;silhouette.frame=shine.bounds
+        let ratio=(imageView.image?.size.width ?? 1)/max(1,imageView.image?.size.height ?? 1)
+        let actualSize=CGSize(width:side*min(1,ratio),height:side*min(1,1/max(0.01,ratio)))
+        let actual=CGRect(x:rect.midX-actualSize.width/2,y:rect.midY-actualSize.height/2,width:actualSize.width,height:actualSize.height)
+        for i in bulbs.indices { bulbs[i].position=CGPoint(x:actual.minX+actual.width*bulbPoints[i].x,y:actual.minY+actual.height*bulbPoints[i].y) }
     }
-    func stop() { imageView.stopAnimating();imageView.animationImages=nil;imageView.layer.removeAllAnimations();shine.removeAllAnimations();shine.opacity=0 }
+    func stop() { bulbs.forEach{$0.removeAllAnimations();$0.removeFromSuperlayer()};bulbs=[];imageView.stopAnimating();imageView.animationImages=nil;imageView.layer.removeAllAnimations();shine.removeAllAnimations();shine.opacity=0 }
     override func didMoveToWindow() { super.didMoveToWindow();if window == nil { stop();element=nil } }
 }

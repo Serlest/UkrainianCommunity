@@ -8,7 +8,7 @@ enum SeasonalSceneZone: String, Codable, CaseIterable, Identifiable {
     var title:String { SeasonalText.value("zone."+rawValue,rawValue.capitalized) }
     var artworks:[SeasonalArtwork] {
         switch self {
-        case .brand: [.pumpkin,.viceHeader,.christmasGlobe,.newYearHeader,.image]
+        case .brand: [.pumpkin,.viceHeader,.christmasTree,.christmasGlobe,.newYearHeader,.image]
         case .corner: [.web,.palm,.pine,.star,.image]
         case .hanging: [.spider,.keychain,.glassBauble,.image]
         case .edges: [.leaves,.palm,.pine,.star,.image]
@@ -18,7 +18,7 @@ enum SeasonalSceneZone: String, Codable, CaseIterable, Identifiable {
     }
 }
 enum SeasonalMotionStyle:String,Codable,CaseIterable,Identifiable {
-    case still, glow, float, rotate, swing, flight, snow, frames
+    case still, glow, twinkle, float, rotate, swing, flight, snow, frames
     var id:String { rawValue }
     var title:String { SeasonalText.value("effect."+rawValue,rawValue.capitalized) }
 }
@@ -44,6 +44,7 @@ extension SeasonalElement {
             default:return [.still,.frames,.float,.rotate,.glow]
             }
         }
+        if artwork == .christmasTree { return [.still,.glow,.twinkle] }
         if artwork == .web { return [.still] }
         if artwork == .sparkle { return [.still,.glow] }
         if zone == .hanging { return [.still,.swing] }
@@ -53,6 +54,16 @@ extension SeasonalElement {
         if zone == .corner || zone == .edges || zone == .navigation { return [.still,.glow] }
         if artwork == .pumpkin { return [.still,.glow] }
         return [.still,.glow,.float,.rotate]
+    }
+    var needsAnimation:Bool {
+        if artwork == .snowLedge { return accumulatesSnow ?? true }
+        guard motionStyle != .still else { return false }
+        return motionStrength>0 || glow || pngFrames.count>1
+    }
+    mutating func selectMotion(_ style:SeasonalMotionStyle) {
+        guard motionChoices.contains(style) else { return }
+        motionStyle=style
+        if style == .glow || style == .twinkle { glow=true }
     }
     var accentColor:UIColor {
         guard let accentHex,let value=UInt32(accentHex,radix:16) else { return UIColor(red:1,green:0.76,blue:0.32,alpha:1) }
@@ -125,7 +136,7 @@ extension SeasonalTheme {
 extension SeasonalArtwork {
     var requiresSceneZone:Bool {
         switch self {
-        case .viceHeader,.christmasGlobe,.newYearHeader,.keychain,.glassBauble,.snowLedge,.leaves,.spider,.sparkle:true
+        case .christmasTree,.viceHeader,.christmasGlobe,.newYearHeader,.keychain,.glassBauble,.snowLedge,.leaves,.spider,.sparkle:true
         default:false
         }
     }

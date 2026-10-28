@@ -437,19 +437,19 @@
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Пакет тем пошкоджений або завеликий. Підтримуються формати 1 і 2 до 240 КБ із невеликими PNG-зображеннями."
+            "value": "Пакет тем пошкоджений або завеликий. Підтримуються формати 1–3 до 240 КБ із невеликими PNG-зображеннями."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The theme package is invalid or too large. Formats 1 and 2 support up to 240 KB with small PNG artwork."
+            "value": "The theme package is invalid or too large. Formats 1–3 support up to 240 KB with small PNG artwork."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Das Themenpaket ist ungültig oder zu groß. Unterstützt werden Formate 1 und 2 bis 240 KB mit kleinen PNG-Grafiken."
+            "value": "Das Themenpaket ist ungültig oder zu groß. Unterstützt werden Formate 1 bis 3 bis 240 KB mit kleinen PNG-Grafiken."
           }
         }
       }
@@ -2289,6 +2289,420 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dieses Design benötigt die aktualisierte App. Ältere Versionen zeigen die Oberfläche ohne die neuen Dekorationen."
+          }
+        }
+      }
+    },
+    "seasonal.quickScenes": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обрати сцену"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Szene auswählen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a scene"
+          }
+        }
+      }
+    },
+    "seasonal.oneSceneHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Одна сцена для всього застосунку. Перегляд — лише на вашому пристрої. Увімкнення замінює попередню сцену для всіх користувачів."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine Szene für die gesamte App. Vorschau nur auf Ihrem Gerät. Einschalten ersetzt die vorherige Szene für alle."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One scene across the app. Preview is local to your device. Enabling replaces the previous scene for everyone."
+          }
+        }
+      }
+    },
+    "seasonal.activeNow": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сцену увімкнено до ручного вимкнення."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Szene ist aktiv, bis Sie sie ausschalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The scene is active until you turn it off."
+          }
+        }
+      }
+    },
+    "seasonal.manualOn": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увімкнено зараз · до вимкнення"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jetzt aktiv · bis zum Ausschalten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Active now · until turned off"
+          }
+        }
+      }
+    },
+    "seasonal.saveBeforeSwitch": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спочатку збережіть або скасуйте відкриті зміни."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speichern oder verwerfen Sie zuerst die offenen Änderungen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save or discard your pending changes first."
+          }
+        }
+      }
+    },
+    "seasonal.settings": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Налаштування"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einstellungen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
+          }
+        }
+      }
+    },
+    "seasonal.turnOn": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увімкнути"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enable"
+          }
+        }
+      }
+    },
+    "seasonal.turnOff": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вимкнути"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disable"
+          }
+        }
+      }
+    },
+    "seasonal.accumulation": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Поступово накопичувати сніг"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schnee langsam ansammeln"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gradually accumulate snow"
+          }
+        }
+      }
+    },
+    "seasonal.christmasTree": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ялинка з гірляндою"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weihnachtsbaum mit Lichterkette"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Christmas tree with garland"
+          }
+        }
+      }
+    },
+    "seasonal.effect.twinkle": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Переливання гірлянди"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lichterkette funkeln lassen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Twinkling garland"
+          }
+        }
+      }
+    },
+    "seasonal.endLocalPreview": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завершити перегляд"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorschau beenden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End preview"
+          }
+        }
+      }
+    },
+    "seasonal.quickPreview": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перегляд"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorschau"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview"
+          }
+        }
+      }
+    },
+    "seasonal.disabledNow": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сезонне оформлення вимкнено."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saisonale Gestaltung ist ausgeschaltet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seasonal appearance is off."
+          }
+        }
+      }
+    },
+    "seasonal.resumeSchedule": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повернутися до розкладу"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Zeitplan wechseln"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume schedule"
+          }
+        }
+      }
+    },
+    "seasonal.manualCalendarHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ручна сцена тимчасово замінює розклад. Збережені дати й заплановані теми залишаються."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die manuelle Szene ersetzt den Zeitplan vorübergehend. Gespeicherte Termine und geplante Themen bleiben erhalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The manual scene temporarily overrides the schedule. Saved dates and planned themes are retained."
+          }
+        }
+      }
+    },
+    "seasonal.updateScene": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оновити"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktualisieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update"
+          }
+        }
+      }
+    },
+    "seasonal.calendarOn": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увімкнено за розкладом"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jetzt laut Zeitplan aktiv"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Active on schedule"
           }
         }
       }

@@ -69,5 +69,20 @@ import UIKit
         XCTAssertTrue(store.library.themes.isEmpty)
         let retained = try await repository.fetch(path: SeasonalRepository.libraryPath)
         XCTAssertEqual(retained.library, edited)
+        // Immediate scene selection uses format 3 and retains calendar dates in private storage.
+        var manual=retained.library
+        for i in manual.themes.indices { manual.themes[i].isEnabled=i==2 }
+        manual.manualThemeID=manual.themes[2].id
+        let privateManual=try await repository.save(manual,path:SeasonalRepository.libraryPath,expectedRevision:retained.revision,userID:owner.uid)
+        XCTAssertEqual(privateManual.library.schemaVersion,3)
+        let liveManual=SeasonalLibrary(themes:[manual.themes[2]],manualThemeID:manual.manualThemeID)
+        let appliedManual=try await repository.save(liveManual,path:SeasonalRepository.presentationPath,expectedRevision:disabled.revision,userID:owner.uid)
+        for _ in 0..<100 where store.library != liveManual { try await Task.sleep(for:.milliseconds(50)) }
+        XCTAssertEqual(store.library,liveManual)
+        XCTAssertEqual(store.library.active(at:Date(),section:.news)?.id,manual.manualThemeID)
+        _ = try await repository.save(SeasonalLibrary(),path:SeasonalRepository.presentationPath,expectedRevision:appliedManual.revision,userID:owner.uid)
+        let manualRetained=try await repository.fetch(path:SeasonalRepository.libraryPath)
+        XCTAssertEqual(manualRetained.library.themes.count,4)
+
     }
 }

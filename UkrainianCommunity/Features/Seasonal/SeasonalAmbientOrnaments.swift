@@ -17,12 +17,14 @@ struct SeasonalAmbientOrnaments:UIViewRepresentable {
     let animated:Bool
     let intensity:Double
     let preview:Bool
+    var includesChrome=true
+    var showsNavigation=true
     func makeUIView(context:Context) -> SeasonalAmbientView { SeasonalAmbientView() }
-    func updateUIView(_ view:SeasonalAmbientView,context:Context) { view.configure(elements:elements,animated:animated,intensity:intensity,preview:preview) }
+    func updateUIView(_ view:SeasonalAmbientView,context:Context) { view.configure(elements:elements,animated:animated,intensity:intensity,preview:preview);view.setVisibility(chrome:includesChrome,navigation:showsNavigation) }
     static func dismantleUIView(_ view:SeasonalAmbientView,coordinator:()) { view.stop() }
 }
 
-/// Photographic stills, bounded compositor animations and at most 20 snow particles.
+/// Photographic stills, bounded compositor animations and at most 48 snow particles.
 /// No display link, SwiftUI per-frame updates, CoreMotion or 3D in this view.
 @MainActor final class SeasonalAmbientView:UIView {
     private struct Ornament { let view:UIImageView;let element:SeasonalElement;let copy:Int }
@@ -34,10 +36,27 @@ struct SeasonalAmbientOrnaments:UIViewRepresentable {
     private var snowLayoutSize=CGSize.zero
     private weak var tabBar:UITabBar?
     private var flightSize=CGSize.zero
+    private var chromeVisible=true,navigationVisible=true
+    private(set) var snowGeneration=0
+    func setVisibility(chrome:Bool,navigation:Bool) {
+        chromeVisible=chrome;navigationVisible=navigation
+        for item in ornaments { item.view.isHidden=item.element.zone == .navigation ? !navigation:!chrome }
+        lights.forEach{$0.isHidden = !chrome};setNeedsLayout()
+    }
     override init(frame:CGRect) {
         super.init(frame:frame);backgroundColor = .clear;isOpaque=false;isUserInteractionEnabled=false;isAccessibilityElement=false;clipsToBounds=false
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view:SeasonalAmbientView, _:UITraitCollection) in
+            view.updateSnowAppearance()
+        }
     }
     required init?(coder:NSCoder) { fatalError("init(coder:) has not been implemented") }
+    private func updateSnowAppearance() {
+        let dark=traitCollection.userInterfaceStyle == .dark
+        snowParticles.forEach { $0.contents=dark ? Self.snowTexture:Self.lightSnowTexture }
+        for item in ornaments where item.element.artwork == .snowLedge {
+            (item.view as? SeasonalSnowRim)?.configure(animated:animated,accumulate:item.element.accumulatesSnow ?? true,dark:dark)
+        }
+    }
     func configure(elements:[SeasonalElement],animated:Bool,intensity:Double,preview:Bool) {
         let selected=elements.filter { $0.isVisible && !($0.isHeader || $0.zone == .hanging || $0.artwork == .web || $0.artwork == .bat) }
         guard !configured || self.elements != selected || self.animated != animated || self.intensity != intensity || self.preview != preview else { return }
@@ -46,10 +65,9 @@ struct SeasonalAmbientOrnaments:UIViewRepresentable {
         for element in selected where element.artwork != .snowflake && element.artwork != .sparkle {
             let count=element.zone == .edges || (element.zone == .navigation && element.artwork == .leaves) ? 2:1
             for copy in 0..<count {
-                let view=UIImageView(image:SeasonalSceneImages.image(element));view.contentMode = .scaleAspectFit
+                let view:UIImageView = element.artwork == .snowLedge ? SeasonalSnowRim(frame:.zero):UIImageView(image:SeasonalSceneImages.image(element));view.contentMode = .scaleAspectFit
                 if element.artwork == .snowLedge {
-                    view.contentMode = .scaleToFill;view.layer.shadowColor=UIColor.black.cgColor
-                    view.layer.shadowOpacity=0.14;view.layer.shadowRadius=1;view.layer.shadowOffset=CGSize(width:0,height:1)
+                    (view as? SeasonalSnowRim)?.configure(animated:animated,accumulate:element.accumulatesSnow ?? true,dark:traitCollection.userInterfaceStyle == .dark)
                 }
                 if element.zone == .corner {
                     let fade=CAGradientLayer();fade.colors=[UIColor.white.cgColor,UIColor.white.withAlphaComponent(0.6).cgColor,UIColor.clear.cgColor]
@@ -101,16 +119,17 @@ struct SeasonalAmbientOrnaments:UIViewRepresentable {
     private func layoutSnow() {
         guard let element=snowElement,bounds.width>0,bounds.height>0,snowLayoutSize != bounds.size else { return }
         snowParticles.forEach{$0.removeAllAnimations();$0.removeFromSuperlayer()};snowParticles=[];snowLayoutSize=bounds.size
-        let count=max(8,min(20,Int(20*intensity)))
+        let count=max(18,min(48,Int(18+30*intensity)))
+        snowGeneration += 1
         let clock=CACurrentMediaTime()
         for index in 0..<count {
             let depth=index%3
-            let size=CGFloat(1.2+Double(depth)*0.8)*CGFloat(element.size/18)
+            let size=CGFloat(3.0+Double(depth)*1.4)*CGFloat(element.size/18)
             let x=bounds.width*CGFloat((Double(index)*0.61803398875+0.13).truncatingRemainder(dividingBy:1))
             let speed=(preview ? 13.0:18.0)+Double(depth)*4+element.sway*16
             let duration=Double(bounds.height+40)/speed
-            let particle=CALayer();particle.name="seasonal.snow";particle.contents=Self.snowTexture
-            particle.bounds=CGRect(x:0,y:0,width:size,height:size);particle.opacity=Float(0.46+Double(depth)*0.18)
+            let particle=CALayer();particle.name="seasonal.snow";particle.contents=traitCollection.userInterfaceStyle == .dark ? Self.snowTexture:Self.lightSnowTexture
+            particle.bounds=CGRect(x:0,y:0,width:size,height:size);particle.opacity=Float(0.68+Double(depth)*0.13)
             particle.position=CGPoint(x:x,y:bounds.height*CGFloat(Double(index)/Double(count)))
             layer.addSublayer(particle);snowParticles.append(particle)
             let fall=CABasicAnimation(keyPath:"position.y");fall.fromValue = -20;fall.toValue=bounds.height+20
@@ -150,13 +169,13 @@ struct SeasonalAmbientOrnaments:UIViewRepresentable {
             case .navigation:
                 let bar=navigationFrame()
                 if element.artwork == .snowLedge || element.artwork == .image {
-                    let h=CGFloat(8+(element.size-16)*10/28)*(preview ? 0.65:1)
-                    rect=CGRect(x:bar.minX+18,y:bar.minY-h*0.55,width:max(1,bar.width-36),height:h)
+                    let h=CGFloat(12+(element.size-16)*4/28)*(preview ? 0.65:1)
+                    rect=CGRect(x:bar.minX+16,y:bar.minY-h*0.72,width:max(1,bar.width-32),height:h)
                 } else {
                     let w=CGFloat(12+(element.size-16)*0.5)*(preview ? 0.65:1)
                     rect=CGRect(x:leading ? bar.minX-w*0.45:bar.maxX-w*0.55,y:bar.minY-w*0.4,width:w,height:w)
                 }
-                view.isHidden=bar.isEmpty
+                view.isHidden=bar.isEmpty || !navigationVisible
             case .atmosphere:
                 rect=CGRect(x:bounds.width*0.62,y:bounds.height*0.35,width:width,height:width)
             default:
@@ -192,7 +211,7 @@ struct SeasonalAmbientOrnaments:UIViewRepresentable {
         }
     }
     private func navigationFrame() -> CGRect {
-        if preview { return CGRect(x:14,y:bounds.height-16,width:max(0,bounds.width-28),height:12) }
+        if preview { return CGRect(x:14,y:bounds.height-42,width:max(0,bounds.width-28),height:32) }
         guard let window else { return .zero }
         var responder:UIResponder?=self
         while let current=responder {
@@ -214,7 +233,7 @@ struct SeasonalAmbientOrnaments:UIViewRepresentable {
         return convert(tabBar.bounds,from:tabBar)
     }
     func stop() {
-        ornaments.forEach{$0.view.stopAnimating();$0.view.animationImages=nil;$0.view.layer.removeAllAnimations()}
+        ornaments.forEach{($0.view as? SeasonalSnowRim)?.stop();$0.view.stopAnimating();$0.view.animationImages=nil;$0.view.layer.removeAllAnimations()}
         lights.forEach{$0.removeAllAnimations();$0.removeFromSuperlayer()};lights=[]
         emitters.forEach{$0.emitterCells=nil;$0.removeFromSuperlayer()};emitters=[]
         snowParticles.forEach{$0.removeAllAnimations();$0.removeFromSuperlayer()};snowParticles=[];snowElement=nil;snowLayoutSize = .zero
@@ -224,11 +243,24 @@ struct SeasonalAmbientOrnaments:UIViewRepresentable {
         if window == nil { stop();configured=false;tabBar=nil }
         else { if !configured { configure(elements:elements,animated:animated,intensity:intensity,preview:preview) };DispatchQueue.main.async { [weak self] in self?.setNeedsLayout() } }
     }
-    private static let snowTexture:CGImage? = {
-        let format=UIGraphicsImageRendererFormat();format.scale=1
+    static let lightSnowTexture:CGImage? = {
+        let format=UIGraphicsImageRendererFormat();format.scale=2
         return UIGraphicsImageRenderer(size:CGSize(width:16,height:16),format:format).image { context in
-            let colors=[UIColor.white.withAlphaComponent(0.85).cgColor,UIColor.white.withAlphaComponent(0).cgColor] as CFArray
-            let gradient=CGGradient(colorsSpace:CGColorSpaceCreateDeviceRGB(),colors:colors,locations:[0,1])!
+            let colors=[UIColor(red:0.64,green:0.74,blue:0.84,alpha:0.9).cgColor,
+                        UIColor(red:0.76,green:0.84,blue:0.92,alpha:0.72).cgColor,UIColor.clear.cgColor] as CFArray
+            let gradient=CGGradient(colorsSpace:CGColorSpaceCreateDeviceRGB(),colors:colors,locations:[0,0.45,1])!
+            let c=context.cgContext
+            c.drawRadialGradient(gradient,startCenter:CGPoint(x:8,y:8),startRadius:0,endCenter:CGPoint(x:8,y:8),endRadius:8,options:[])
+            c.setFillColor(UIColor.white.withAlphaComponent(0.52).cgColor);c.fillEllipse(in:CGRect(x:5,y:4,width:3,height:3))
+        }.cgImage
+    }()
+    static let snowTexture:CGImage? = {
+        let format=UIGraphicsImageRendererFormat();format.scale=2
+        return UIGraphicsImageRenderer(size:CGSize(width:16,height:16),format:format).image { context in
+            // Baked cool contour, not live shadows: visible on white and dark surfaces.
+            let colors=[UIColor.white.cgColor,UIColor.white.withAlphaComponent(0.96).cgColor,
+                        UIColor(red:0.35,green:0.48,blue:0.62,alpha:0.62).cgColor,UIColor.clear.cgColor] as CFArray
+            let gradient=CGGradient(colorsSpace:CGColorSpaceCreateDeviceRGB(),colors:colors,locations:[0,0.28,0.60,1])!
             context.cgContext.drawRadialGradient(gradient,startCenter:CGPoint(x:8,y:8),startRadius:0,endCenter:CGPoint(x:8,y:8),endRadius:8,options:[])
         }.cgImage
     }()

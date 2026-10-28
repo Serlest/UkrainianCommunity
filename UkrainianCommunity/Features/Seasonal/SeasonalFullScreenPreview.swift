@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Full-size device preview uses the production header, backdrop, native tab bar and
 /// decoration renderer. It never queries content, changes the library or publishes.
@@ -6,13 +7,26 @@ struct SeasonalFullScreenPreview:View {
     let theme:SeasonalTheme
     @Environment(\.dismiss) private var dismiss
     @State private var selected=SeasonalSection.news
+    @State private var detailSections:Set<SeasonalSection>=[]
+    @State private var headerPresent=false
+    @Environment(\.verticalSizeClass) private var verticalSize
+    @Environment(\.dynamicTypeSize) private var textSize
+    private var effectsVisible:Bool { theme.sections.contains(selected) && verticalSize != .compact && !textSize.isAccessibilitySize }
     var body:some View {
         TabView(selection:$selected) {
             ForEach(SeasonalSection.allCases) { section in
-                SeasonalPreviewPage(theme:theme,section:section,isActive:selected==section)
+                SeasonalPreviewPage(theme:theme,section:section,isActive:selected==section,detail:Binding(get:{detailSections.contains(section)},set:{ if $0 { detailSections.insert(section) } else { detailSections.remove(section) } }))
                     .tabItem { Label(SeasonalText.section(section),systemImage:Self.symbol(section)) }.tag(section)
             }
         }
+        .overlayPreferenceValue(SeasonalHeaderAnchors.self) { anchors in
+            if effectsVisible {
+                SeasonalDecorationLayer(theme:theme,anchors:anchors,embedsHeaderPumpkin:true,includesChrome:!detailSections.contains(selected),hangingVisible:headerPresent)
+                    .ignoresSafeArea(.container,edges:[.top,.bottom])
+            }
+        }
+        .onPreferenceChange(SeasonalHeaderPresence.self) { headerPresent=$0 }
+        .modifier(SeasonalKeepAwake(enabled:true))
         .tint(AppTheme.accentPrimaryForeground)
         .toolbarBackground(.visible,for:.tabBar)
         .overlay(alignment:.bottomTrailing) {
@@ -40,7 +54,7 @@ private struct SeasonalPreviewPage:View {
     let theme:SeasonalTheme
     let section:SeasonalSection
     let isActive:Bool
-    @State private var detail=false
+    @Binding var detail:Bool
     @Environment(\.verticalSizeClass) private var verticalSize
     @Environment(\.dynamicTypeSize) private var textSize
     private var enabled:Bool { isActive && theme.sections.contains(section) && verticalSize != .compact && !textSize.isAccessibilitySize }
@@ -64,7 +78,7 @@ private struct SeasonalPreviewPage:View {
                         .background(AppTheme.accentPrimary.opacity(0.10),in:RoundedRectangle(cornerRadius:22))
                     if !enabled { Text(SeasonalText.value("sectionNotIncluded","Für diesen Bereich sind keine Effekte ausgewählt oder die Darstellung ist reduziert."))
                         .font(.footnote).foregroundStyle(.secondary) }
-                    ForEach(0..<12,id:\.self) { _ in
+                    ForEach(0..<12,id:\.self) { index in
                         Button { detail=true } label: {
                             HStack(spacing:12) {
                                 Image(systemName:SeasonalFullScreenPreview.symbol(section))
@@ -77,11 +91,12 @@ private struct SeasonalPreviewPage:View {
                                 }
                                 Spacer(minLength:0)
                             }.padding(14).background(AppTheme.surfaceElevated,in:RoundedRectangle(cornerRadius:18))
-                        }.buttonStyle(.plain)
+                        }.buttonStyle(.plain).accessibilityIdentifier("seasonal.preview.card."+String(index))
                     }
                 }.padding(.horizontal,AppTheme.pageHorizontal).padding(.bottom,30)
             }
             .background { AppBackgroundView() }
+            .environment(\.seasonalSectionActive,isActive)
             .environment(\.seasonalHeaderActive,enabled && theme.usesHeaderDock)
             .environment(\.seasonalHeaderTheme,enabled ? theme:nil)
             .navigationDestination(isPresented:$detail) {
@@ -93,11 +108,6 @@ private struct SeasonalPreviewPage:View {
                 }.background { AppBackgroundView() }.navigationTitle(SeasonalText.section(section))
             }
         }
-        .overlayPreferenceValue(SeasonalHeaderAnchors.self) { anchors in
-            if enabled {
-                SeasonalDecorationLayer(theme:theme.presentation(includesChrome:!detail),anchors:anchors,embedsHeaderPumpkin:true)
-                    .ignoresSafeArea(.container,edges:[.top,.bottom])
-            }
-        }
+
     }
 }

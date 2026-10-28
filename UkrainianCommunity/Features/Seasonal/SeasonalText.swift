@@ -6,7 +6,7 @@ enum SeasonalText {
     }
     static var title: String { value("title", "Saisonale Gestaltung") }
     static var subtitle: String { value("subtitle", "Gespeicherte Themen, Vorschau und Zeitplan") }
-    static var invalid: String { value("invalid", "Das Themenpaket ist ungültig oder zu groß. Unterstützt werden Formate 1 und 2 bis 240 KB mit kleinen PNG-Grafiken.") }
+    static var invalid: String { value("invalid", "Das Themenpaket ist ungültig oder zu groß. Unterstützt werden Formate 1 bis 3 bis 240 KB mit kleinen PNG-Grafiken.") }
     static var conflict: String { value("conflict", "Die Daten wurden auf einem anderen Gerät geändert. Laden Sie sie erneut; Ihre Änderungen sind noch geöffnet.") }
     static var ownerOnly: String { value("ownerOnly", "Nur der App-Inhaber kann Themen verwalten.") }
     static var unavailable: String { value("unavailable", "Die Verbindung konnte nicht bestätigt werden. Prüfen Sie das Internet und versuchen Sie es erneut.") }
