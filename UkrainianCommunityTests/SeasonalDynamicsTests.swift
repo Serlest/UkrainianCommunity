@@ -35,6 +35,31 @@ struct SeasonalDynamicsTests {
             #expect(hypot(b.x-a.x,b.y-a.y)<0.02)
         }
     }
+    @Test func fourBatsHaveSeparateRoutesAndStaggeredArrival() {
+        for preview in [true,false] {
+            let size=CGSize(width:393,height:preview ? 190:820)
+            let start=preview ? 18.0:32.0
+            #expect(SeasonalChoreography.batCount==4)
+            #expect(SeasonalChoreography.batProgress(at:start+0.1,preview:preview,index:0) != nil)
+            #expect(SeasonalChoreography.batProgress(at:start+0.1,preview:preview,index:1)==nil)
+            var points:[CGPoint]=[]
+            for index in 0..<4 {
+                let q=SeasonalChoreography.batProgress(at:start+4,preview:preview,index:index)
+                #expect(q != nil)
+                let p=SeasonalFlightPath.point(at:q ?? 0,size:size,top:0,preview:preview,index:index)
+                #expect(p.x.isFinite && p.y.isFinite)
+                for other in points { #expect(hypot(p.x-other.x,p.y-other.y)>10) }
+                points.append(p)
+                for tick in 0..<680 {
+                    let t=Double(tick)/10
+                    #expect(SeasonalChoreography.spiderProgress(at:t,preview:preview)==nil ||
+                            SeasonalChoreography.batProgress(at:t,preview:preview,index:index)==nil)
+                }
+                let end=SeasonalFlightPath.point(at:1,size:size,top:0,preview:preview,index:index)
+                #expect(end.x>size.width && end.y<0)
+            }
+        }
+    }
     @Test func sustainedTiltReachesStableAngleAndDampingSettles() {
         var p=SeasonalPendulum()
         for _ in 0..<900 { p.step(delta:1.0/60,tilt:0.6,acceleration:0,intensity:1) }

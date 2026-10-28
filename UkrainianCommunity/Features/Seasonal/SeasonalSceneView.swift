@@ -38,8 +38,7 @@ struct SeasonalScene: UIViewRepresentable {
     private var spiderNode:SCNNode?
     private var spiderLegs:[SCNNode]=[]
     private var silkNode:SCNNode?
-    private var batNode:SCNNode?
-    private var wings:[SCNNode]=[]
+    private var bats:[(root:SCNNode,wings:[SCNNode])]=[]
     private var elements:[SeasonalElement]=[]
     private var theme:SeasonalTheme?
     private var placement=SeasonalScenePlacement()
@@ -113,7 +112,7 @@ struct SeasonalScene: UIViewRepresentable {
     }
 
     private func buildObjects() {
-        world.childNodes.forEach{$0.removeFromParentNode()};pumpkinNodes=[];webNode=nil;spiderNode=nil;batNode=nil;silkNode=nil;wings=[];spiderLegs=[]
+        world.childNodes.forEach{$0.removeFromParentNode()};pumpkinNodes=[];webNode=nil;spiderNode=nil;silkNode=nil;bats=[];spiderLegs=[]
         for element in elements where element.artwork == .pumpkin {
             let p=SeasonalSceneArtwork.pumpkin();world.addChildNode(p.root);pumpkinNodes.append((p.root,p.ember,p.light,element))
         }
@@ -125,7 +124,9 @@ struct SeasonalScene: UIViewRepresentable {
             let silk=SCNNode(geometry:g);world.addChildNode(silk);silkNode=silk
         }
         if elements.contains(where:{$0.artwork == .bat}) {
-            let bat=SeasonalSceneArtwork.bat();world.addChildNode(bat.root);batNode=bat.root;wings=bat.wings
+            for _ in 0..<SeasonalChoreography.batCount {
+                let bat=SeasonalSceneArtwork.bat();world.addChildNode(bat.root);bats.append(bat)
+            }
         }
     }
 
@@ -151,16 +152,16 @@ struct SeasonalScene: UIViewRepresentable {
         webNode?.eulerAngles=SCNVector3(max(-0.12,min(0.12,sin(elapsed*0.48)*0.09*webStrength+input.y*0.16*webStrength)),
                                       input.x*0.12*webStrength,
                                       max(-0.14,min(0.14,sin(elapsed*0.65)*0.20*webStrength+input.x*0.35*webStrength)))
-        webNode?.geometry?.materials.forEach {
+        webNode?.enumerateChildNodes { node,_ in node.geometry?.materials.forEach {
             $0.diffuse.contents=dark ? UIColor(white:0.69,alpha:0.84):UIColor(white:0.20,alpha:0.78)
             $0.emission.contents=UIColor(white:0.12,alpha:1);$0.emission.intensity=(webElement?.glow ?? false) ? 0.035:0
-        }
+        } }
         let spiderProgress=animated && (webElement?.sway ?? 0)>0 ? SeasonalChoreography.spiderProgress(at:elapsed,preview:preview) : nil
         spiderNode?.isHidden=spiderProgress == nil;silkNode?.isHidden=spiderProgress == nil
         if let progress=spiderProgress {
             pendulum.step(delta:delta,tilt:input.gravityX*(webElement?.sway ?? 0)*2,acceleration:input.acceleration,intensity:intensity*(webElement?.sway ?? 0))
-            let anchor=webNode?.convertPosition(SCNVector3(0,-64,0),to:world) ?? SCNVector3(center,-top,33)
-            let length=10+max(30,Double(placement.descent)-64*webScale)*progress,angle=pendulum.angle
+            let anchor=webNode?.convertPosition(SCNVector3(8,-88,0),to:world) ?? SCNVector3(center,-top,33)
+            let length=10+max(30,Double(placement.descent)-88*webScale)*progress,angle=pendulum.angle
             let x=Double(anchor.x)+sin(angle)*length,y=Double(-anchor.y)+cos(angle)*length
             spiderNode?.position=SCNVector3(x,-y,34);spiderNode?.eulerAngles.z=Float(angle)
             spiderNode?.scale=SCNVector3(1.6*webScale,1.6*webScale,1.6*webScale)
@@ -173,21 +174,23 @@ struct SeasonalScene: UIViewRepresentable {
             for (i,leg) in spiderLegs.enumerated() { leg.eulerAngles.z=Float(sin(elapsed*2.6+Double(i))*0.045*intensity) }
         }
         let batElement=elements.first{$0.artwork == .bat}
-        let progress=animated && (batElement?.sway ?? 0)>0 ? SeasonalChoreography.batProgress(at:elapsed,preview:preview) : nil
-        batNode?.isHidden=progress == nil
-        if let q=progress {
-            let point=SeasonalFlightPath.point(at:q,size:bounds.size,top:top,preview:preview)
-            let before=SeasonalFlightPath.point(at:q-0.001,size:bounds.size,top:top,preview:preview)
-            let after=SeasonalFlightPath.point(at:q+0.001,size:bounds.size,top:top,preview:preview)
-            let heading=atan2(-(after.y-before.y),after.x-before.x)
-            batNode?.position=SCNVector3(point.x,-point.y,65)
-            batNode?.eulerAngles=SCNVector3(0.35,sin(q * .pi*4)*0.38,Double(heading)-Double.pi/2)
-            let scale=(batElement?.size ?? 20)/28*(0.8+sin(q * .pi)*0.3)
-            batNode?.scale=SCNVector3(scale,scale,scale)
-            for (i,wing) in wings.enumerated() { wing.eulerAngles.y=Float(sin(elapsed*17)*(i == 0 ? -1:1)*(0.65+0.25*(batElement?.sway ?? 0))) }
-            batNode?.enumerateChildNodes { node,_ in node.geometry?.materials.forEach {
-                $0.emission.contents=UIColor(red:0.22,green:0.11,blue:0.12,alpha:1);$0.emission.intensity=(batElement?.glow ?? false) ? 0.3:0
-            } }
+        for (index,bat) in bats.enumerated() {
+            let progress=animated && (batElement?.sway ?? 0)>0 ? SeasonalChoreography.batProgress(at:elapsed,preview:preview,index:index) : nil
+            bat.root.isHidden=progress == nil
+            if let q=progress {
+                let point=SeasonalFlightPath.point(at:q,size:bounds.size,top:top,preview:preview,index:index)
+                let before=SeasonalFlightPath.point(at:q-0.001,size:bounds.size,top:top,preview:preview,index:index)
+                let after=SeasonalFlightPath.point(at:q+0.001,size:bounds.size,top:top,preview:preview,index:index)
+                let heading=atan2(-(after.y-before.y),after.x-before.x)
+                bat.root.position=SCNVector3(point.x,-point.y,65)
+                bat.root.eulerAngles=SCNVector3(0.35,sin(q * .pi*4)*0.38,Double(heading)-Double.pi/2)
+                let scale=(batElement?.size ?? 20)/28*(0.8+sin(q * .pi)*0.3)*[1.0,0.81,0.92,0.74][index]
+                bat.root.scale=SCNVector3(scale,scale,scale)
+                for (i,wing) in bat.wings.enumerated() { wing.eulerAngles.y=Float(sin(elapsed*(17+Double(index)*0.9)+Double(index)*1.7)*(i == 0 ? -1:1)*(0.65+0.25*(batElement?.sway ?? 0))) }
+                bat.root.enumerateChildNodes { node,_ in node.geometry?.materials.forEach {
+                    $0.emission.contents=UIColor(red:0.22,green:0.11,blue:0.12,alpha:1);$0.emission.intensity=(batElement?.glow ?? false) ? 0.3:0
+                } }
+            }
         }
     }
 }

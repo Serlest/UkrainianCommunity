@@ -96,23 +96,48 @@ import UIKit
 
     static func web() -> SCNNode {
         let root=SCNNode();root.name="web"
-        let silk=material(UIColor(white:0.26,alpha:0.72),roughness:0.38,metalness:0.18)
-        let count=10
-        for ray in 0...count {
-            let angle=Double.pi*(0.07+Double(ray)/Double(count)*0.86)
-            root.addChildNode(strand(from:SCNVector3Zero,to:SCNVector3(cos(angle)*92,-sin(angle)*90,0),radius:0.40,material:silk))
+        let silk=material(UIColor(white:0.22,alpha:0.78),roughness:0.58,metalness:0.06)
+        // Off-centre orb with unequal radial lengths: the upper half continues behind
+        // the screen edge, rather than radiating from a conspicuous fan apex.
+        let hub=CGPoint(x:-14,y:-23)
+        let angles:[Double]=[-0.12,0.24,0.68,1.10,1.49,1.97,2.39,2.86,3.35,3.81,4.25,4.82,5.29,5.81]
+        let lengths:[Double]=[1.05,0.88,1.12,0.94,1.08,0.90,1.03,0.86,1.10,0.93,1.05,0.89,1.12,0.97]
+        func point(_ ray:Int,_ fraction:Double) -> SCNVector3 {
+            let i=ray % angles.count,a=angles[i],r=fraction*lengths[i]
+            return SCNVector3(hub.x+cos(a)*112*r,hub.y-sin(a)*82*r,0)
         }
-        for ring in 1...6 { for ray in 0..<count {
-            let a=Double.pi*(0.07+Double(ray)/Double(count)*0.86), b=Double.pi*(0.07+Double(ray+1)/Double(count)*0.86)
-            let r=Double(ring)/6*90
-            var previous=SCNVector3(cos(a)*r,-sin(a)*r,0)
-            for step in 1...5 {
-                let t=Double(step)/5,angle=a+(b-a)*t,radius=r*(1-0.055*sin(t * .pi))
-                let next=SCNVector3(cos(angle)*radius,-sin(angle)*radius,0)
-                root.addChildNode(strand(from:previous,to:next,radius:0.32,material:silk));previous=next
+        func curve(_ a:SCNVector3,_ b:SCNVector3,_ sag:Double,_ radius:CGFloat) {
+            // Keep the top strands inside the cutout corridor, clear of clock/battery.
+            func tapered(_ p:SCNVector3) -> SCNVector3 {
+                let depth=min(1,max(0,(-Double(p.y)-38)/62))
+                let width=0.52+0.48*depth*depth*(3-2*depth)
+                return SCNVector3(p.x*Float(width),p.y,p.z)
             }
+            var previous=tapered(a)
+            for step in 1...6 {
+                let t=Double(step)/6,bend=sin(t * .pi)*sag
+                let next=SCNVector3(Double(a.x)+(Double(b.x-a.x))*t,
+                                    Double(a.y)+(Double(b.y-a.y))*t-bend, sin(t * .pi)*0.6)
+                let mapped=tapered(next)
+                root.addChildNode(strand(from:previous,to:mapped,radius:radius,material:silk));previous=mapped
+            }
+        }
+        for ray in angles.indices { curve(SCNVector3(hub.x,hub.y,0),point(ray,1.12),1.2,0.36) }
+        for ring in 1...7 { for ray in angles.indices {
+            // A few incomplete cells and unequal spacing avoid a mechanical icon.
+            if (ring==7 && [1,5,10].contains(ray)) || (ring==5 && ray==8) { continue }
+            let f=Double(ring)/7
+            let jitter=sin(Double(ray)*2.3+Double(ring)*1.8)*0.022
+            curve(point(ray,f+jitter),point(ray+1,f+sin(Double(ray+1)*2.3+Double(ring)*1.8)*0.022),
+                  1.3+f*2.1,0.25+CGFloat(f)*0.05)
         } }
-        return root.flattenedClone()
+        curve(point(2,1.12),SCNVector3(80,-112,0),2.8,0.23)
+        curve(point(5,1.12),SCNVector3(-73,-116,0),1.9,0.22)
+        // The spider's attachment is visibly joined to the lower lattice.
+        curve(point(3,0.86),SCNVector3(8,-88,0),1.1,0.29)
+        let mesh=root.flattenedClone()
+        let container=SCNNode();container.name="web";container.addChildNode(mesh)
+        return container
     }
 
     static func spider() -> (root:SCNNode,legs:[SCNNode]) {

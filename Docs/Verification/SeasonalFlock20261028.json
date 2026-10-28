@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-28",
+  "scope": "Native seasonal asymmetric web and four-bat group, follow-up to accepted build 133 route",
+  "changes": [
+    "Off-centre orb with unequal radii, curved cross-strands, incomplete cells and loose threads",
+    "Top strands taper toward central cutout corridor to keep clock/battery readable",
+    "Four staggered bats, separate loops, sizes and wingbeat phases; lead preserves build 133 route",
+    "Spider silk follows web attachment; bounded motion and animation suppression retained"
+  ],
+  "verification": {
+    "initialSimulatorTests": {
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "result": "build/seasonal-flock-20261028/Verification.xcresult"
+    },
+    "initialVisualReview": [
+      "6 light/dark root and editor captures reviewed",
+      "actual ContentView NewsHomeView loopback emulator video reviewed at 32-48 seconds: four separate bats traverse screen"
+    ],
+    "finalTaperVerification": {
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "result": "build/seasonal-flock-20261028/FinalVerification.xcresult",
+      "visualReview": "All six final light/dark home/editor captures reviewed; clock and battery clear, header position unchanged"
+    },
+    "productionWrites": false,
+    "physicalDevice": "not performed; user requested TestFlight self-check"
+  },
+  "delivery": "pending"
+}

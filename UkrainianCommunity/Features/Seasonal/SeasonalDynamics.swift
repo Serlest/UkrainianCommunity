@@ -63,9 +63,11 @@ enum SeasonalChoreography {
         if t > 10 { return 1 - smooth((t - 10) / 4) }
         return 1
     }
-    static func batProgress(at time: Double, preview: Bool) -> Double? {
+    static let batCount = 4
+    static func batProgress(at time: Double, preview: Bool, index: Int = 0) -> Double? {
         let phase = time.truncatingRemainder(dividingBy: preview ? 32 : 68)
-        let start = preview ? 18.0 : 32.0
+        guard (0..<batCount).contains(index) else { return nil }
+        let start = (preview ? 18.0 : 32.0) + Double(index) * 0.72
         guard phase >= start, phase < start + 8 else { return nil }
         return (phase - start) / 8
     }
@@ -74,11 +76,13 @@ enum SeasonalChoreography {
 /// Screen-space route: lower-left approach, one complete central loop, upper-right exit.
 /// Cubic control handles match the circle's tangent and speed at both joins.
 enum SeasonalFlightPath {
-    static func point(at progress:Double,size:CGSize,top:Double,preview:Bool) -> CGPoint {
+    static func point(at progress:Double,size:CGSize,top:Double,preview:Bool,index:Int = 0) -> CGPoint {
         let q=progress.isFinite ? min(1,max(0,progress)):0
         let width=Double(size.width),height=Double(size.height)
-        let cx=width*0.5,cy=height*(preview ? 0.69:0.52)
-        let radius=min(width*0.17,height*0.105)
+        let lane = Double(min(3,max(0,index)))
+        let cx=width*(0.5 + [0.0,-0.09,0.08,-0.025][Int(lane)])
+        let cy=height*(preview ? 0.69:0.52) + lane*(preview ? -5:23)
+        let radius=min(width*0.17,height*0.105)*(1-lane*0.095)
         let join=CGPoint(x:cx,y:cy+radius)
         func cubic(_ t:Double,_ a:CGPoint,_ b:CGPoint,_ c:CGPoint,_ d:CGPoint) -> CGPoint {
             let s=1-t
