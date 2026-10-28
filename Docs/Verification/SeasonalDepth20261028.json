@@ -1,7 +1,7 @@
 {
   "checkedAt": "2026-10-28T11:39:20.783384+00:00",
   "sourceParent": "c5066f7f1ab1f3699dd3d202628a3a69698c3b7d",
-  "deliveryBuild": 131,
+  "deliveryBuild": 132,
   "change": "Native 3D Halloween overlay; no reserved top strip; original carved pumpkin/PBR, top web, articulated pendulum spider and periodic bat flight.",
   "compatibility": "Schema 1 and existing saved themes remain compatible. No production theme document modified.",
   "renderer": "Transparent Metal-backed native SceneKit; 30 fps only while active and animated; Core Motion relative gravity, absolute gravity and acceleration remain in memory. Static reduced-motion/low-power behavior; CADisplayLink and sensors stop on suspension/dismantle.",
@@ -27,8 +27,15 @@
       "Five actual ContentView roots and background return"
     ],
     "screenshotsReviewed": 17,
-    "archive": "build/testflight-131/archive.log; ARCHIVE SUCCEEDED; signature/version/encryption exemption verified",
-    "deployedAnalyticsContracts": "All three current handlers verified before archive and again before upload."
+    "archive": "build/testflight-132/archive-final.log; ARCHIVE SUCCEEDED; code signature and version 1.2.1 (132) verified.",
+    "deployedAnalyticsContracts": "All three current handlers verified before archive and again before upload.",
+    "delivery132Followup": {
+      "bundle": "build/seasonal-depth-20261028/Delivery132UI.xcresult",
+      "passed": 2,
+      "failed": 0,
+      "screenshotsReviewed": 6
+    },
+    "previewVideo": "build/seasonal-depth-20261028/preview-flight132.mp4; exported frames 17-21s visually reviewed; bat visible inside preview at 21s."
   },
   "issuesFoundAndFixed": [
     "Explicit 3D UIView frame required inside the overlay",
@@ -50,7 +57,7 @@
     "UkrainianCommunity/Features/Seasonal/SeasonalPresentationView.swift": "7c7dc4f44e2e990c27bd4ba0cd0b82cf481e3b9093a3704a716f753924866bf8",
     "UkrainianCommunity/Features/Seasonal/SeasonalRepository.swift": "7111b456df348257123f3ec99a5c6768b3d92148a5c542407ae0ddce4523aeb4",
     "UkrainianCommunity/Features/Seasonal/SeasonalSceneArtwork.swift": "5fb2720be5c0e2d6b14525e93230cae7c3946bdcda9d2c2643eae86db2b0212a",
-    "UkrainianCommunity/Features/Seasonal/SeasonalSceneView.swift": "fdcf243ffe313c94ad1cc00bfb0b51907368359a06d81508609a6a4e9033a0a1",
+    "UkrainianCommunity/Features/Seasonal/SeasonalSceneView.swift": "62b1989d3da26bf40432499eb82d3a69e037ec1bf2c10951239d63352daf975b",
     "UkrainianCommunity/Features/Seasonal/SeasonalStore.swift": "4cdff22c00bb8fda88ad47d8f65bf5277e266842348b472ddc1738a4a2c44a87",
     "UkrainianCommunity/Features/Seasonal/SeasonalText.swift": "3e91b6d02f7775ad51aed5f9815886b55663de0ce744ff969533274f51f9aa5f",
     "UkrainianCommunity/Features/Seasonal/SeasonalTheme.swift": "66b9a614d08fb034154fab57098b5f712ca45f38ef696bb83437615fb19742e3",
@@ -58,5 +65,6 @@
     "UkrainianCommunityTests/SeasonalDynamicsTests.swift": "2e4300ba67203180e6f816d8beacbd18eb86c4c5937c0dcd7a2a4a48a150f9f1",
     "UkrainianCommunityUITests/SeasonalRootUITests.swift": "d207aaa9f2540d2d6431b0ff4d8aa2c679d1c7500c66e9d0618ff3e21d6893f1",
     "UkrainianCommunityUITests/SeasonalUITests.swift": "65fe9d48b305754b240a424726e56da5591d30b429e611d810c48c40dbcdf1ae"
-  }
+  },
+  "followup": "Preview bat path uses the preview viewport, fixed exposure avoids washout, bloom is restrained, and scalar editor changes reuse existing meshes."
 }

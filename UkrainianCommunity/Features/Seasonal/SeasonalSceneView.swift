@@ -57,7 +57,8 @@ struct SeasonalScene: UIViewRepresentable {
         renderer.antialiasingMode = .multisampling4X;renderer.preferredFramesPerSecond=30
         let scene=SCNScene();scene.rootNode.addChildNode(world)
         let camera=SCNCamera();camera.usesOrthographicProjection=true;camera.zNear=0.1;camera.zFar=2000
-        camera.wantsHDR=true;camera.exposureOffset = -0.25;camera.bloomIntensity=0.12;camera.bloomThreshold=1.2
+        camera.wantsHDR=true;camera.wantsExposureAdaptation=false
+        camera.exposureOffset = -0.25;camera.bloomIntensity=0.04;camera.bloomThreshold=1.2
         cameraNode.camera=camera;cameraNode.position=SCNVector3(0,0,700);scene.rootNode.addChildNode(cameraNode)
         let ambient=SCNLight();ambient.type = .ambient;ambient.color=UIColor(white:0.9,alpha:1);ambient.intensity=420
         let a=SCNNode();a.light=ambient;scene.rootNode.addChildNode(a)
@@ -79,8 +80,15 @@ struct SeasonalScene: UIViewRepresentable {
     func configure(theme:SeasonalTheme,placement:SeasonalScenePlacement,animated:Bool,dark:Bool,preview:Bool) {
         let changedIdentity=self.theme?.id != theme.id
         self.theme=theme;self.placement=placement;self.dark=dark;self.preview=preview
-        if elements != theme.elements || changedIdentity {
-            elements=theme.elements;buildObjects();elapsed=0;pendulum=SeasonalPendulum()
+        let geometryChanged=elements.map { $0.id+"|"+$0.artwork.rawValue } != theme.elements.map { $0.id+"|"+$0.artwork.rawValue }
+        elements=theme.elements
+        if geometryChanged || changedIdentity {
+            buildObjects();elapsed=0;pendulum=SeasonalPendulum()
+        } else {
+            // Size, glow and motion sliders update transforms/materials, never regenerate meshes.
+            for index in pumpkinNodes.indices {
+                if let current=elements.first(where:{$0.id==pumpkinNodes[index].3.id}) { pumpkinNodes[index].3=current }
+            }
         }
         self.animated=animated
         motion.setEnabled(animated && theme.reactsToTilt && theme.elements.contains{$0.sway > 0})
@@ -133,7 +141,7 @@ struct SeasonalScene: UIViewRepresentable {
             p.0.position=SCNVector3(placement.pumpkin.x + CGFloat(index)*12,-placement.pumpkin.y + (animated ? sin(elapsed*1.1)*1.2*intensity*p.3.sway:0),35)
             p.0.eulerAngles=SCNVector3(-0.08 + input.y*0.20*p.3.sway,-0.10 + input.x*0.38*p.3.sway + (animated ? sin(elapsed*0.6)*0.045*p.3.sway*intensity:0),-0.05)
             let candle=p.3.glow ? (animated ? max(0.12,0.6+sin(elapsed*1.6)*0.29+sin(elapsed*3.2)*0.07) : 0.65) : 0.08
-            p.1.emission.intensity=CGFloat(candle*1.65);p.2.intensity=CGFloat(candle*32)
+            p.1.emission.intensity=CGFloat(candle*0.9);p.2.intensity=CGFloat(candle*20)
         }
         let top=Double(placement.webTop),center=Double(bounds.width)/2
         let webElement=elements.first{$0.artwork == .web}
@@ -141,7 +149,7 @@ struct SeasonalScene: UIViewRepresentable {
         webNode?.position=SCNVector3(center,-top,22);webNode?.scale=SCNVector3(webScale,webScale,webScale)
         webNode?.geometry?.materials.forEach {
             $0.diffuse.contents=dark ? UIColor(white:0.69,alpha:0.84):UIColor(white:0.20,alpha:0.78)
-            $0.emission.contents=UIColor(white:0.45,alpha:1);$0.emission.intensity=(webElement?.glow ?? false) ? 0.25:0
+            $0.emission.contents=UIColor(white:0.12,alpha:1);$0.emission.intensity=(webElement?.glow ?? false) ? 0.035:0
         }
         let spiderProgress=animated && (webElement?.sway ?? 0)>0 ? SeasonalChoreography.spiderProgress(at:elapsed,preview:preview) : nil
         spiderNode?.isHidden=spiderProgress == nil;silkNode?.isHidden=spiderProgress == nil
@@ -163,8 +171,10 @@ struct SeasonalScene: UIViewRepresentable {
         let progress=animated && (batElement?.sway ?? 0)>0 ? SeasonalChoreography.batProgress(at:elapsed,preview:preview) : nil
         batNode?.isHidden=progress == nil
         if let q=progress {
-            let width=Double(bounds.width),flightY=max(top+210,Double(placement.pumpkin.y)+135)
-            batNode?.position=SCNVector3(-45+(width+90)*q,-flightY-sin(q * .pi*2)*30*intensity,65)
+            let width=Double(bounds.width)
+            let flightY=preview ? Double(bounds.height)*0.66 : max(top+210,Double(placement.pumpkin.y)+135)
+            let rise=preview ? min(12,Double(bounds.height)*0.08) : 30
+            batNode?.position=SCNVector3(-45+(width+90)*q,-flightY-sin(q * .pi*2)*rise*intensity,65)
             batNode?.eulerAngles=SCNVector3(0.35,sin(q*5)*0.35,cos(q*6)*0.22)
             let scale=(batElement?.size ?? 20)/28*(0.8+sin(q * .pi)*0.3)
             batNode?.scale=SCNVector3(scale,scale,scale)
