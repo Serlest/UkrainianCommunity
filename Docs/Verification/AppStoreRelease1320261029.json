@@ -9,7 +9,12 @@
     "version": "1.2",
     "build": "112",
     "sourceCommit": "af22c50a",
-    "evidence": "App Store Connect 2026-10-29: READY_FOR_DISTRIBUTION"
+    "evidence": "App Store Connect 2026-10-29: READY_FOR_DISTRIBUTION",
+    "preservedAfterSubmission": {
+      "version": "1.2",
+      "build": "112",
+      "screenshotSets": "all four prior public sets still contain six images; the new 16 images belong to submitted 1.3"
+    }
   },
   "status": "submitted_waiting_for_apple_review",
   "build": {
@@ -183,7 +188,12 @@
     "receipt": "Telegram API: Published successfully. Message ID: 34; verified in posting chat receipt",
     "image": "fresh 2026-10-29 light appreciation poster, visually checked",
     "newImagesPrepared": 2,
-    "content": "Thanks for feedback and proposals; 1.3 sent to Apple and waiting for review; availability announced separately, no promised approval time"
+    "content": "Thanks for feedback and proposals; 1.3 sent to Apple and waiting for review; availability announced separately, no promised approval time",
+    "liveReadback": {
+      "url": "https://t.me/ukrainiancommunitytirol/34",
+      "verifiedAt": "2026-10-29T21:09:52.235880+00:00",
+      "observed": "Public widget shows UAC 1.3 sent to Apple and waiting for review, thanks and improvement list; final caption uses читабельність."
+    }
   },
   "preservation": {
     "projectPbxproj": "pre-existing order-only dirty diff retained; only release version/build fields staged",
