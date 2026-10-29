@@ -3,7 +3,7 @@
   "task": "Full-application data-loading audit, expanded at user request",
   "scope": "Data loading in all identified app sections and nested data presentations; not a claim that every application feature or real credential action was re-executed",
   "build": "1.2.1 (148), compiled locally; physical pass belongs to 147",
-  "status": "Loading fixes implemented and model-verified; 18/23 physical scenarios passed; five corrected verification scenarios await device availability",
+  "status": "Source loading fixes and final model checks complete; physical verification remains open for five corrected scenarios, Apple Maps live selection and seasonal controls after user returns",
   "inventory": {
     "originalLoadingSources": 57,
     "expandedAsyncObservableSources": 68,
@@ -65,8 +65,8 @@
       "name": "Мероприятия",
       "loadingSurfaces": "Upcoming/past event pages, details, participants, editor location lookup",
       "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
-      "findingOrDecision": "Main and recent-past reads already parallel and bounded; attendees lazy. MapKit completer is a separate OS service, not Firebase loading.",
-      "runtimeStatus": "Native actual event content loaded according to failure hierarchy; incorrect multi-day-only test marker fixed, full sequence pending repeat."
+      "findingOrDecision": "Main and recent-past reads parallel/bounded; attendees lazy. Address completion and resolution now also have bounded waits, cancellation and visible retry rather than false no-results; publishing writes unchanged.",
+      "runtimeStatus": "Native actual event content loaded according to failure hierarchy; incorrect multi-day-only test marker fixed, full sequence pending repeat. New Apple Maps lookup timeout/clear regression checks and final compilation tracked below; live OS search remains pending device availability."
     },
     {
       "number": 7,
@@ -276,14 +276,43 @@
       }
     ],
     "installedVersion": "1.2.1 (147); 148 prepared locally. User took phone before remaining reruns.",
-    "ordinaryLaunchRestored": "PhysicalSeasonalExperienceUITests teardown restores portrait and empty launch arguments after final case; no scenes published."
+    "ordinaryLaunchRestored": "PhysicalSeasonalExperienceUITests teardown restores portrait and empty launch arguments after final case; no scenes published.",
+    "auth148Final": {
+      "passed": 2,
+      "failed": 0,
+      "bundle": "build/loading-audit-20261029/Auth148Final.xcresult",
+      "interpretation": "Bilingual login/password reveal/mode transitions and full default registration/legal-gating journey pass on final focused-scroll source."
+    },
+    "models149BeforeMaps": {
+      "total": 1095,
+      "passed": 1052,
+      "failed": 0,
+      "skipped": 43,
+      "bundle": "build/loading-audit-20261029/AllModels149.xcresult"
+    },
+    "loadingHostedCI": {
+      "commit": "d130d92279590dab14afe141c4cae5f3e74e286a",
+      "run": 40887883696,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40887883696"
+    },
+    "models149Complete": {
+      "total": 1097,
+      "passed": 1054,
+      "failed": 0,
+      "skipped": 43,
+      "bundle": "build/loading-audit-20261029/AllModels149Complete.xcresult",
+      "interpretation": "Includes bounded address lookup retry/cancellation tests; SDK/emulator/physical-only exclusions remain explicitly skipped."
+    }
   },
   "productionEvidence": {
     "latencies": "build/loading-audit-20261029/full-server-read-latencies.json",
     "journalCount": "build/loading-audit-20261029/journal-server-count.json",
     "journalCountValue": 0,
     "pastAppCheckRejections": "Four HTTP 401 read responses at 2026-10-28 19:33-19:34 UTC were App Check JWT verification rejections; not reproduced by current signed physical reads. No enforcement weakened.",
-    "coldStart": "Observed first read about 4-7 seconds; subsequent reads about 0.1-0.7 seconds. New instance startup confirmed in Cloud Run logs. This backend delay is not removed by client fixes."
+    "coldStart": "Observed first read about 4-7 seconds; subsequent reads about 0.1-0.7 seconds. New instance startup confirmed in Cloud Run logs. This backend delay is not removed by client fixes.",
+    "nativeRunReadWindow": "build/loading-audit-20261029/final-physical-read-window.json"
   },
   "boundaries": [
     "No TestFlight upload or public release",
@@ -297,6 +326,14 @@
     "Install final reviewed local build after seasonal-controls follow-up; no TestFlight requested",
     "Backend cold-start improvement remains separate; no paid service change made",
     "Native journal detail cannot be exercised while production has zero records; fixture detail/filter checks passed and limitation retained",
-    "Seasonal enable/save/publication clarity follow-up requested after phone was released"
+    "Apple Maps live address selection and new seasonal management controls on physical device after user returns"
+  ],
+  "latestPreparedBuild": "1.2.1 (149); no installation while user is away with the phone",
+  "seasonalControlsFollowup": "Docs/Verification/SeasonalControlsClarity20261029.json",
+  "limitations": [
+    "Physical owner reads and fixture role checks are separate evidence; real mutations/credential operations were not executed",
+    "Observed backend instance startup delay remains; client fixes do not remove cold starts",
+    "Known generic Decodable concurrency warning remains in DirectoryEditorAccessStore.swift:50; no warning-free claim",
+    "Final local build does not imply TestFlight delivery or physical acceptance"
   ]
 }

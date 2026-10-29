@@ -247,70 +247,92 @@ struct EventLocationSelection: Identifiable {
 final class EventLocationSearchViewModel: NSObject, ObservableObject, MKLocalSearchCompleterDelegate {
     @Published private(set) var completions: [MKLocalSearchCompletion] = []
     @Published private(set) var isSearching = false
+    @Published private(set) var searchFailed = false
+    @Published private(set) var isResolving = false
+    private var resolvingSearch: MKLocalSearch?
+    private var selectionGeneration = UUID()
 
-    private let completer = MKLocalSearchCompleter()
+    private var completer = MKLocalSearchCompleter()
+    private var acceptsCompletions = false
+    private var timeoutTask: Task<Void, Never>?
+    private let deadline: RefreshRequest.Deadline
     var debounceTask: Task<Void, Never>?
 
-    override init() {
+    override convenience init() { self.init(deadline: RefreshRequest.continuousDeadline) }
+    init(deadline: @escaping RefreshRequest.Deadline) {
+        self.deadline = deadline
         super.init()
-        completer.delegate = self
-        completer.region = Self.austriaRegion
-        completer.resultTypes = [.address, .pointOfInterest]
     }
-
-    deinit {
-        debounceTask?.cancel()
-    }
+    deinit { debounceTask?.cancel(); timeoutTask?.cancel() }
 
     func updateQuery(_ query: String) {
-        debounceTask?.cancel()
+        clear()
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmedQuery.count >= 2 else {
-            clear()
-            return
-        }
-
+        guard trimmedQuery.count >= 2 else { return }
+        // Each query owns a completer: late callbacks cannot replace a newer result.
+        let requestCompleter = MKLocalSearchCompleter()
+        requestCompleter.delegate = self
+        requestCompleter.region = Self.austriaRegion
+        requestCompleter.resultTypes = [.address, .pointOfInterest]
+        completer = requestCompleter; acceptsCompletions = true
         isSearching = true
         debounceTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 350_000_000)
-            guard !Task.isCancelled else { return }
-            await MainActor.run {
-                self?.completer.queryFragment = trimmedQuery
-            }
+            do { try await Task.sleep(for: .milliseconds(350)) } catch { return }
+            guard let self, self.completer === requestCompleter, self.isSearching, !Task.isCancelled else { return }
+            requestCompleter.queryFragment = trimmedQuery
+        }
+        timeoutTask = Task { [weak self, deadline] in
+            do { try await deadline(.seconds(20)) } catch { return }
+            guard let self, self.completer === requestCompleter, self.isSearching, !Task.isCancelled else { return }
+            self.debounceTask?.cancel()
+            requestCompleter.delegate = nil; requestCompleter.cancel()
+            self.acceptsCompletions = false
+            self.completions = []; self.isSearching = false; self.searchFailed = true
         }
     }
 
     func clear() {
-        debounceTask?.cancel()
-        completer.queryFragment = ""
-        completions = []
-        isSearching = false
+        debounceTask?.cancel(); timeoutTask?.cancel()
+        selectionGeneration = UUID(); resolvingSearch?.cancel(); resolvingSearch = nil; isResolving = false
+        completer.delegate = nil; completer.cancel(); acceptsCompletions = false
+        completions = []; isSearching = false; searchFailed = false
     }
 
     func resolve(_ completion: MKLocalSearchCompletion) async -> EventLocationSelection? {
         let request = MKLocalSearch.Request(completion: completion)
         request.region = Self.austriaRegion
-
+        resolvingSearch?.cancel()
+        let search = MKLocalSearch(request: request), token = UUID()
+        selectionGeneration = token; resolvingSearch = search; isResolving = true; searchFailed = false
+        defer {
+            search.cancel()
+            if selectionGeneration == token { resolvingSearch = nil; isResolving = false }
+        }
         do {
-            let response = try await MKLocalSearch(request: request).start()
-            guard let mapItem = response.mapItems.first else { return nil }
+            let response = try await RefreshRequest.run { try await search.start() }
+            guard selectionGeneration == token, !Task.isCancelled else { return nil }
+            guard let mapItem = response.mapItems.first else { searchFailed = true; return nil }
+            searchFailed = false
             return EventLocationSelection(mapItem: mapItem)
         } catch {
+            if selectionGeneration == token, !Task.isCancelled { searchFailed = true }
             return nil
         }
     }
 
     nonisolated func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
         Task { @MainActor in
-            completions = completer.results
-            isSearching = false
+            guard self.completer === completer, acceptsCompletions else { return }
+            timeoutTask?.cancel()
+            completions = completer.results; isSearching = false; searchFailed = false
         }
     }
-
     nonisolated func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
         Task { @MainActor in
-            completions = []
-            isSearching = false
+            guard self.completer === completer, acceptsCompletions else { return }
+            timeoutTask?.cancel()
+            acceptsCompletions = false
+            completions = []; isSearching = false; searchFailed = true
         }
     }
 
@@ -350,6 +372,13 @@ struct EventMapPickerView: View {
         NavigationStack {
             VStack(spacing: AppTheme.dashboardSpacing) {
                 mapSearchField
+                if search.isResolving { ProgressView(AppStrings.Common.loading) }
+                if search.searchFailed {
+                    InlineMessageCard(style: .error, message: AppStrings.Errors.network)
+                    Button(AppStrings.Action.retry) { search.updateQuery(query) }
+                        .disabled(search.isSearching)
+                        .accessibilityIdentifier("event.location.retry")
+                }
 
                 if !search.completions.isEmpty {
                     ScrollView(.vertical, showsIndicators: false) {
@@ -378,7 +407,7 @@ struct EventMapPickerView: View {
                     .scrollDismissesKeyboard(.interactively)
                     .frame(maxHeight: 250)
                     .background(AppTheme.surfaceGlass, in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
-                } else if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !search.isSearching {
+                } else if query.trimmingCharacters(in: .whitespacesAndNewlines).count >= 2 && !search.isSearching && !search.searchFailed {
                     Text(AppStrings.Events.noLocationResults)
                         .font(.footnote.weight(.medium))
                         .foregroundStyle(AppTheme.textSecondary)
@@ -432,6 +461,7 @@ struct EventMapPickerView: View {
             .onChange(of: query) { _, newValue in
                 search.updateQuery(newValue)
             }
+            .onDisappear { search.clear() }
             .scrollDismissesKeyboard(.interactively)
         }
     }

@@ -1519,8 +1519,11 @@ final class EventEditorViewModel: ObservableObject {
             .filter { !$0.isEmpty }
         guard !locationParts.isEmpty else { return }
 
+        let geocoder = CLGeocoder()
+        defer { geocoder.cancelGeocode() }
+        let address = locationParts.joined(separator: ", ")
         do {
-            let placemarks = try await CLGeocoder().geocodeAddressString(locationParts.joined(separator: ", "))
+            let placemarks = try await RefreshRequest.run { try await geocoder.geocodeAddressString(address) }
             guard let placemark = placemarks.first,
                   let coordinate = placemark.location?.coordinate else {
                 return
