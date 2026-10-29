@@ -1,6 +1,16 @@
 {
   "sourceLanguage": "de",
   "strings": {
+    "system_logs.empty.explanation": {
+      "localizations": {
+        "uk": {
+          "stringUnit": { "state": "translated", "value": "Нові записи з’являтимуться тут після системних подій." }
+        },
+        "de": {
+          "stringUnit": { "state": "translated", "value": "Neue Einträge erscheinen hier nach Systemereignissen." }
+        }
+      }
+    },
     "system_logs.query.scope": {
       "localizations": {
         "uk": {

@@ -381,7 +381,7 @@ struct MyFeedbackView: View {
 
     @ViewBuilder
     private var feedbackContent: some View {
-        if viewModel.isLoading && viewModel.items.isEmpty {
+        if (viewModel.isLoading || !viewModel.hasLoaded && viewModel.error == nil) && viewModel.items.isEmpty {
             LoadingStateCard(title: AppStrings.Feedback.myFeedbackTitle).accessibilityIdentifier("feedback.mine.loading")
         } else if let error = viewModel.error, viewModel.items.isEmpty {
             UnifiedEmptyStateCard(

@@ -286,7 +286,7 @@ final class AuthState: ObservableObject {
         }
 
         do {
-            let result = try await userProfileLoader(uid)
+            let result = try await RefreshRequest.run { [userProfileLoader] in try await userProfileLoader(uid) }
             guard userLoadGeneration == loadGeneration,
                   sessionState == .authenticated,
                   user?.id == uid,

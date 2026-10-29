@@ -24,7 +24,7 @@ final class MyRegistrationsViewModel: ObservableObject {
     private var cancellationTasks: [String: Task<EventRegistrationMutationResult, Error>] = [:]
     private var cancellationOperationIDs: [String: UUID] = [:]
     private var sessionGeneration = 0
-    private var hasLoaded = false
+    @Published private(set) var hasLoaded = false
     private var lastLoadedAt: Date?
 
     init(

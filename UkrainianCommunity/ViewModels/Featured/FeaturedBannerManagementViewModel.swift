@@ -12,7 +12,7 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
     private let publicCache: FeaturedBannerCache?
     private var loadTask: Task<Void, Never>?
     private var loadID: UUID?
-    private var hasLoaded = false
+    @Published private(set) var hasLoaded = false
     private var session = UUID()
     private var mutationRevision = 0
 

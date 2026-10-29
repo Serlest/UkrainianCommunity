@@ -5,6 +5,21 @@ import Testing
 
 @Suite(.serialized) @MainActor
 struct FeedbackReliabilityTests {
+    @Test func confirmedEmptyPersonalRequestsRemainLoadedUntilRefreshOrAccountChange() async {
+        let repo = FeedbackAuditRepository(items: [])
+        let model = MyFeedbackViewModel(repository: repo)
+        #expect(!model.hasLoaded)
+        await model.loadIfNeeded(userID: "user")
+        let first = repo.fetchCalls
+        #expect(model.hasLoaded)
+        await model.loadIfNeeded(userID: "user")
+        #expect(repo.fetchCalls == first)
+        await model.refresh(userID: "user")
+        #expect(repo.fetchCalls == first + 1)
+        model.reset(); #expect(!model.hasLoaded)
+        await model.loadIfNeeded(userID: "other-user")
+        #expect(repo.fetchCalls == first + 2)
+    }
     @Test func confirmedEmptyInboxDoesNotReloadOnRepeatedAppearanceButRefreshStillReads() async {
         let repo = FeedbackAuditRepository(items: [])
         let model = FeedbackInboxViewModel(repository: repo)

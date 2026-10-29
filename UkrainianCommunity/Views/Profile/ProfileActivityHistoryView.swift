@@ -209,7 +209,7 @@ struct ActivityHistoryView: View {
 
     @ViewBuilder
     private var activityHistoryContent: some View {
-        if isLoading {
+        if isLoading || !activityLogViewModel.hasLoaded && activityLogViewModel.error == nil {
             LoadingStateCard(title: AppStrings.Profile.activityHistoryModule).accessibilityIdentifier("activityHistory.loading")
         } else if let error = activityLogViewModel.error, activityLogViewModel.items.isEmpty {
             ErrorStateCard(
@@ -229,6 +229,7 @@ struct ActivityHistoryView: View {
                     title: activityLogViewModel.items.isEmpty ? AppStrings.Profile.activityHistoryEmptyTitle : AppStrings.Search.noResultsTitle,
                     message: activityLogViewModel.items.isEmpty ? AppStrings.Profile.activityHistoryEmptyMessage : ActivityHistoryText.filteredEmpty
                 )
+                .accessibilityIdentifier("activityHistory.empty")
             } else {
                 LazyVStack(spacing: AppTheme.feedRowSpacing) {
                     ForEach(filteredItems) { item in

@@ -69,7 +69,7 @@ struct FeaturedBannerManagementView: View {
     private var managementContent: some View {
         if !PermissionService.canManageFeaturedBanners(user: authState.user) {
             InlineMessageCard(style: .info, message: AppStrings.FeaturedManagement.permissionError)
-        } else if viewModel.isLoading && viewModel.banners.isEmpty {
+        } else if (viewModel.isLoading || !viewModel.hasLoaded && viewModel.error == nil) && viewModel.banners.isEmpty {
             LoadingStateCard(title: nil)
                 .frame(maxWidth: .infinity, minHeight: 120)
         } else if viewModel.banners.isEmpty, let error = viewModel.error {
@@ -88,6 +88,7 @@ struct FeaturedBannerManagementView: View {
                     title: AppStrings.FeaturedManagement.emptyTitle,
                     message: AppStrings.FeaturedManagement.emptyMessage
                 )
+                .accessibilityIdentifier("bannerManagement.empty")
 
                 createBannerLink
             }

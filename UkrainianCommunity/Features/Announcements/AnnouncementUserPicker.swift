@@ -12,6 +12,21 @@ final class AnnouncementRecipientSearch: ObservableObject {
     private var query = ""
     let repository: any AnnouncementRepository
     init(repository: any AnnouncementRepository) { self.repository = repository }
+    private func readPage(query: String, after: String?) async throws -> (items: [AnnouncementUser], cursor: String?) {
+        try await RefreshRequest.run { [repository] in
+            var requested = after
+            var seen = Set<String>()
+            if let after { seen.insert(after) }
+            for index in 0..<4 {
+                try Task.checkCancellation()
+                let page = try await repository.users(query: query, cursor: requested)
+                if let next = page.cursor, !seen.insert(next).inserted { throw AnnouncementCommandError.missingResponse }
+                if !page.items.isEmpty || page.cursor == nil || index == 3 { return page }
+                requested = page.cursor
+            }
+            throw AnnouncementCommandError.missingResponse
+        }
+    }
     func search(_ text: String) async {
         generation += 1; let version = generation
         query = text; items = []; cursor = nil; error = nil; loading = true
@@ -19,11 +34,7 @@ final class AnnouncementRecipientSearch: ObservableObject {
         defer { if generation == version { loading = false } }
         do {
             try await Task.sleep(for: .milliseconds(300))
-            var page = try await repository.users(query: text, cursor: nil)
-            while page.items.isEmpty, let next = page.cursor {
-                guard generation == version, !Task.isCancelled else { return }
-                page = try await repository.users(query: text, cursor: next)
-            }
+            let page = try await readPage(query: text, after: nil)
             guard generation == version, !Task.isCancelled else { return }
             items = page.items; cursor = page.cursor
         } catch { if generation == version, !Task.isCancelled { self.error = AnnouncementErrorPresentation.message(error) } }
@@ -33,11 +44,7 @@ final class AnnouncementRecipientSearch: ObservableObject {
         let version = generation; loading = true
         defer { if generation == version { loading = false } }
         do {
-            var page = try await repository.users(query: query, cursor: cursor)
-            while page.items.isEmpty, let next = page.cursor {
-                guard generation == version, !Task.isCancelled else { return }
-                page = try await repository.users(query: query, cursor: next)
-            }
+            let page = try await readPage(query: query, after: cursor)
             guard generation == version, !Task.isCancelled else { return }
             var seen = Set(items.map(\.id))
             items += page.items.filter { seen.insert($0.id).inserted }; self.cursor = page.cursor; error = nil
@@ -82,7 +89,7 @@ struct AnnouncementUserPicker: View {
             }
             if !search.failedMore { retryState }
             if search.loading { ProgressView() }
-            if search.items.isEmpty && !search.loading && search.error == nil { Text(AnnouncementManagementText.value("noResults")) }
+            if search.items.isEmpty && search.cursor == nil && !search.loading && search.error == nil { Text(AnnouncementManagementText.value("noResults")) }
             ForEach(search.items.filter { !selected.contains($0.id) }) { user in
                 Toggle(isOn: binding(user.id)) { AnnouncementUserLabel(user: user) }
                     .disabled(selected.count >= 100 || user.available == false)
@@ -96,7 +103,7 @@ struct AnnouncementUserPicker: View {
         .task {
             guard !selected.isEmpty else { return }
             do {
-                let response = try await repository.call("manageAnnouncements", AnnouncementRequest(userIds: selected, operation: "resolveUsers"))
+                let response = try await repository.read("manageAnnouncements", AnnouncementRequest(userIds: selected, operation: "resolveUsers"))
                 guard !Task.isCancelled else { return }
                 for user in response.users ?? [] { known[user.id] = user }
             } catch { if !Task.isCancelled { resolutionError = AnnouncementErrorPresentation.message(error) } }

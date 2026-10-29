@@ -246,7 +246,7 @@ final class PhysicalAnalyticsFollowupUITests: XCTestCase {
             if let item = items.first(where: { $0.isEnabled }) {
                 let contentID = String(item.identifier.dropFirst("publicationControl.item.".count))
                 reveal(item, app); item.tap()
-                let marker = kind == "news" ? "news.like." + contentID : "event.schedule.header"
+                let marker = kind == "news" ? "news.like." + contentID : "event.detail.loaded." + contentID
                 XCTAssertTrue(app.descendants(matching: .any)[marker].firstMatch.waitForExistence(timeout: 30))
                 capture(app, "physical-p16-actual-opened-" + kind + "-" + contentID)
                 popOne(app)

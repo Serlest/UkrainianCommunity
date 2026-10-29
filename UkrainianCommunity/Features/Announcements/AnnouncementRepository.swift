@@ -9,6 +9,15 @@ protocol AnnouncementRepository {
     func users(query: String, cursor: String?) async throws -> (items: [AnnouncementUser], cursor: String?)
 }
 extension AnnouncementRepository {
+    /// Read deadlines must never be applied to commands with an uncertain write outcome.
+    func read(_ endpoint: String, _ request: AnnouncementRequest, timeout: Duration = .seconds(20)) async throws -> AnnouncementResponse {
+        guard endpoint == "getAnnouncements" || endpoint == "manageAnnouncements" &&
+                ["list", "get", "preview", "resolveUsers", "stats"].contains(request.operation ?? "") else {
+            throw AppError.validationFailed
+        }
+        return try await RefreshRequest.run(timeout: timeout) { try await self.call(endpoint, request) }
+    }
+
     func users(query: String, cursor: String?) async throws -> (items: [AnnouncementUser], cursor: String?) {
         let page = try await users(cursor: cursor)
         return (page.items.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) || ($0.email?.localizedCaseInsensitiveContains(query) ?? false) }, page.cursor)

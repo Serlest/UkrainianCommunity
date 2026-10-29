@@ -8,6 +8,7 @@ struct AnnouncementOwnerView: View {
     @State private var editor: UserAnnouncement?
     @State private var error: String?
     @State private var loading = false
+    @State private var hasLoaded = false
     @State private var filter = "all"
     @State private var generation = 0
     @State private var loadedFilter = "all"
@@ -26,8 +27,8 @@ struct AnnouncementOwnerView: View {
                 Button(AnnouncementStrings.retry) { Task { await load(more: failedMore) } }.disabled(loading)
                     .accessibilityIdentifier("announcements.listRetry")
             }
-            if loading { ProgressView() }
-            if items.isEmpty && !loading && error == nil { Text(AnnouncementStrings.empty).foregroundStyle(AppTheme.textSecondary) }
+            if loading || !hasLoaded && error == nil { ProgressView().accessibilityIdentifier("announcements.loading") }
+            if items.isEmpty && hasLoaded && !loading && error == nil { Text(AnnouncementStrings.empty).foregroundStyle(AppTheme.textSecondary).accessibilityIdentifier("announcements.empty") }
             ForEach(phases.filter { filter == "all" || filter == $0 }, id: \.self) { phase in
                 let matching = items.filter { $0.phase() == phase }
                 if !matching.isEmpty {
@@ -41,7 +42,7 @@ struct AnnouncementOwnerView: View {
                                     AnnouncementPeriodSummary(item: item)
                                 }.frame(maxWidth: .infinity, alignment: .leading)
                             }
-                        }.buttonStyle(.plain)
+                        }.buttonStyle(.plain).accessibilityIdentifier("announcements.item.\(item.id)")
                     }
                 }
             }
@@ -56,6 +57,7 @@ struct AnnouncementOwnerView: View {
         .onChange(of: filter) { _, _ in Task { await load() } }
         .onChange(of: ProfileAccessIdentity(user: authState.user)) { _, _ in
             generation += 1; editor = nil; items = []; cursor = nil; error = nil; loading = false
+            hasLoaded = false
             pendingFilter = nil; failedMore = false
         }
         .sheet(item: $editor, onDismiss: {
@@ -78,9 +80,12 @@ struct AnnouncementOwnerView: View {
             var collected: [UserAnnouncement] = []
             var seenCursors = Set<String>()
             var response: AnnouncementResponse
+            let started = ContinuousClock.now
             repeat {
                 guard version == generation, selectedFilter == filter, !Task.isCancelled else { return }
-                response = try await repository.call("manageAnnouncements", AnnouncementRequest(phase: selectedFilter == "all" ? nil : selectedFilter, operation: "list", cursor: pageCursor))
+                let remaining = Duration.seconds(20) - (ContinuousClock.now - started)
+                guard remaining > .zero else { throw AppError.network }
+                response = try await repository.read("manageAnnouncements", AnnouncementRequest(phase: selectedFilter == "all" ? nil : selectedFilter, operation: "list", cursor: pageCursor), timeout: remaining)
                 collected += response.items ?? []
                 pageCursor = response.cursor
                 if let pageCursor, !seenCursors.insert(pageCursor).inserted { throw AnnouncementCommandError.missingResponse }
@@ -90,6 +95,7 @@ struct AnnouncementOwnerView: View {
             var seen = Set<String>()
             items = combined.filter { seen.insert($0.id).inserted }
             loadedFilter = selectedFilter; cursor = response.cursor; error = nil
+            hasLoaded = true
         } catch { if version == generation, !Task.isCancelled { failedMore = more; self.error = AnnouncementErrorPresentation.message(error) } }
     }
 }
@@ -248,7 +254,7 @@ struct AnnouncementEditorView: View {
                             _ = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "publish", id: draft.id, revision: draft.revision))
                         } catch {
                             try Task.checkCancellation()
-                            let stored = try? await repository.call("manageAnnouncements", AnnouncementRequest(operation: "get", id: snapshot.id)).item
+                            let stored = try? await repository.read("manageAnnouncements", AnnouncementRequest(operation: "get", id: snapshot.id)).item
                             guard let stored, stored.status == "published", stored.reviewedContent == snapshot.reviewedContent else { throw error }
                             draft = stored
                         }
@@ -349,7 +355,7 @@ struct AnnouncementEditorView: View {
             try Task.checkCancellation()
             // A committed save/publication can outlive its lost response. Only
             // identical reviewed content is accepted; different edits stay intact.
-            if let saved = try? await repository.call("manageAnnouncements", AnnouncementRequest(operation: "get", id: value.id)).item,
+            if let saved = try? await repository.read("manageAnnouncements", AnnouncementRequest(operation: "get", id: value.id)).item,
                saved.reviewedContent == value.reviewedContent, saved.revision >= value.revision {
                 try Task.checkCancellation()
                 draft = saved; baseline = saved; saveAttempts.complete(operationID)
@@ -359,7 +365,7 @@ struct AnnouncementEditorView: View {
         }
     }
     private func reloadSaved() async throws {
-        let response = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "get", id: draft.id))
+        let response = try await repository.read("manageAnnouncements", AnnouncementRequest(operation: "get", id: draft.id))
         try Task.checkCancellation()
         guard let item = response.item else { throw AnnouncementCommandError.missingResponse }
         draft = item; baseline = item; reviewed = false; count = nil; statistics = nil; saveAttempts = AnnouncementSaveAttempts()
@@ -370,7 +376,7 @@ struct AnnouncementEditorView: View {
             _ = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "cancel", id: target.id, revision: target.revision))
         } catch {
             try Task.checkCancellation()
-            let stored = try? await repository.call("manageAnnouncements", AnnouncementRequest(operation: "get", id: target.id)).item
+            let stored = try? await repository.read("manageAnnouncements", AnnouncementRequest(operation: "get", id: target.id)).item
             guard stored?.status == "cancelled" else { throw error }
         }
         try Task.checkCancellation()
@@ -381,7 +387,7 @@ struct AnnouncementEditorView: View {
         var cursor: String?, total = 0
         var seenCursors = Set<String>()
         repeat {
-            let result = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "preview", draft: value, cursor: cursor))
+            let result = try await repository.read("manageAnnouncements", AnnouncementRequest(operation: "preview", draft: value, cursor: cursor))
             total += result.accounts ?? 0; cursor = result.cursor
             try Task.checkCancellation()
             if let cursor, !seenCursors.insert(cursor).inserted { throw AnnouncementCommandError.missingResponse }
@@ -392,12 +398,12 @@ struct AnnouncementEditorView: View {
         let ids = draft.userIds
         guard !ids.isEmpty else { selectedUsers = []; selectedError = nil; return }
         do {
-            let response = try await repository.call("manageAnnouncements", AnnouncementRequest(userIds: ids, operation: "resolveUsers"))
+            let response = try await repository.read("manageAnnouncements", AnnouncementRequest(userIds: ids, operation: "resolveUsers"))
             guard !Task.isCancelled, ids == draft.userIds else { return }
             selectedUsers = response.users ?? []; selectedError = nil
         } catch { if !Task.isCancelled, ids == draft.userIds { selectedError = AnnouncementErrorPresentation.message(error) } }
     }
     private func loadStatistics() async throws {
-        statistics = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "stats", id: draft.id))
+        statistics = try await repository.read("manageAnnouncements", AnnouncementRequest(operation: "stats", id: draft.id))
     }
 }

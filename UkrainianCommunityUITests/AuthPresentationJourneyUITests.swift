@@ -12,7 +12,9 @@ final class AuthPresentationJourneyUITests: XCTestCase {
             XCTAssertTrue(email.waitForExistence(timeout: 10))
             email.tap(); email.typeText("member@example.test")
             let password = app.secureTextFields["auth.login.password"]
-            password.tap(); password.typeText("Valid-password-2026")
+            password.coordinate(withNormalizedOffset: .init(dx: 0.2, dy: 0.5)).tap()
+            XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+            password.typeText("Valid-password-2026")
             app.buttons["auth.login.password.visibility"].firstMatch.tap()
             XCTAssertEqual(app.textFields["auth.login.password"].value as? String, "Valid-password-2026")
             XCTAssertTrue(app.keyboards.firstMatch.exists)
@@ -126,7 +128,11 @@ final class AuthPresentationJourneyUITests: XCTestCase {
             let field = app.textFields[id]; reveal(field, in: app); field.tap(); field.typeText(value)
         }
         for id in ["auth.register.password", "auth.register.repeatedPassword"] {
-            let field = app.secureTextFields[id]; reveal(field, in: app); field.tap(); field.typeText("V")
+            let field = app.secureTextFields[id]; reveal(field, in: app)
+            field.coordinate(withNormalizedOffset: .init(dx: 0.2, dy: 0.5)).tap()
+            if dismissPasswordSuggestion(in: app) { field.coordinate(withNormalizedOffset: .init(dx: 0.2, dy: 0.5)).tap() }
+            XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+            field.typeText("V")
             let suggestionDismissed = dismissPasswordSuggestion(in: app)
             field.tap()
             field.typeText(suggestionDismissed ? "Valid-password-2026" : "alid-password-2026")

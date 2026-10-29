@@ -120,7 +120,7 @@ final class FeedbackInboxViewModel: ObservableObject {
         isLoadingMore = true
         defer { if generation == expected { isLoadingMore = false } }
         do {
-            let page = try await repository.fetchOwnerInbox(query: request, after: cursor)
+            let page = try await RefreshRequest.run { [repository] in try await repository.fetchOwnerInbox(query: request, after: cursor) }
             guard generation == expected, activeActorID == actorID else { return }
             mergeFeedback(page.items); watchLoadedRecords(); nextCursor = page.cursor; hasMore = page.cursor != nil; counts = page.counts
             error = nil; failedLoadMore = false
@@ -140,7 +140,7 @@ final class FeedbackInboxViewModel: ObservableObject {
         guard activeActorID == actorID, session == expectedSession else { return nil }
         if let item = detailItems[id] ?? items.first(where: { $0.id == id }) { return item }
         do {
-            let item = try await repository.fetchFeedback(id: id)
+            let item = try await RefreshRequest.run { [repository] in try await repository.fetchFeedback(id: id) }
             guard activeActorID == actorID, session == expectedSession else { return nil }
             detailItems[item.id] = item
             return item
@@ -158,7 +158,7 @@ final class FeedbackInboxViewModel: ObservableObject {
         detailReadTokens[id] = token; detailStates[id] = .loading
         defer { if detailReadTokens[id] == token { detailReadTokens[id] = nil } }
         do {
-            let fresh = try await repository.fetchFeedback(id: id)
+            let fresh = try await RefreshRequest.run { [repository] in try await repository.fetchFeedback(id: id) }
             guard activeActorID == actorID, session == expectedSession, detailReadTokens[id] == token else { return nil }
             detailItems[id] = fresh
             items = items.map { $0.id == id ? fresh : $0 }
@@ -177,7 +177,7 @@ final class FeedbackInboxViewModel: ObservableObject {
         guard activeActorID == actorID, session == expectedSession, item.unreadForOwner else { return }
         do {
             try await repository.acknowledgeFeedbackReadByOwner(id: item.id)
-            let updated = try await repository.fetchFeedback(id: item.id)
+            let updated = try await RefreshRequest.run { [repository] in try await repository.fetchFeedback(id: item.id) }
             if activeActorID == actorID, session == expectedSession {
                 detailItems[item.id] = updated
                 items = items.map { $0.id == item.id ? updated : $0 }
@@ -305,7 +305,7 @@ final class FeedbackInboxViewModel: ObservableObject {
         do {
             try await repository.performFeedbackOperation(operation)
             guard activeActorID == owner.id, session == expectedSession else { return false }
-            let updated = try await repository.fetchFeedback(id: item.id)
+            let updated = try await RefreshRequest.run { [repository] in try await repository.fetchFeedback(id: item.id) }
             guard activeActorID == owner.id, session == expectedSession else { return false }
             pendingOperations.complete(operation)
             detailItems[item.id] = updated
@@ -452,7 +452,7 @@ final class FeedbackInboxViewModel: ObservableObject {
         messageErrorsByFeedbackID[item.id] = nil
         defer { if session == expectedSession { loadingMessageFeedbackIDs.remove(item.id) } }
         do {
-            let page = try await repository.fetchFeedbackMessagesPage(feedback: item, after: nil, limit: Self.messagePageSize)
+            let page = try await RefreshRequest.run { [repository] in try await repository.fetchFeedbackMessagesPage(feedback: item, after: nil, limit: Self.messagePageSize) }
             guard activeActorID == expectedActorID, session == expectedSession else { return }
             mergeMessages(item.legacyMessages + page.items, feedbackID: item.id)
             messageCursors[item.id] = page.nextCursor
@@ -473,7 +473,7 @@ final class FeedbackInboxViewModel: ObservableObject {
         loadingMoreMessageFeedbackIDs.insert(item.id)
         defer { if session == expectedSession { loadingMoreMessageFeedbackIDs.remove(item.id) } }
         do {
-            let page = try await repository.fetchFeedbackMessagesPage(feedback: item, after: cursor, limit: Self.messagePageSize)
+            let page = try await RefreshRequest.run { [repository] in try await repository.fetchFeedbackMessagesPage(feedback: item, after: cursor, limit: Self.messagePageSize) }
             guard activeActorID == expectedActorID, session == expectedSession else { return }
             mergeMessages(page.items, feedbackID: item.id)
             messageCursors[item.id] = page.nextCursor
@@ -604,7 +604,7 @@ final class FeedbackInboxViewModel: ObservableObject {
         defer { if session == expectedSession { updatingFeedbackIDs.remove(item.id) } }
         do {
             try await repository.updateFeedbackStatus(id: item.id, status: status)
-            let updated = try await repository.fetchFeedback(id: item.id)
+            let updated = try await RefreshRequest.run { [repository] in try await repository.fetchFeedback(id: item.id) }
             guard activeActorID == actorID, session == expectedSession else { return }
             detailItems[item.id] = updated
             await refresh(actorID: actorID)

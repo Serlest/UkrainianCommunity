@@ -40,9 +40,10 @@ struct DirectoryEditorsView: View {
                 AppEditorSectionCard {
                     VStack(alignment: .leading, spacing: 16) {
                         AppEditorSectionTitle(title: text("Мають доступ", "Mit Zugriff"))
-                        if access.isLoading { ProgressView() }
+                        if access.isLoading { ProgressView().accessibilityIdentifier("directoryAccess.loading") }
                         if !access.isLoading && !access.loadFailed && access.editorIDs.isEmpty {
                             Text(text("Доступ іншим користувачам ще не надано.", "Noch kein Zugriff für andere Nutzer erteilt.")).foregroundStyle(AppTheme.textSecondary)
+                                .accessibilityIdentifier("directoryAccess.empty")
                         }
                         if access.loadFailed { retryButton { await access.load(actorID: principal) } }
                         ForEach(sortedEditorIDs, id: \.self) { id in

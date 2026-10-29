@@ -4,6 +4,19 @@ import Testing
 
 @MainActor
 struct DirectoryEditorAccessStoreTests {
+    @Test func duplicateCandidateAppearanceDoesNotRestartTheSameRead() async {
+        var reads = 0
+        let model = DirectoryEditorCandidatesStore(page: { _, _, _ in
+            reads += 1
+            try await Task.sleep(for: .milliseconds(30))
+            return .init(users: [], organizations: [], total: 0, cursor: nil)
+        })
+        let first = Task { await model.load(actorID: "owner", query: "same") }
+        await Task.yield()
+        await model.load(actorID: "owner", query: "same")
+        await first.value
+        #expect(reads == 1); #expect(model.hasLoaded); #expect(!model.isLoading)
+    }
     private func user(name: String = "Olena Levytska", email: String = "olena@example.test") -> AppUser {
         AppUser(id: "editor-1", fullName: name, displayName: name, city: "Wien", email: email,
                 bio: "", role: .user, blockState: .active, createdAt: .now, updatedAt: .now)

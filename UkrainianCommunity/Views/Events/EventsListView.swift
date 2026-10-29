@@ -583,6 +583,7 @@ struct EventsListView: View {
                 title: AppStrings.Events.title,
                 message: AppStrings.Events.empty
             )
+            .accessibilityIdentifier("events.feed.empty")
             .frame(maxWidth: .infinity, minHeight: 180)
         } else if filteredEvents.isEmpty {
             UnifiedEmptyStateCard(
@@ -604,6 +605,7 @@ struct EventsListView: View {
                     }
                 }
             }
+            .accessibilityIdentifier("events.feed.filteredEmpty")
             .frame(maxWidth: .infinity, minHeight: 180)
         } else {
             let content = discoveryContent

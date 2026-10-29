@@ -104,8 +104,12 @@ final class DirectoryEditorAccessStore: ObservableObject {
         defer { if generation == token { isLoading = false; isLoadingMore = false } }
         do {
             let page: DirectoryEditorGrantPage
-            if let read = api.page { page = try await read(actorID, more ? cursor : nil) }
-            else { page = DirectoryEditorGrantPage(grants: try await api.enabledIDs().map { DirectoryEditorGrant(id: $0, enabled: true, revision: nil, grantedAt: nil) }) }
+            let after = more ? cursor : nil
+            if let read = api.page { page = try await RefreshRequest.run { try await read(actorID, after) } }
+            else {
+                let ids = try await RefreshRequest.run { [api] in try await api.enabledIDs() }
+                page = DirectoryEditorGrantPage(grants: ids.map { DirectoryEditorGrant(id: $0, enabled: true, revision: nil, grantedAt: nil) })
+            }
             guard self.actorID == actorID, generation == token, !Task.isCancelled else { return }
             if !more { editorIDs = []; grants = [:] }
             for grant in page.grants { grants[grant.id] = grant; if grant.enabled { editorIDs.insert(grant.id) } }
@@ -115,7 +119,7 @@ final class DirectoryEditorAccessStore: ObservableObject {
             if let batch = api.profiles, !page.grants.isEmpty {
                 let ids = page.grants.map(\.id)
                 do {
-                    let result = try await batch(ids)
+                    let result = try await RefreshRequest.run { try await batch(ids) }
                     guard self.actorID == actorID, generation == token, !Task.isCancelled else { return }
                     for user in result { profiles[user.id] = user; failedProfileIDs.remove(user.id); missingProfileIDs.remove(user.id) }
                     for id in Set(ids).subtracting(result.map(\.id)) { profiles[id] = nil; missingProfileIDs.insert(id) }
@@ -136,7 +140,7 @@ final class DirectoryEditorAccessStore: ObservableObject {
             var result: [DirectoryEditorGrant] = []
             for start in stride(from: 0, to: ids.count, by: 40) {
                 let missing = Array(ids[start..<min(start + 40, ids.count)]).filter { grants[$0] == nil }
-                if !missing.isEmpty { result += try await read(actorID, missing) }
+                if !missing.isEmpty { result += try await RefreshRequest.run { try await read(actorID, missing) } }
             }
             guard self.actorID == actorID, generation == token, !Task.isCancelled else { return }
             for grant in result { grants[grant.id] = grant }
@@ -145,7 +149,7 @@ final class DirectoryEditorAccessStore: ObservableObject {
     func loadProfile(_ id: String, actorID: String) async {
         let token = generation
         do {
-            let user = try await api.user(id)
+            let user = try await RefreshRequest.run { [api] in try await api.user(id) }
             guard self.actorID == actorID, generation == token, editorIDs.contains(id), !Task.isCancelled else { return }
             profiles[id] = user; failedProfileIDs.remove(id)
             if user == nil { missingProfileIDs.insert(id) } else { missingProfileIDs.remove(id) }

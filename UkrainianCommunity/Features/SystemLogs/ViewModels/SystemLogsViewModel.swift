@@ -203,6 +203,14 @@ final class SystemLogsViewModel: ObservableObject {
         await refresh()
     }
 
+    private func readPage(filter: SystemLogFilter, sort: SystemLogSortOption, cursor: String?, started: ContinuousClock.Instant) async throws -> SystemLogPage {
+        let remaining = Duration.seconds(20) - (ContinuousClock.now - started)
+        guard remaining > .zero else { throw AppError.network }
+        return try await RefreshRequest.run(timeout: remaining) { [repository, fetchLimit] in
+            try await repository.queryPage(filter: filter, sortOption: sort, limit: fetchLimit, cursor: cursor)
+        }
+    }
+
     func refresh() async {
         let scope = requestScope()
         dataRequestRevision &+= 1
@@ -219,10 +227,11 @@ final class SystemLogsViewModel: ObservableObject {
         }
 
         do {
-            var page = try await repository.queryPage(filter: filter, sortOption: sort, limit: fetchLimit, cursor: nil)
+            let started = ContinuousClock.now
+            var page = try await readPage(filter: filter, sort: sort, cursor: nil, started: started)
             for _ in 0..<7 {
                 guard page.entries.isEmpty, let cursor = page.cursor, !Task.isCancelled, requestRevision == dataRequestRevision, isCurrent(scope) else { break }
-                page = try await repository.queryPage(filter: filter, sortOption: sort, limit: fetchLimit, cursor: cursor)
+                page = try await readPage(filter: filter, sort: sort, cursor: cursor, started: started)
             }
             guard isCurrent(scope), requestRevision == dataRequestRevision, key == queryKey else { return }
             logs = page.entries.filter { !unavailableLogIDs.contains($0.id) }.map(applyingReviewOverride)
@@ -251,11 +260,12 @@ final class SystemLogsViewModel: ObservableObject {
         isLoadingNextPage = true
         defer { if pageRequest == token { isLoadingNextPage = false } }
         do {
-            var page = try await repository.queryPage(filter: filter, sortOption: sort, limit: fetchLimit, cursor: cursor)
+            let started = ContinuousClock.now
+            var page = try await readPage(filter: filter, sort: sort, cursor: cursor, started: started)
             for _ in 0..<7 {
                 guard page.entries.isEmpty, let next = page.cursor, isCurrent(scope), revision == dataRequestRevision else { break }
                 cursor = next
-                page = try await repository.queryPage(filter: filter, sortOption: sort, limit: fetchLimit, cursor: cursor)
+                page = try await readPage(filter: filter, sort: sort, cursor: cursor, started: started)
             }
             guard isCurrent(scope), revision == dataRequestRevision, key == queryKey else { return }
             let ids = Set(logs.map(\.id))
@@ -327,7 +337,7 @@ final class SystemLogsViewModel: ObservableObject {
         refreshingDetailLogIDs.insert(id); detailRefreshErrorMessages[id] = nil
         defer { if detailRequests[id] == token { refreshingDetailLogIDs.remove(id) } }
         do {
-            let refreshed = try await repository.fetchLog(id: id)
+            let refreshed = try await RefreshRequest.run { [repository] in try await repository.fetchLog(id: id) }
             guard isCurrent(scope), detailRequests[id] == token, !unavailableLogIDs.contains(id) else { return }
             guard let refreshed else {
                 forgetLog(id); refreshingDetailLogIDs.remove(id)

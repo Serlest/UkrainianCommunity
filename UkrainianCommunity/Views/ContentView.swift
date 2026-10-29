@@ -988,7 +988,9 @@ struct ContentView: View {
         guard let userID else { return }
 
         do {
-            let preferences = try await container.notificationPreferencesRepository.fetchNotificationPreferences(userID: userID)
+            let preferences = try await RefreshRequest.run { [container] in
+                try await container.notificationPreferencesRepository.fetchNotificationPreferences(userID: userID)
+            }
             guard !Task.isCancelled,
                   authState.isAuthenticated,
                   authState.user?.id == userID else { return }
@@ -1011,7 +1013,7 @@ struct ContentView: View {
     ) async {
         guard let userID else { return }
         do {
-            let registeredEvents = try await container.eventRepository.fetchRegisteredEvents()
+            let registeredEvents = try await RefreshRequest.run { [container] in try await container.eventRepository.fetchRegisteredEvents() }
             guard authState.isAuthenticated, authState.user?.id == userID else { return }
             let visibleEvents = organizationBlockingCoordinator.visibilityPolicy.visibleEvents(registeredEvents)
             try await container.localEventReminderService.reconcileEventReminders(

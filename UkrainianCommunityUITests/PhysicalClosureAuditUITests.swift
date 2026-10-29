@@ -314,9 +314,11 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         reveal(security, app, towardTop: true); security.tap()
         let passkey = app.buttons["accountSecurity.passkey.add"].firstMatch
         XCTAssertTrue(passkey.waitForExistence(timeout: 15)); reveal(passkey, app)
-        let keysLoaded = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: passkey)
-        XCTAssertEqual(XCTWaiter.wait(for: [keysLoaded], timeout: 20), .completed,
-                       "Capture the resolved key list, not its initial loading frame")
+        // Adding a credential may remain disabled by the MFA policy even after
+        // the read succeeds. Assert the successful read state itself.
+        let keysLoaded = app.descendants(matching: .any)["accountSecurity.passkeys.loaded"].firstMatch
+        XCTAssertTrue(keysLoaded.waitForExistence(timeout: 20),
+                      "Capture the resolved key list, not its initial loading frame")
         XCTAssertFalse(app.buttons["accountSecurity.passkey.retry"].firstMatch.exists)
         capture(app, "physical-owner-existing-passkeys")
         let providers = app.descendants(matching: .any).matching(identifier: "accountSecurity.linkedMethods").firstMatch

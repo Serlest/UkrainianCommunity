@@ -298,7 +298,8 @@ struct SystemLogsDashboardView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textPrimary)
 
-                Text(viewModel.hasActiveFilters ? AppStrings.SystemLogs.filteredEmptyMessage : AppStrings.SystemLogs.emptyMessage)
+                Text(viewModel.hasActiveFilters ? AppStrings.SystemLogs.filteredEmptyMessage :
+                    LocalizationStore.localizedString("system_logs.empty.explanation", defaultValue: "Нові записи з’являтимуться тут після системних подій.", table: "SystemLogJournal"))
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
 
@@ -311,6 +312,7 @@ struct SystemLogsDashboardView: View {
                 }
             }
         }
+        .accessibilityIdentifier("systemLogs.empty")
     }
 }
 

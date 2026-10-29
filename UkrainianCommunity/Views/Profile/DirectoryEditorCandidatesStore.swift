@@ -16,18 +16,20 @@ final class DirectoryEditorCandidatesStore: ObservableObject {
     private var query = ""
     private var cursor: String?
     private var generation = UUID()
+    private var readingGeneration: UUID?
     private let page: (String, String, String?) async throws -> UserDirectoryPage
 
     init(page: @escaping (String, String, String?) async throws -> UserDirectoryPage = UserDirectoryAPI.candidates) { self.page = page }
 
     func reset() {
-        generation = UUID(); actorID = nil; query = ""; cursor = nil
+        generation = UUID(); readingGeneration = nil; actorID = nil; query = ""; cursor = nil
         users = []; total = 0; hasLoaded = false; failedPage = false; isLoading = false; isLoadingMore = false; canLoadMore = false; loadFailed = false
     }
     func invalidate(actorID: String, query: String) {
         reset(); self.actorID = actorID; self.query = query; isLoading = true
     }
     func load(actorID: String, query: String) async {
+        if self.actorID == actorID && self.query == query && readingGeneration == generation { return }
         if self.actorID != actorID || self.query != query { invalidate(actorID: actorID, query: query) }
         else { generation = UUID() }
         await fetch(more: false)
@@ -40,11 +42,13 @@ final class DirectoryEditorCandidatesStore: ObservableObject {
     private func fetch(more: Bool) async {
         guard let actorID else { return }
         let requestGeneration = generation
+        readingGeneration = requestGeneration
         if more { isLoadingMore = true } else { isLoading = true }
         loadFailed = false
-        defer { if generation == requestGeneration { isLoading = false; isLoadingMore = false } }
+        defer { if generation == requestGeneration { isLoading = false; isLoadingMore = false; readingGeneration = nil } }
         do {
-            let result = try await page(actorID, query, more ? cursor : nil)
+            let search = query, after = more ? cursor : nil
+            let result = try await RefreshRequest.run { [page] in try await page(actorID, search, after) }
             guard requestGeneration == generation, !Task.isCancelled else { return }
             let known = Set(more ? users.map(\.id) : [])
             users = (more ? users : []) + result.users.filter { !known.contains($0.id) }

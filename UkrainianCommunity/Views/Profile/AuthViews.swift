@@ -84,24 +84,33 @@ struct AuthFlowContainerView: View {
 
 struct AuthScreenScaffold<Content: View>: View {
     @Environment(\.authInteraction) private var interaction
+    var focusedField: AuthInput? = nil
     @ViewBuilder let content: Content
 
     var body: some View {
-        ScrollView(.vertical, showsIndicators: true) {
-            VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                content
+        ScrollViewReader { proxy in
+            ScrollView(.vertical, showsIndicators: true) {
+                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                    content
+                }
+                .padding(.horizontal, AppTheme.pageHorizontal)
+                .padding(.top, AppTheme.sectionSpacing)
+                .padding(.bottom, AppTheme.sectionSpacing * 2)
+                .appCenteredContent()
             }
-            .padding(.horizontal, AppTheme.pageHorizontal)
-            .padding(.top, AppTheme.sectionSpacing)
-            .padding(.bottom, AppTheme.sectionSpacing * 2)
-            .appCenteredContent()
+            .keyboardDismissBackground {
+                AppBackgroundView()
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .tint(AppTheme.accentPrimaryForeground)
+            .modifier(AuthNavigationBusyState(coordinator: interaction))
+            .onChange(of: focusedField) { _, field in
+                if let field { proxy.scrollTo(field, anchor: .center) }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
+                if let focusedField { proxy.scrollTo(focusedField, anchor: .center) }
+            }
         }
-        .keyboardDismissBackground {
-            AppBackgroundView()
-        }
-        .scrollDismissesKeyboard(.interactively)
-        .tint(AppTheme.accentPrimaryForeground)
-        .modifier(AuthNavigationBusyState(coordinator: interaction))
     }
 }
 
@@ -169,7 +178,7 @@ struct LoginView: View {
     init(prefilledEmail: String = "") { _email = State(initialValue: prefilledEmail) }
 
     var body: some View {
-        AuthScreenScaffold {
+        AuthScreenScaffold(focusedField: focus) {
             AuthHeaderView(title: nil, subtitle: AppStrings.Auth.loginSubtitle)
 
             AppEditorSectionCard {
@@ -322,7 +331,7 @@ struct RegisterView: View {
     }
 
     var body: some View {
-        AuthScreenScaffold {
+        AuthScreenScaffold(focusedField: focus) {
             AuthHeaderView(
                 title: nil,
                 subtitle: federated
@@ -985,7 +994,7 @@ struct PasswordResetView: View {
     }
 
     var body: some View {
-        AuthScreenScaffold {
+        AuthScreenScaffold(focusedField: focus) {
             AuthHeaderView(title: nil, subtitle: AppStrings.Auth.resetPasswordSubtitle)
 
             AppEditorSectionCard {

@@ -86,12 +86,13 @@ struct MyRegistrationsView: View {
                     Text(RegistrationsText.partial).font(.footnote).foregroundStyle(AppTheme.textSecondary)
                         .accessibilityIdentifier("registrations.partial")
                 }
-                if viewModel.isLoading && viewModel.events.isEmpty {
+                if (viewModel.isLoading || !viewModel.hasLoaded && viewModel.error == nil) && viewModel.events.isEmpty {
                     LoadingStateCard(title: AppStrings.Profile.registrationsLoading).accessibilityIdentifier("registrations.loading")
                 } else if visible.isEmpty && viewModel.error == nil {
                     ProfileDestinationEmptyStateCard(systemImage: selectedSegment.systemImage,
                         title: selectedSegment.emptyTitle,
                         message: viewModel.hasMore ? RegistrationsText.partial : RegistrationsText.emptyFilter)
+                        .accessibilityIdentifier("registrations.empty")
                 } else {
                     LazyVStack(spacing: AppTheme.feedRowSpacing) {
                         ForEach(visible) { event in

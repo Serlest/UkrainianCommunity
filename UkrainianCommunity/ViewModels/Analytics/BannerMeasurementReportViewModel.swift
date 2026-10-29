@@ -75,8 +75,8 @@ final class BannerMeasurementReportViewModel: ObservableObject {
         defer { if loadID == id { isLoading = false } }
 
         do {
-            async let measurements = repository.fetch(period: period, bannerID: bannerID)
-            async let catalog = bannerRepository.fetchAllBannersForOwner()
+            async let measurements = RefreshRequest.run { [repository] in try await repository.fetch(period: period, bannerID: bannerID) }
+            async let catalog = RefreshRequest.run { [bannerRepository] in try await bannerRepository.fetchAllBannersForOwner() }
             let (loaded, banners) = try await (measurements, catalog)
             guard !Task.isCancelled, selectedPeriod == period, effectiveBannerID == bannerID, loadID == id else { return }
             loadedAt = now()

@@ -50,6 +50,8 @@ private actor RemoteImageDataLoader {
 
     init() {
         let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 20
+        configuration.timeoutIntervalForResource = 45
         configuration.urlCache = URLCache(
             memoryCapacity: 50 * 1024 * 1024,
             diskCapacity: 300 * 1024 * 1024

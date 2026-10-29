@@ -4,6 +4,56 @@ import Testing
 
 @MainActor
 struct AnnouncementManagementTests {
+    @Test func pendingReceiptDoesNotBlockTheFreshFeedOrLoseTheRetryRecord() async {
+        let repo = ControlledAnnouncementRepository()
+        let suite = "UAC.Loading.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let key = "announcements.receipt.owner.old.acknowledged.pending"
+        defaults.set(true, forKey: key)
+        let coordinator = AnnouncementCoordinator(repository: repo, defaults: defaults)
+        coordinator.configure(userID: "owner", available: true)
+        var finished = false
+        let read = Task { await coordinator.refresh(); finished = true }
+        try? await Task.sleep(for: .milliseconds(100))
+        let feedArrivedBeforeReceipt = finished && !coordinator.items.isEmpty
+        let receiptWasKept = defaults.bool(forKey: key)
+        repo.receiptContinuation?.resume(returning: AnnouncementResponse())
+        await read.value
+        #expect(feedArrivedBeforeReceipt)
+        #expect(receiptWasKept)
+        for _ in 0..<100 where defaults.bool(forKey: key) { await Task.yield() }
+        #expect(!defaults.bool(forKey: key))
+    }
+
+    @Test func sparseRecipientSearchIsBoundedAndCanContinueWithoutFalseExhaustion() async {
+        let repo = LoadingRecipientProbe()
+        let search = AnnouncementRecipientSearch(repository: repo)
+        await search.search("")
+        #expect(repo.reads == 4); #expect(search.items.isEmpty)
+        #expect(search.cursor == "4"); #expect(search.error == nil)
+        await search.more()
+        #expect(search.items.map(\.id) == ["matched"]); #expect(search.cursor == nil)
+    }
+
+    @Test func repeatedRecipientCursorStopsAndRetryCanRecover() async {
+        let repo = LoadingRecipientProbe(); repo.repeatsCursor = true
+        let search = AnnouncementRecipientSearch(repository: repo)
+        await search.search("")
+        #expect(repo.reads == 2); #expect(search.error != nil); #expect(!search.loading)
+        repo.repeatsCursor = false
+        await search.retry()
+        #expect(search.error == nil); #expect(search.cursor == "4")
+    }
+
+    @Test func boundedAnnouncementReadCannotExecuteAWrite() async {
+        let repo = LoadingRecipientProbe()
+        do {
+            _ = try await repo.read("manageAnnouncements", .init(operation: "publish", id: "draft"))
+            Issue.record("A command reached the bounded read path")
+        } catch { }
+        #expect(repo.commands == 0)
+    }
     @Test func oldReceiptCannotAuthorizeFeedbackNavigationForAnotherAccount() async {
         let repository = ControlledAnnouncementRepository()
         let suite = "NotificationActionFence.\(UUID().uuidString)"
@@ -248,5 +298,22 @@ private final class PagedAnnouncementRepository: AnnouncementRepository {
         if cursor == nil { return ([.init(id: "first", name: "First", region: nil)], "next") }
         if !failed { failed = true; throw AppError.network }
         return ([.init(id: "second", name: "Second", region: nil)], nil)
+    }
+}
+
+@MainActor private final class LoadingRecipientProbe: AnnouncementRepository {
+    var reads = 0
+    var commands = 0
+    var repeatsCursor = false
+    func call(_ endpoint: String, _ request: AnnouncementRequest) async throws -> AnnouncementResponse {
+        commands += 1
+        return .init()
+    }
+    func users(cursor: String?) async throws -> (items: [AnnouncementUser], cursor: String?) {
+        reads += 1
+        if repeatsCursor { return ([], "repeated") }
+        let index = Int(cursor ?? "0") ?? 0
+        if index >= 5 { return ([.init(id: "matched", name: "Matched", region: nil)], nil) }
+        return ([], String(index + 1))
     }
 }

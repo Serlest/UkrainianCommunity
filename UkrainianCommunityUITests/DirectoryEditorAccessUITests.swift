@@ -16,7 +16,7 @@ import XCTest
             XCTAssertFalse(app.tabBars.firstMatch.isHittable)
             capture(app, "directory-access-top-" + language)
             scroll(revoke,app:app); revoke.tap()
-            let revokeConfirm = app.buttons[language == "uk" ? "Відкликати доступ":"Zugriff entziehen"].firstMatch
+            let revokeConfirm = app.sheets.buttons[language == "uk" ? "Відкликати доступ":"Zugriff entziehen"].firstMatch
             XCTAssertTrue(revokeConfirm.waitForExistence(timeout:5)); revokeConfirm.tap()
             XCTAssertTrue(revoke.waitForNonExistence(timeout:5))
             let search = app.textFields["directoryAccess.search"].firstMatch
@@ -27,7 +27,7 @@ import XCTest
             // Dismiss the keyboard through the Return key before opening confirmation.
             search.typeText("\n")
             scroll(grant,app:app); grant.tap()
-            let confirm = app.buttons[language == "uk" ? "Надати доступ":"Zugriff erteilen"].firstMatch
+            let confirm = app.sheets.buttons[language == "uk" ? "Надати доступ":"Zugriff erteilen"].firstMatch
             XCTAssertTrue(confirm.waitForExistence(timeout:5)); confirm.tap()
             let status = app.staticTexts[language == "uk" ? "Має доступ":"Zugriff aktiv"].firstMatch
             XCTAssertTrue(status.waitForExistence(timeout:8))

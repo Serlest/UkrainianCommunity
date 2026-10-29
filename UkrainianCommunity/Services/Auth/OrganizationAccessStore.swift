@@ -113,8 +113,9 @@ final class OrganizationAccessStore: ObservableObject {
         guard let uid = principalID, currentUID() == uid else { throw CancellationError() }
         let expected = generation
         do {
-            let response = try await call("getOrganizationAccess", ["organizationIds": ids,
-                "legacyDecisions": legacyDecisions.filter { ids.contains($0.key) }, "clientVersion": clientVersion])
+            let payload: [String: Any] = ["organizationIds": ids,
+                "legacyDecisions": legacyDecisions.filter { ids.contains($0.key) }, "clientVersion": clientVersion]
+            let response = try await RefreshRequest.run { [call] in try await call("getOrganizationAccess", payload) }
             guard generation == expected, principalID == uid, currentUID() == uid else { throw CancellationError() }
             guard response["principalId"] as? String == uid,
                   response["schemaVersion"] as? Int == 1, let entries = response["records"] as? [[String: Any]] else { throw AppError.unknown }

@@ -63,6 +63,7 @@ struct BannerMeasurementReportView: View {
                     isRetrying: viewModel.isLoading) { Task { await viewModel.load() } }
             }
             OwnerAnalyticsFreshnessLabel(updatedAt: report.generatedAt)
+                .accessibilityIdentifier("bannerReport.loaded")
             BannerAnalyticsMetricsView(totals: report.totals)
             filters
             if report.counts.isEmpty {

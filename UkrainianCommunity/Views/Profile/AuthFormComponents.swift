@@ -45,8 +45,13 @@ struct AuthFormField: View {
                                   lineWidth: focus.wrappedValue == field ? 1.5 : 1)
             }
         }
+        .id(field)
         .onChange(of: focus.wrappedValue) { _, value in
-            if !secure { textIsFocused = value == field }
+            // UIKit already transfers the responder when another field is tapped.
+            // Explicitly clearing SwiftUI's old focus here can resign that newly
+            // focused native password field as well (FocusStore.updateFocus).
+            if !secure, value == field { textIsFocused = true }
+            else if !secure, value == nil { textIsFocused = false }
         }
         .onChange(of: textIsFocused) { _, value in
             if value { focus.wrappedValue = field }

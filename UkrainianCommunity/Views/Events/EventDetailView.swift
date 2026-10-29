@@ -144,6 +144,7 @@ struct EventDetailView: View {
                         InlineMessageCard(style: .error, message: readableEventErrorText(refreshError))
                     }
                     articleHeader(for: event)
+                        .accessibilityIdentifier("event.detail.loaded." + event.id)
                         .onTapGesture { isCommentFieldFocused = false }
 
                     if event.isCancelled {

@@ -204,7 +204,7 @@ struct RecentViewsView: View {
 
     @ViewBuilder
     private var recentViewsContent: some View {
-        if isLoading {
+        if isLoading || !recentViewsViewModel.hasLoaded && recentViewsViewModel.error == nil {
             LoadingStateCard(title: AppStrings.Profile.recentlyViewed).accessibilityIdentifier("recentViews.loading")
         } else if let error = recentViewsViewModel.error, recentViewsViewModel.items.isEmpty {
             ErrorStateCard(
@@ -224,6 +224,7 @@ struct RecentViewsView: View {
                     title: visibleItems.isEmpty ? AppStrings.Profile.recentlyViewedEmptyTitle : AppStrings.Search.noResultsTitle,
                     message: visibleItems.isEmpty ? AppStrings.Profile.recentlyViewedEmptyMessage : RecentViewsText.filteredEmpty
                 )
+                .accessibilityIdentifier("recentViews.empty")
             } else {
                 LazyVStack(spacing: AppTheme.feedRowSpacing) {
                     ForEach(filteredItems) { item in

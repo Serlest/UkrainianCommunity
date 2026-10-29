@@ -6,6 +6,7 @@ import FirebaseFunctions
 final class AnnouncementCoordinator: ObservableObject {
     private var activeSnapshotRevision = 0
     private var refreshTask: Task<Void, Never>?
+    private var receiptFlushTask: Task<Void, Never>?
     @Published var items: [UserAnnouncement] = []
     @Published var active: UserAnnouncement?
     @Published var requestedFeedback: UserAnnouncement?
@@ -41,6 +42,7 @@ final class AnnouncementCoordinator: ObservableObject {
         let next = accountID ?? "unavailable"
         guard next != identity else { return }
         refreshTask?.cancel(); refreshTask = nil
+        receiptFlushTask?.cancel(); receiptFlushTask = nil
         generation += 1; historyGeneration += 1; historyItems = []; activeItems = []; historyCursor = nil; isHistoryLoading = false; historyFailedMore = false; identity = next; self.userID = accountID
         active = nil; requestedFeedback = nil; pendingActions = []; items = []; error = nil; isLoading = false; policy = AnnouncementPresentationPolicy(); lastLoadedAt = nil
     }
@@ -61,13 +63,18 @@ final class AnnouncementCoordinator: ObservableObject {
         isLoading = true
         defer { if generation == version { isLoading = false } }
         do {
-            try? await flushPending()
+            startReceiptFlush()
             guard version == generation, !Task.isCancelled else { return }
             var result: [UserAnnouncement] = [], cursor: String?
+            let started = ContinuousClock.now
+            var seenCursors = Set<String>()
             repeat {
-                let response = try await repository.call("getAnnouncements", AnnouncementRequest(feedMode: "active", cursor: cursor))
+                let remaining = Duration.seconds(20) - (ContinuousClock.now - started)
+                guard remaining > .zero else { throw AppError.network }
+                let response = try await repository.read("getAnnouncements", AnnouncementRequest(feedMode: "active", cursor: cursor), timeout: remaining)
                 guard version == generation, !Task.isCancelled else { return }
                 result += response.items ?? []; cursor = response.cursor
+                if let cursor, !seenCursors.insert(cursor).inserted { throw AnnouncementCommandError.missingResponse }
                 if let now = response.serverNow { serverOffset = now - Date().timeIntervalSince1970 * 1000 }
             } while cursor != nil
             activeItems = result.filter { $0.schemaVersion == 1 }
@@ -94,11 +101,11 @@ final class AnnouncementCoordinator: ObservableObject {
         do {
             let cursor = reset ? nil : historyCursor
             var activeRevision = activeSnapshotRevision
-            var response = try await repository.call("getAnnouncements", AnnouncementRequest(feedMode: "history", cursor: cursor))
+            var response = try await repository.read("getAnnouncements", AnnouncementRequest(feedMode: "history", cursor: cursor))
             if activeRevision != activeSnapshotRevision {
                 guard generation == accountVersion, historyGeneration == requestID, !Task.isCancelled else { return }
                 activeRevision = activeSnapshotRevision
-                response = try await repository.call("getAnnouncements", AnnouncementRequest(feedMode: "history", cursor: cursor))
+                response = try await repository.read("getAnnouncements", AnnouncementRequest(feedMode: "history", cursor: cursor))
                 guard activeRevision == activeSnapshotRevision else { throw AnnouncementCommandError.missingResponse }
             }
             guard generation == accountVersion, historyGeneration == requestID, !Task.isCancelled else { return }
@@ -164,6 +171,16 @@ final class AnnouncementCoordinator: ObservableObject {
     func isProcessing(_ item: UserAnnouncement) -> Bool {
         pendingActions.contains { $0.hasPrefix(item.id + "::") }
     }
+    private func startReceiptFlush() {
+        guard receiptFlushTask == nil else { return }
+        let version = generation
+        receiptFlushTask = Task { [weak self] in
+            guard let self else { return }
+            defer { if generation == version { receiptFlushTask = nil } }
+            try? await flushPending()
+        }
+    }
+
     private func flushPending() async throws {
         guard let userID, identity == userID else { return }
         let prefix = "announcements.receipt.\(identity)."

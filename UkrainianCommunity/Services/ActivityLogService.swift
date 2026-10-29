@@ -267,7 +267,7 @@ final class ActivityLogViewModel: ObservableObject {
     private var clearedThrough: Date?
     private var deletedIDs = Set<String>()
     var isMutating: Bool { isClearing || !deletingIDs.isEmpty }
-    private var hasLoaded = false
+    @Published private(set) var hasLoaded = false
     private var isSynchronizingPending = false
     private var loadedUserID: String?
     private var sessionGeneration: UInt = 0

@@ -599,8 +599,9 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         actionTargetLoadError = nil
         loadingActionTargetKinds.insert(kind)
 
-        let task = Task<FeaturedBannerActionTargetLoader.Page, Error> {
-            try await actionTargetLoader.page(kind: kind, after: append ? nextActionTargetCursors[kind] : nil)
+        let after = append ? nextActionTargetCursors[kind] : nil
+        let task = Task<FeaturedBannerActionTargetLoader.Page, Error> { [actionTargetLoader] in
+            try await RefreshRequest.run { try await actionTargetLoader.page(kind: kind, after: after) }
         }
 
         actionTargetLoadTasks[kind] = task

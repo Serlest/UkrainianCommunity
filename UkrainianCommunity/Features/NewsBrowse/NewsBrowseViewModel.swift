@@ -79,12 +79,16 @@ final class NewsBrowseViewModel: ObservableObject {
         let ticket = generation
         loading = true; error = nil
         defer { if generation == ticket { loading = false } }
+        let started = ContinuousClock.now
         do {
             // Bound each request group. If search/private filters match no rows yet,
             // show an explicit continue action instead of claiming there are no results.
             for _ in 0..<4 {
                 try Task.checkCancellation()
-                let page = try await loadPage(query, 15, cursor)
+                let remaining = Duration.seconds(20) - (ContinuousClock.now - started)
+                guard remaining > .zero else { throw AppError.network }
+                let after = cursor
+                let page = try await RefreshRequest.run(timeout: remaining) { [loadPage] in try await loadPage(query, 15, after) }
                 guard generation == ticket, !Task.isCancelled else { return }
                 if replacePending { posts = []; replacePending = false }
                 let visible = visibility.visibleNews(page.items)

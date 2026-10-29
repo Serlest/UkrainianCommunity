@@ -7,6 +7,7 @@ import Foundation
     @Published private(set) var error: AppError?
     @Published private(set) var pending = Set<String>()
     @Published private(set) var cursor: String?
+    @Published private(set) var hasLoaded = false
     private var userID: String?
     private var generation = 0
     private let repository: OrganizationRepository
@@ -20,7 +21,7 @@ import Foundation
     func bind(_ userID: String?) {
         guard self.userID != userID else { return }
         self.userID = userID; generation += 1
-        records = []; cursor = nil; pending = []; isLoading = false; error = nil
+        records = []; cursor = nil; pending = []; isLoading = false; error = nil; hasLoaded = false
     }
     func load(append: Bool = false) async {
         guard userID != nil, !isLoading, pending.isEmpty, !append || cursor != nil else { return }
@@ -41,6 +42,7 @@ import Foundation
                 } else { shared.organizations.append(organization) }
             }
             reconcile()
+            hasLoaded = true
             error = nil
         } catch is CancellationError {} catch {
             guard token == generation else { return }

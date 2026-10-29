@@ -124,7 +124,7 @@ nonisolated private struct PublicationControlRequest: Encodable {
         hasLoadedItems = false; hasLoadedRuns = false; itemRetry = nil; runRetry = nil
         defer { if generation == token { loading = false } }
         do {
-            let response = try await api.overview(actor, day)
+            let response = try await RefreshRequest.run { [api] in try await api.overview(actor, day) }
             guard generation == token, !Task.isCancelled else { return }
             receivedAt = .now; loadedAt = .now; overview = response
             // Refresh invalidates the page caches, but a failed refresh never destroys confirmed rows.
@@ -169,7 +169,7 @@ nonisolated private struct PublicationControlRequest: Encodable {
         loadingItems = true; itemsError = nil
         defer { if generation == token, itemGeneration == pageToken { loadingItems = false } }
         do {
-            let response = try await api.items(actor, day, selectedRegion, cursor)
+            let response = try await RefreshRequest.run { [api, day] in try await api.items(actor, day, selectedRegion, cursor) }
             guard generation == token, itemGeneration == pageToken, !Task.isCancelled else { return }
             var rows = append ? items : []
             for row in response.items where !rows.contains(where: { $0.id == row.id }) { rows.append(row) }
@@ -199,7 +199,7 @@ nonisolated private struct PublicationControlRequest: Encodable {
         loadingRuns = true; runsError = nil
         defer { if generation == token, runGeneration == pageToken { loadingRuns = false } }
         do {
-            let response = try await api.runs(actor, selectedRegion, cursor)
+            let response = try await RefreshRequest.run { [api] in try await api.runs(actor, selectedRegion, cursor) }
             guard generation == token, runGeneration == pageToken, !Task.isCancelled else { return }
             var rows = append ? runs : []
             for row in response.runs where !rows.contains(where: { $0.id == row.id }) { rows.append(row) }

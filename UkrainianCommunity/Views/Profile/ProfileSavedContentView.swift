@@ -121,6 +121,7 @@ enum SavedContentItem: Identifiable {
 
 @MainActor
 final class SavedContentViewModel: ObservableObject {
+    @Published private(set) var hasResolvedInitialLoad = false
     @Published private(set) var news: [SavedContentRecord<NewsPost>] = []
     @Published private(set) var events: [SavedContentRecord<Event>] = []
     @Published private(set) var organizations: [SavedContentRecord<Organization>] = []
@@ -163,6 +164,7 @@ final class SavedContentViewModel: ObservableObject {
     func bind(userID newUserID: String?) {
         guard userID != newUserID else { return }
         userID = newUserID
+        hasResolvedInitialLoad = false
         generation &+= 1
         nextNews = nil; nextEvents = nil; nextOrganizations = nil
         news = []
@@ -240,6 +242,7 @@ final class SavedContentViewModel: ObservableObject {
 
         guard isCurrent(requestGeneration) else { return }
         error = firstError
+        hasResolvedInitialLoad = true
         isLoading = false
         reconcileNews(newsViewModel.posts, pendingIDs: newsViewModel.pendingNewsBookmarkIDs)
         reconcileEvents(eventsViewModel.events, pendingIDs: eventsViewModel.pendingEventBookmarkIDs)
@@ -409,7 +412,7 @@ struct SavedContentView: View {
     }
 
     private var isLoading: Bool {
-        viewModel.isLoading && savedItems.isEmpty
+        (viewModel.isLoading || !viewModel.hasResolvedInitialLoad && viewModel.error == nil) && savedItems.isEmpty
     }
 
     private var visibleNews: [SavedContentRecord<NewsPost>] {
@@ -646,6 +649,7 @@ private struct SavedContentResults<Destination: View>: View {
                     title: emptyTitle,
                     message: emptyMessage
                 )
+                .accessibilityIdentifier("saved.empty")
             } else {
                 LazyVStack(spacing: AppTheme.feedRowSpacing) {
                     if let error {
@@ -783,7 +787,7 @@ struct FollowedOrganizationsView: View {
     }
 
     private var isLoading: Bool {
-        model.isLoading && visibleSubscriptions.isEmpty
+        (model.isLoading || !model.hasLoaded && model.error == nil) && visibleSubscriptions.isEmpty
     }
 
     private var visibleSubscriptions: [SavedContentRecord<Organization>] {
@@ -866,6 +870,7 @@ struct FollowedOrganizationsView: View {
                 title: AppStrings.Profile.organizationSubscriptions,
                 message: searchText.isEmpty ? AppStrings.Profile.subscriptionsEmpty : AppStrings.Search.noResultsMessage
             )
+            .accessibilityIdentifier("subscriptions.empty")
         } else {
             LazyVStack(spacing: AppTheme.feedRowSpacing) {
                 if let error = model.error {

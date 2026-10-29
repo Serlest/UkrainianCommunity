@@ -1,0 +1,302 @@
+{
+  "date": "2026-10-29",
+  "task": "Full-application data-loading audit, expanded at user request",
+  "scope": "Data loading in all identified app sections and nested data presentations; not a claim that every application feature or real credential action was re-executed",
+  "build": "1.2.1 (148), compiled locally; physical pass belongs to 147",
+  "status": "Loading fixes implemented and model-verified; 18/23 physical scenarios passed; five corrected verification scenarios await device availability",
+  "inventory": {
+    "originalLoadingSources": 57,
+    "expandedAsyncObservableSources": 68,
+    "directScreenReadSites": 83,
+    "presentationSites": 111,
+    "profileRoutes": 41,
+    "artifacts": [
+      "build/loading-audit-20261029/full-data-owner-inventory.json",
+      "build/loading-audit-20261029/full-async-data-owners.json",
+      "build/loading-audit-20261029/direct-screen-reads.json",
+      "build/loading-audit-20261029/all-presentation-sites.json",
+      "build/loading-audit-20261029/profile-routes.json"
+    ],
+    "interpretation": "Counts identify source files/call sites, including local/OS/command-only presentations. They are an inventory, not a runtime pass count."
+  },
+  "blocks": [
+    {
+      "number": 1,
+      "name": "Общий интерфейс и навигация",
+      "loadingSurfaces": "ContentView, AppRefreshable, image loader, navigation scopes",
+      "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
+      "findingOrDecision": "Background notification-preference and reminder reads bounded; remote images have 20-second inactivity and 45-second total request budgets.",
+      "runtimeStatus": "Source and fixture navigation checked; native public-feeds suite partial, repeat pending."
+    },
+    {
+      "number": 2,
+      "name": "Запуск, регистрация и вход",
+      "loadingSurfaces": "AuthState, auth forms, registration legal documents, restore gates",
+      "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
+      "findingOrDecision": "Profile read bounded. Native credential/provider actions retain their existing security semantics. Simulator password-input journey awaiting confirmation after precise input targeting.",
+      "runtimeStatus": "Bilingual login/default registration/reset passed on 147 simulator; maximum-text registration passed on 148 simulator. No real account registration or credential mutation."
+    },
+    {
+      "number": 3,
+      "name": "Профиль, настройки и безопасность",
+      "loadingSurfaces": "ProfileViewModel, account security, blocking, notification settings",
+      "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
+      "findingOrDecision": "Existing account/query fences, coalescing and bounded reads reviewed; physical settings/security read checks queued.",
+      "runtimeStatus": "Source/model reviewed. Native security suite pending corrected read-state assertion; app-lock existing value observed, credentials untouched."
+    },
+    {
+      "number": 4,
+      "name": "Личные разделы",
+      "loadingSurfaces": "Registrations, saved content, subscriptions, recent views, activity, own requests",
+      "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
+      "findingOrDecision": "Separate not-yet-loaded from confirmed empty; own requests now remember empty success and bound detail/message reads.",
+      "runtimeStatus": "Native registrations, saved, subscriptions, recent and activity first/reentry passed; own-request and all-role empty/error states checked with simulator fixtures."
+    },
+    {
+      "number": 5,
+      "name": "Новости",
+      "loadingSurfaces": "News feed, browse/search, article details, comments, related content",
+      "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
+      "findingOrDecision": "Main feed/detail/comment reads already bounded. Filtered browse page group now has one 20-second total budget.",
+      "runtimeStatus": "Native public news feed and detail loaded; filtered feed failure/retry/empty fixture passed. Full public-feeds sequence awaits repeat."
+    },
+    {
+      "number": 6,
+      "name": "Мероприятия",
+      "loadingSurfaces": "Upcoming/past event pages, details, participants, editor location lookup",
+      "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
+      "findingOrDecision": "Main and recent-past reads already parallel and bounded; attendees lazy. MapKit completer is a separate OS service, not Firebase loading.",
+      "runtimeStatus": "Native actual event content loaded according to failure hierarchy; incorrect multi-day-only test marker fixed, full sequence pending repeat."
+    },
+    {
+      "number": 7,
+      "name": "Публичные организации",
+      "loadingSurfaces": "Organization catalog, details, activity, community and gallery",
+      "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
+      "findingOrDecision": "Paged bounded production pipeline; metadata failures and gallery retries included in simulator navigation checks.",
+      "runtimeStatus": "Public organization tabs/gallery/error fixtures passed. Native analytics organization child reads passed; public-feed sequence awaits repeat."
+    },
+    {
+      "number": 8,
+      "name": "Управление организациями и заявки",
+      "loadingSurfaces": "Management list, own applications, review queue/history, workspace content and team",
+      "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
+      "findingOrDecision": "Avoid search-triggered request subscription reloads and duplicate management reads; team loading now covers authorization preparation; child/workspace reads bounded.",
+      "runtimeStatus": "Native management and request roots first/reentry passed. Queue/history/management fixtures passed. No live decisions/team mutations."
+    },
+    {
+      "number": 9,
+      "name": "Довідник и права редакторов",
+      "loadingSurfaces": "Directory catalog/recent destinations, editor access and candidate search",
+      "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
+      "findingOrDecision": "Recent feed bounded; access and candidate read paths bounded; identical in-flight candidate load does not restart; source catalog keeps authoritative marker checks.",
+      "runtimeStatus": "Native recent additions and return passed; editor access first/reentry passed. Candidate coalescing model and editor grant/revoke fixture passed."
+    },
+    {
+      "number": 10,
+      "name": "Модерация",
+      "loadingSurfaces": "Content moderation queues, histories, material details",
+      "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
+      "findingOrDecision": "Confirmed-empty result retained on same scope appearance; explicit refresh still reads server. Initial and repeated physical root navigation passed on 144.",
+      "runtimeStatus": "Native moderation first/reentry passed; queue/history both-language fixtures passed; no live moderation decision."
+    },
+    {
+      "number": 11,
+      "name": "Управление пользователями",
+      "loadingSurfaces": "Paged users, search, user details, memberships, security/presence/audit",
+      "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
+      "findingOrDecision": "Existing server pagination, generation guards and bounded reads reviewed. Initial and repeated physical directory read passed on 144.",
+      "runtimeStatus": "Native user management first/reentry passed. Source pagination, identity guards and bounded child reads reviewed."
+    },
+    {
+      "number": 12,
+      "name": "Отзывы, жалобы и поддержка",
+      "loadingSurfaces": "Owner inbox, personal requests, conversation history and record detail",
+      "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
+      "findingOrDecision": "Empty success distinguished from unrequested data; list, pagination, fresh detail and message page reads bounded. Writes and ambiguous-write recovery unchanged.",
+      "runtimeStatus": "Native owner feedback first/reentry passed. Personal feedback empty-result/read regression models passed; no new test messages sent."
+    },
+    {
+      "number": 13,
+      "name": "Уведомления и оповещения",
+      "loadingSurfaces": "Notification inbox filters/badge/preferences, announcements and recipients",
+      "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
+      "findingOrDecision": "Pending announcement receipts flush independently of feed reads. Sparse recipient search checks cursor progress and stops after four pages with continuation retained.",
+      "runtimeStatus": "Native notification inbox/filter/existing preferences passed; announcements first read confirmed, back/reentry pending corrected selector."
+    },
+    {
+      "number": 14,
+      "name": "Баннеры",
+      "loadingSurfaces": "Public banner cache, owner catalog/editor target picker, reports",
+      "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
+      "findingOrDecision": "Catalog/query cache and boundary scheduling reviewed; target selection and report reads bounded; owner initial empty flash removed; image limits added.",
+      "runtimeStatus": "Native banner catalog and report HTTP200 confirmed; report completion test pending corrected wait-before-scroll. Model read dependencies passed."
+    },
+    {
+      "number": 15,
+      "name": "Аналитика",
+      "loadingSurfaces": "Owner overview, lifecycle/region/user/content drilldowns, banner report",
+      "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
+      "findingOrDecision": "Owner loaders already use parallel/coalesced bounded reads and relative-date invalidation; banner report now bounds both parallel dependencies.",
+      "runtimeStatus": "Native rankings, organization search and organization content drilldowns passed."
+    },
+    {
+      "number": 16,
+      "name": "Контроль публикаций и автоматических проходов",
+      "loadingSurfaces": "Publication overview, date/region pages, runs/problems, draft/deep links",
+      "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
+      "findingOrDecision": "Overview/items/run and retained draft reads bounded. Existing confirmed rows preserved on failures; no automatic publication during verification.",
+      "runtimeStatus": "Native overview/calendar/date/news and event content observed; remaining tabs/region restoration pending repeat after fixing event marker."
+    },
+    {
+      "number": 17,
+      "name": "Журнал системы и серверные процессы",
+      "loadingSurfaces": "Journal list/search/filters/detail, server and client logging",
+      "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
+      "findingOrDecision": "Sparse-page scanning shares a total 20-second budget; detail read bounded. Production collection independently counted as zero; old nonempty-record native tests are inapplicable to this current dataset.",
+      "runtimeStatus": "Native empty-journal first/reentry passed and independently confirmed systemLogs count0. Detail/filter/diagnosis fixtures passed; no synthetic production log created."
+    },
+    {
+      "number": 18,
+      "name": "Правовые документы и согласия",
+      "loadingSurfaces": "Current legal readers, all version histories, consent/evidence search and exact version",
+      "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
+      "findingOrDecision": "Read scopes/deadlines and export-specific longer deadline reviewed. Native 145 current documents and histories passed; evidence native check pending.",
+      "runtimeStatus": "Native all legal readers/history on 145 and own exact-version evidence on 147 passed, no legal acceptance changed."
+    },
+    {
+      "number": 19,
+      "name": "Поддержка проекта",
+      "loadingSurfaces": "Public project support and owner configuration/preview",
+      "sourceReview": "loading entrypoints, lifecycle/query fences and read transport reviewed",
+      "findingOrDecision": "Existing live config subscription, cached initial read, bounded refresh and account-fenced writes reviewed; native read-only preview queued.",
+      "runtimeStatus": "Native support configuration/preview read-only passed."
+    },
+    {
+      "number": "seasonal",
+      "name": "Сезонное оформление",
+      "loadingSurfaces": "Private library, public schedule, local previews and shared renderer",
+      "sourceReview": "Both documents read concurrently in one bounded read; transient read retry scoped to reads; revision-checked writes unchanged",
+      "runtimeStatus": "Native quick-scene catalog successful read/no-duplicate check passed on 147. User requested clearer activation/publication controls; follow-up in progress."
+    }
+  ],
+  "verification": {
+    "models145": {
+      "passed": 1049,
+      "failed": 0,
+      "skipped": 43,
+      "bundle": "build/loading-audit-20261029/AllModels145.xcresult"
+    },
+    "navigation145": {
+      "passed": 8,
+      "failed": 3,
+      "bundle": "build/loading-audit-20261029/FullNavigation145.xcresult",
+      "failures": "Two password-focus event synthesis failures pending precise-input rerun; editor-access test selected the underlying button with the same label as the sheet action."
+    },
+    "physical145": {
+      "passed": 1,
+      "failed": 3,
+      "bundle": "build/loading-audit-20261029/FullPhysical145.xcresult",
+      "interpretation": "Legal readers/history passed; two journal scenarios assumed existing records, but an independent production aggregate returned zero; last case interrupted to correct this data assumption."
+    },
+    "models146": {
+      "total": 1092,
+      "passed": 1049,
+      "failed": 0,
+      "skipped": 43,
+      "bundle": "build/loading-audit-20261029/AllModels146.xcresult",
+      "interpretation": "Explicit SDK/emulator/physical-only scenarios skipped; not counted as passed"
+    },
+    "navigation146": {
+      "passed": 3,
+      "failed": 2,
+      "bundle": "build/loading-audit-20261029/Navigation146Rerun.xcresult",
+      "interpretation": "Editor grant/revoke fixture and two journal fixture suites passed. Password focus still fails; follow-up investigation required."
+    },
+    "physical147Initial": {
+      "testsRun": 0,
+      "bundle": "build/loading-audit-20261029/FullPhysical147.xcresult",
+      "interpretation": "System UI Automation passcode confirmation required. Retry started after user confirmation."
+    },
+    "phase1HostedCI": {
+      "commit": "e40cd2fe79026fbeaf950bfe99fce4e65be16201",
+      "run": 40873310588,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40873310588"
+    },
+    "models148": {
+      "total": 1092,
+      "passed": 1049,
+      "failed": 0,
+      "skipped": 43,
+      "bundle": "build/loading-audit-20261029/AllModels148.xcresult"
+    },
+    "auth147FocusStore": {
+      "passed": 3,
+      "failed": 1,
+      "bundle": "build/loading-audit-20261029/Auth147FocusStore.xcresult",
+      "interpretation": "Bilingual login, default registration/legal gating and reset passed after fixing FocusStore responder transfer. Large-text case led to scrolling focus fix."
+    },
+    "authLarge148": {
+      "passed": 1,
+      "failed": 0,
+      "bundle": "build/loading-audit-20261029/AuthLarge148.xcresult",
+      "interpretation": "German dark maximum text registration input journey passed after focused-field scrolling."
+    },
+    "physical147Retry": {
+      "total": 23,
+      "passed": 18,
+      "failed": 5,
+      "skipped": 0,
+      "bundle": "build/loading-audit-20261029/FullPhysical147Retry.xcresult",
+      "contactSheet": "build/loading-audit-20261029/physical147-contact.jpg",
+      "interpretation": "Five scenarios remain pending repeat: two incorrectly required multi-day event marker for ordinary events; announcements back ID overridden by screen wrapper; banner test scrolled before data loaded; credential-add enabled state conflated with resolved key read. Assertions now target actual resolved content. None treated as a passed complete scenario."
+    },
+    "nativeRepeatLedger": [
+      {
+        "scenario": "PhysicalAnalyticsFollowupUITests/testActualPublicationControlReadOnlyTabsAndSheets",
+        "status": "pending physical rerun; user took phone; do not repeat without device availability"
+      },
+      {
+        "scenario": "PhysicalClosureAuditUITests/testExistingOwnerSecurityPagesWithoutCredentialChanges",
+        "status": "pending physical rerun; user took phone; do not repeat without device availability"
+      },
+      {
+        "scenario": "PhysicalLoadingAuditUITests/testAnnouncementManagement",
+        "status": "pending physical rerun; user took phone; do not repeat without device availability"
+      },
+      {
+        "scenario": "PhysicalLoadingAuditUITests/testBannerListAndReport",
+        "status": "pending physical rerun; user took phone; do not repeat without device availability"
+      },
+      {
+        "scenario": "PhysicalLoadingAuditUITests/testPublicFeedsAndDetails",
+        "status": "pending physical rerun; user took phone; do not repeat without device availability"
+      }
+    ],
+    "installedVersion": "1.2.1 (147); 148 prepared locally. User took phone before remaining reruns.",
+    "ordinaryLaunchRestored": "PhysicalSeasonalExperienceUITests teardown restores portrait and empty launch arguments after final case; no scenes published."
+  },
+  "productionEvidence": {
+    "latencies": "build/loading-audit-20261029/full-server-read-latencies.json",
+    "journalCount": "build/loading-audit-20261029/journal-server-count.json",
+    "journalCountValue": 0,
+    "pastAppCheckRejections": "Four HTTP 401 read responses at 2026-10-28 19:33-19:34 UTC were App Check JWT verification rejections; not reproduced by current signed physical reads. No enforcement weakened.",
+    "coldStart": "Observed first read about 4-7 seconds; subsequent reads about 0.1-0.7 seconds. New instance startup confirmed in Cloud Run logs. This backend delay is not removed by client fixes."
+  },
+  "boundaries": [
+    "No TestFlight upload or public release",
+    "No cloud deployment or paid minimum-instance setting",
+    "Native real-data checks use signed Release, existing Serlest account and genuine App Check",
+    "Other roles use isolated simulator fixtures; no account switching/registration or live role mutation",
+    "No new messages, test pushes, publication or production deletion"
+  ],
+  "openChecks": [
+    "Repeat five corrected physical scenarios recorded in nativeRepeatLedger when user returns",
+    "Install final reviewed local build after seasonal-controls follow-up; no TestFlight requested",
+    "Backend cold-start improvement remains separate; no paid service change made",
+    "Native journal detail cannot be exercised while production has zero records; fixture detail/filter checks passed and limitation retained",
+    "Seasonal enable/save/publication clarity follow-up requested after phone was released"
+  ]
+}

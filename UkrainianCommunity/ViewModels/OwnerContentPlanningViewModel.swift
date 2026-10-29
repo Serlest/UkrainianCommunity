@@ -72,12 +72,9 @@ final class OwnerContentPlanningViewModel: ObservableObject {
         state.error = nil
         sections[section] = state
         do {
-            let page = try await repository.fetchDraftPage(
-                userID: userID,
-                section: section,
-                limit: Self.pageSize,
-                after: nil
-            )
+            let page = try await RefreshRequest.run { [repository] in
+                try await repository.fetchDraftPage(userID: userID, section: section, limit: Self.pageSize, after: nil)
+            }
             guard !Task.isCancelled, contextGeneration == token, activeUserID == userID else { return }
             sections[section] = OwnerContentPlanningSectionSnapshot(
                 items: page.items,
@@ -121,12 +118,9 @@ final class OwnerContentPlanningViewModel: ObservableObject {
         state.error = nil
         sections[section] = state
         do {
-            let page = try await repository.fetchDraftPage(
-                userID: activeUserID,
-                section: section,
-                limit: Self.pageSize,
-                after: cursor
-            )
+            let page = try await RefreshRequest.run { [repository] in
+                try await repository.fetchDraftPage(userID: activeUserID, section: section, limit: Self.pageSize, after: cursor)
+            }
             guard !Task.isCancelled, contextGeneration == token, self.activeUserID == activeUserID else { return }
             var updated = snapshot(for: section)
             let existingIDs = Set(updated.items.map(\.id))
@@ -151,7 +145,7 @@ final class OwnerContentPlanningViewModel: ObservableObject {
         let token = contextGeneration
         deepLinkError = nil
         do {
-            let draft = try await repository.fetchDraft(userID: activeUserID, draftID: draftID)
+            let draft = try await RefreshRequest.run { [repository] in try await repository.fetchDraft(userID: activeUserID, draftID: draftID) }
             guard contextGeneration == token, self.activeUserID == activeUserID, !Task.isCancelled else { return nil }
             return draft
         } catch is CancellationError {

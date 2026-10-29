@@ -22,6 +22,7 @@ import SwiftUI
         var next = request; next.cursor = nil
         if more { guard next == query, hasMore, !loading else { return } }
         else {
+            if next == query && loading { return }
             generation = UUID()
             if next != query { cursor = nil; hasMore = false; items = []; users = []; counts = [:]; hasLoaded = false }
             query = next
@@ -43,7 +44,10 @@ import SwiftUI
                     }
                     result = .init(counts: Dictionary(grouping: all, by: { $0.status.rawValue }).mapValues(\.count), items: all.filter { request.status == nil || $0.status.rawValue == request.status })
                 } else { result = .init(users: []) }
-            } else { result = try await read(request) }
+            } else {
+                let payload = request
+                result = try await RefreshRequest.run { [read] in try await read(payload) }
+            }
             guard generation == expected, !Task.isCancelled else { return }
             var byID = Dictionary(uniqueKeysWithValues: (more ? items : []).map { ($0.id, $0) }); (result.items ?? []).forEach { byID[$0.id] = $0 }
             items = byID.values.sorted { $0.id < $1.id }

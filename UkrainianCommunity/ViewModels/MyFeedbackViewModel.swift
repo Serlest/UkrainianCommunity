@@ -41,12 +41,13 @@ final class MyFeedbackViewModel: ObservableObject {
     private var session = UUID()
     private var generation = UUID()
     private var firstPageLoad: (id: UUID, session: UUID, task: Task<FeedbackPage, Error>)?
+    @Published private(set) var hasLoaded = false
 
     init(repository: FeedbackRepository) { self.repository = repository }
 
     func loadIfNeeded(userID: String) async {
         if activeUserID != userID { reset(for: userID) }
-        guard items.isEmpty else { _ = startListeningMyFeedback(userID: userID); return }
+        guard !hasLoaded else { _ = startListeningMyFeedback(userID: userID); return }
         await refresh(userID: userID)
     }
 
@@ -62,7 +63,7 @@ final class MyFeedbackViewModel: ObservableObject {
         error = nil
         let loadID = UUID()
         let task = Task { [repository] in
-            try await repository.fetchFeedbackPage(userID: userID, after: nil, limit: Self.feedbackPageSize)
+            try await RefreshRequest.run { try await repository.fetchFeedbackPage(userID: userID, after: nil, limit: Self.feedbackPageSize) }
         }
         firstPageLoad = (loadID, session, task)
         defer { if firstPageLoad?.id == loadID { firstPageLoad = nil } }
@@ -72,6 +73,7 @@ final class MyFeedbackViewModel: ObservableObject {
             items = page.items
             nextCursor = page.nextCursor
             hasMore = page.hasMore
+            hasLoaded = true
             _ = startListeningMyFeedback(userID: userID)
         } catch let appError as AppError {
             if activeUserID == userID, session == expectedSession { error = appError }
@@ -88,7 +90,7 @@ final class MyFeedbackViewModel: ObservableObject {
         isLoadingMore = true
         defer { if activeUserID == userID, session == expectedSession, generation == expectedGeneration { isLoadingMore = false } }
         do {
-            let page = try await repository.fetchFeedbackPage(userID: userID, after: cursor, limit: Self.feedbackPageSize)
+            let page = try await RefreshRequest.run { [repository] in try await repository.fetchFeedbackPage(userID: userID, after: cursor, limit: Self.feedbackPageSize) }
             guard activeUserID == userID, session == expectedSession, generation == expectedGeneration else { return }
             mergeFeedback(page.items)
             nextCursor = page.nextCursor
@@ -111,7 +113,7 @@ final class MyFeedbackViewModel: ObservableObject {
         guard activeUserID == userID else { return nil }
         if let item = items.first(where: { $0.id == id }) { return item }
         do {
-            let item = try await repository.fetchFeedback(id: id)
+            let item = try await RefreshRequest.run { [repository] in try await repository.fetchFeedback(id: id) }
             guard activeUserID == userID, session == expectedSession, item.userId == userID else { return nil }
             mergeFeedback([item])
             return item
@@ -132,7 +134,7 @@ final class MyFeedbackViewModel: ObservableObject {
         detailReadTokens[id] = token; detailStates[id] = .loading
         defer { if detailReadTokens[id] == token { detailReadTokens[id] = nil } }
         do {
-            let fresh = try await repository.fetchFeedback(id: id)
+            let fresh = try await RefreshRequest.run { [repository] in try await repository.fetchFeedback(id: id) }
             guard activeUserID == userID, session == expectedSession, detailReadTokens[id] == token else { return nil }
             guard fresh.userId == userID else { detailStates[id] = .unavailable; return nil }
             mergeFeedback([fresh])
@@ -151,7 +153,7 @@ final class MyFeedbackViewModel: ObservableObject {
         guard activeUserID == userID, item.userId == userID, item.unreadForUser else { return }
         do {
             try await repository.acknowledgeFeedbackReadByUser(id: item.id, userID: userID)
-            let updated = try await repository.fetchFeedback(id: item.id)
+            let updated = try await RefreshRequest.run { [repository] in try await repository.fetchFeedback(id: item.id) }
             if activeUserID == userID, session == expectedSession { mergeFeedback([updated]) }
         } catch let appError as AppError {
             if activeUserID == userID, session == expectedSession { setActionError(appError, for: item.id) }
@@ -169,7 +171,7 @@ final class MyFeedbackViewModel: ObservableObject {
         listenerBag.removeAll()
         items = []; messagesByFeedbackID = [:]; messageErrorsByFeedbackID = [:]
         loadingMessageFeedbackIDs = []; loadingMoreMessageFeedbackIDs = []; sendingMessageFeedbackIDs = []
-        isLoading = false; isLoadingMore = false; hasMore = false; nextCursor = nil
+        isLoading = false; isLoadingMore = false; hasMore = false; nextCursor = nil; hasLoaded = false
         messageCursors = [:]; moreMessages = [:]; error = nil; actionError = nil
         failedLoadMore = false; actionErrorRecordID = nil
         pendingOperations.removeAll()
@@ -189,7 +191,7 @@ final class MyFeedbackViewModel: ObservableObject {
         messageErrorsByFeedbackID[item.id] = nil
         defer { if session == expectedSession { loadingMessageFeedbackIDs.remove(item.id) } }
         do {
-            let page = try await repository.fetchFeedbackMessagesPage(feedback: item, after: nil, limit: Self.messagePageSize)
+            let page = try await RefreshRequest.run { [repository] in try await repository.fetchFeedbackMessagesPage(feedback: item, after: nil, limit: Self.messagePageSize) }
             guard activeUserID == expectedUserID, session == expectedSession else { return }
             mergeMessages(item.legacyMessages + page.items, feedbackID: item.id)
             messageCursors[item.id] = page.nextCursor
@@ -210,7 +212,7 @@ final class MyFeedbackViewModel: ObservableObject {
         loadingMoreMessageFeedbackIDs.insert(item.id)
         defer { if session == expectedSession { loadingMoreMessageFeedbackIDs.remove(item.id) } }
         do {
-            let page = try await repository.fetchFeedbackMessagesPage(feedback: item, after: cursor, limit: Self.messagePageSize)
+            let page = try await RefreshRequest.run { [repository] in try await repository.fetchFeedbackMessagesPage(feedback: item, after: cursor, limit: Self.messagePageSize) }
             guard activeUserID == expectedUserID, session == expectedSession else { return }
             mergeMessages(page.items, feedbackID: item.id)
             messageCursors[item.id] = page.nextCursor

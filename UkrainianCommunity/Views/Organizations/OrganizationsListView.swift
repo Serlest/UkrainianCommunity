@@ -360,6 +360,7 @@ struct OrganizationsListView: View {
                 title: AppStrings.Organizations.title,
                 message: AppStrings.Organizations.empty
             )
+            .accessibilityIdentifier("organizations.feed.empty")
             .frame(maxWidth: .infinity, minHeight: 180)
         } else if filteredOrganizations.isEmpty {
             UnifiedEmptyStateCard(
@@ -371,6 +372,7 @@ struct OrganizationsListView: View {
                     loadMoreButton
                 }
             }
+            .accessibilityIdentifier("organizations.feed.filteredEmpty")
             .frame(maxWidth: .infinity, minHeight: 180)
         } else {
             VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {

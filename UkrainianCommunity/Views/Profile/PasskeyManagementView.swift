@@ -89,6 +89,8 @@ struct PasskeyManagementView: View {
                 }
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(hasLoaded && !isLoading && !loadFailed ? "accountSecurity.passkeys.loaded" : "accountSecurity.passkeys.pending")
         .task(id: userID) { await reload() }
         .alert(
             AppStrings.AccountSecurity.passkeyRemove,

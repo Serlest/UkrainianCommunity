@@ -206,7 +206,7 @@ final class RecentViewsViewModel: ObservableObject {
     @Published private(set) var deletingIDs = Set<String>()
 
     private let repository: RecentViewsRepository
-    private var hasLoaded = false
+    @Published private(set) var hasLoaded = false
     private var loadedUserID: String?
     private var refreshGeneration: UInt = 0
     private var recordRevision: UInt = 0

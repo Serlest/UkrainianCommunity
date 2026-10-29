@@ -50,21 +50,21 @@ final class OrganizationTeamViewModel: ObservableObject {
 
     func load(organization: Organization, actor: AppUser?) async {
         let expected = generation
-        do { try await prepareAuthority(organization, actor: actor) }
-        catch { if generation == expected { errorMessage = AppStrings.Profile.organizationTeamLoadFailed }; return }
-        guard generation == expected, !Task.isCancelled else { return }
         loadGeneration = UUID(); let expectedLoad = loadGeneration
-        guard PermissionService.canAccessManagedOrganization(organization, user: actor) else { reset(); return }
-        isLoading = true
-        errorMessage = nil
+        isLoading = true; errorMessage = nil
         defer { if generation == expected, loadGeneration == expectedLoad { isLoading = false } }
+        do { try await prepareAuthority(organization, actor: actor) }
+        catch { if generation == expected, loadGeneration == expectedLoad { errorMessage = AppStrings.Profile.organizationTeamLoadFailed }; return }
+        guard generation == expected, loadGeneration == expectedLoad, !Task.isCancelled else { return }
+        guard PermissionService.canAccessManagedOrganization(organization, user: actor) else { reset(); return }
 
         do {
             let subscriberIDs: [String] = []
             let teamIDs = Self.teamIDs(for: organization)
-            let profiles = try await organizationRepository.fetchPublicUserProfiles(
-                userIDs: Array(Set(teamIDs + subscriberIDs))
-            )
+            let ids = Array(Set(teamIDs + subscriberIDs))
+            let profiles = try await RefreshRequest.run { [organizationRepository] in
+                try await organizationRepository.fetchPublicUserProfiles(userIDs: ids)
+            }
             guard generation == expected, loadGeneration == expectedLoad, !Task.isCancelled else { return }
             members = Self.makeMembers(
                 organization: organization,
@@ -79,18 +79,17 @@ final class OrganizationTeamViewModel: ObservableObject {
 
     func loadCandidateUsers(excluding organization: Organization, actor: AppUser?, allowsExistingTeamMembers: Bool = false,
                             search: String = "", more: Bool = false) async {
-        let accessGeneration = generation
-        do { try await prepareAuthority(organization, actor: actor) }
-        catch { if generation == accessGeneration { candidateErrorMessage = AppStrings.Profile.organizationTeamUserSearchFailed }; return }
-        guard generation == accessGeneration, !Task.isCancelled else { return }
-        guard let actor, PermissionService.canManageOrganizationRoles(organization, user: actor) else {
-            candidateMembers = []; candidateErrorMessage = AppStrings.Profile.organizationTeamPermissionDenied; return
-        }
         if more { guard hasMoreCandidates, !isLoadingCandidates else { return } }
         else { candidateGeneration = UUID(); candidateCursor = nil; candidateMembers = []; hasMoreCandidates = false }
         let expected = generation, requestID = candidateGeneration
         isLoadingCandidates = true; candidateErrorMessage = nil
         defer { if generation == expected, candidateGeneration == requestID { isLoadingCandidates = false } }
+        do { try await prepareAuthority(organization, actor: actor) }
+        catch { if generation == expected, candidateGeneration == requestID { candidateErrorMessage = AppStrings.Profile.organizationTeamUserSearchFailed }; return }
+        guard generation == expected, candidateGeneration == requestID, !Task.isCancelled else { return }
+        guard let actor, PermissionService.canManageOrganizationRoles(organization, user: actor) else {
+            candidateMembers = []; candidateErrorMessage = AppStrings.Profile.organizationTeamPermissionDenied; return
+        }
         do {
             let fresh: [OrganizationTeamMember]; let cursor: String?
             if ProcessInfo.processInfo.arguments.contains("-ui-testing") {
@@ -101,8 +100,9 @@ final class OrganizationTeamViewModel: ObservableObject {
                     .map { .init(profile: $0, userID: $0.id, role: .member) }
                 cursor = nil
             } else {
-                let result = try await workspaceRead(OrganizationWorkspaceRequest(action: "candidates", principalId: actor.id, organizationId: organization.id,
-                        cursor: more ? candidateCursor : nil, search: search, transfer: allowsExistingTeamMembers))
+                let request = OrganizationWorkspaceRequest(action: "candidates", principalId: actor.id, organizationId: organization.id,
+                        cursor: more ? candidateCursor : nil, search: search, transfer: allowsExistingTeamMembers)
+                let result = try await RefreshRequest.run { [workspaceRead] in try await workspaceRead(request) }
                 fresh = (result.users ?? []).map { user in
                     .init(profile: PublicUserProfile(id: user.id, displayName: user.displayName, avatarURL: user.avatarURL.flatMap(URL.init(string:)),
                         city: user.city, federalState: user.federalState.flatMap(AustrianFederalState.init(rawValue:)), updatedAt: nil), userID: user.id, role: .member)
