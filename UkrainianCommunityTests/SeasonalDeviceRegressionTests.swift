@@ -1,9 +1,41 @@
+import CoreMotion
 import FirebaseFirestore
 import Testing
 import UIKit
 @testable import UkrainianCommunity
 
 @MainActor struct SeasonalDeviceRegressionTests {
+    @Test func macSceneNavigationNeverConstructsCoreMotion() {
+        var allocations = 0
+        // Both renderer implementations are recreated during profile navigation.
+        // Exercise starts, repeated stops, sampling and destruction, not just a flag.
+        for _ in 0..<100 {
+            let motion = SeasonalMotion(supportsDeviceMotion: false) {
+                allocations += 1
+                return CMMotionManager()
+            }
+            motion.setEnabled(true)
+            motion.setEnabled(false)
+            motion.setEnabled(false)
+            motion.setEnabled(true)
+            let sample = motion.sample(orientation: .landscapeLeft)
+            #expect(sample.x == 0 && sample.y == 0 && sample.acceleration == 0 && sample.gravityX == 0)
+        }
+        #expect(allocations == 0)
+    }
+
+    @Test func inactiveScenesDoNotConstructMotionManager() {
+        var allocations = 0
+        let motion = SeasonalMotion(supportsDeviceMotion: true) {
+            allocations += 1
+            return CMMotionManager()
+        }
+        motion.setEnabled(false)
+        motion.setEnabled(false)
+        #expect(motion.sample().x == 0)
+        #expect(allocations == 0)
+    }
+
     @Test func viceUpgradeKeepsOwnerDisabledMotionAndCustomArtwork() {
         var old=SeasonalTheme.gtaVI();old.sceneEdition=nil;old.elements[0].motionStyle = .glow
         let upgraded=old.preparedForCurrentRenderer

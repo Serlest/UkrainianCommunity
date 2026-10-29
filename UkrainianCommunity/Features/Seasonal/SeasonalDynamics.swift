@@ -26,7 +26,27 @@ struct SeasonalMotionSample {
 }
 
 @MainActor final class SeasonalMotion {
-    private let manager = CMMotionManager()
+    // Designed-for-iPad apps also run on Apple silicon Macs. Do not even create
+    // CoreMotion there: repeated scene teardown can crash its internal run loop.
+    private var manager: CMMotionManager?
+    private let supportsDeviceMotion: Bool
+    private let makeManager: () -> CMMotionManager
+
+    init(
+        supportsDeviceMotion: Bool = SeasonalMotion.deviceMotionSupported,
+        makeManager: @escaping () -> CMMotionManager = { CMMotionManager() }
+    ) {
+        self.supportsDeviceMotion = supportsDeviceMotion
+        self.makeManager = makeManager
+    }
+
+    nonisolated static var deviceMotionSupported: Bool {
+        #if targetEnvironment(macCatalyst) || targetEnvironment(simulator)
+        false
+        #else
+        !ProcessInfo.processInfo.isiOSAppOnMac
+        #endif
+    }
     private var origin: (Double, Double)?
     private var filtered = SeasonalMotionSample()
     private var orientation = UIInterfaceOrientation.unknown
@@ -41,19 +61,24 @@ struct SeasonalMotionSample {
     }
 
     func setEnabled(_ enabled: Bool) {
-        if enabled && !manager.isDeviceMotionActive && manager.isDeviceMotionAvailable {
+        guard supportsDeviceMotion else { return }
+        if enabled {
+            if manager == nil { manager = makeManager() }
+            guard let manager, !manager.isDeviceMotionActive,
+                  manager.isDeviceMotionAvailable else { return }
             origin = nil; filtered = SeasonalMotionSample()
             manager.deviceMotionUpdateInterval = 1.0 / 30
             if CMMotionManager.availableAttitudeReferenceFrames().contains(.xArbitraryZVertical) {
                 manager.startDeviceMotionUpdates(using: .xArbitraryZVertical)
             }
-        } else if !enabled {
-            manager.stopDeviceMotionUpdates(); origin = nil; filtered = SeasonalMotionSample()
+        } else {
+            if let manager, manager.isDeviceMotionActive { manager.stopDeviceMotionUpdates() }
+            origin = nil; filtered = SeasonalMotionSample()
         }
     }
 
     func sample(orientation: UIInterfaceOrientation = .portrait) -> SeasonalMotionSample {
-        guard let data = manager.deviceMotion else { return SeasonalMotionSample() }
+        guard let data = manager?.deviceMotion else { return SeasonalMotionSample() }
         if self.orientation != orientation {
             self.orientation = orientation; origin = nil; filtered = SeasonalMotionSample()
         }
@@ -66,7 +91,9 @@ struct SeasonalMotionSample {
         filtered.gravityX = min(1,max(-1,gravity.x))
         return filtered
     }
-    deinit { manager.stopDeviceMotionUpdates() }
+    deinit {
+        if let manager, manager.isDeviceMotionActive { manager.stopDeviceMotionUpdates() }
+    }
 }
 
 enum SeasonalChoreography {
