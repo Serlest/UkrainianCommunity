@@ -3,7 +3,7 @@
   "task": "Full-application data-loading audit, expanded at user request",
   "scope": "Data loading in all identified app sections and nested data presentations; not a claim that every application feature or real credential action was re-executed",
   "build": "1.2.1 (148), compiled locally; physical pass belongs to 147",
-  "status": "Source loading fixes and final model checks complete; physical verification remains open for five corrected scenarios, Apple Maps live selection and seasonal controls after user returns",
+  "status": "All twenty-three scoped native loading scenarios have successful physical evidence: earlier eighteen on147 plus remaining five on149. Supplemental Maps and seasonal local-preview checks passed on149. Preserve backend/journal/frame-rate limits.",
   "inventory": {
     "originalLoadingSources": 57,
     "expandedAsyncObservableSources": 68,
@@ -256,23 +256,33 @@
     "nativeRepeatLedger": [
       {
         "scenario": "PhysicalAnalyticsFollowupUITests/testActualPublicationControlReadOnlyTabsAndSheets",
-        "status": "pending physical rerun; user took phone; do not repeat without device availability"
+        "status": "passed on physical iPhone after user returned",
+        "build": "1.2.1 (149)",
+        "bundle": "build/loading-followup-20261029/Remaining149.xcresult"
       },
       {
         "scenario": "PhysicalClosureAuditUITests/testExistingOwnerSecurityPagesWithoutCredentialChanges",
-        "status": "pending physical rerun; user took phone; do not repeat without device availability"
+        "status": "passed on physical iPhone after user returned",
+        "build": "1.2.1 (149)",
+        "bundle": "build/loading-followup-20261029/Remaining149.xcresult"
       },
       {
         "scenario": "PhysicalLoadingAuditUITests/testAnnouncementManagement",
-        "status": "pending physical rerun; user took phone; do not repeat without device availability"
+        "status": "passed on physical iPhone after user returned",
+        "build": "1.2.1 (149)",
+        "bundle": "build/loading-followup-20261029/Remaining149.xcresult"
       },
       {
         "scenario": "PhysicalLoadingAuditUITests/testBannerListAndReport",
-        "status": "pending physical rerun; user took phone; do not repeat without device availability"
+        "status": "passed on physical iPhone after user returned",
+        "build": "1.2.1 (149)",
+        "bundle": "build/loading-followup-20261029/Remaining149.xcresult"
       },
       {
         "scenario": "PhysicalLoadingAuditUITests/testPublicFeedsAndDetails",
-        "status": "pending physical rerun; user took phone; do not repeat without device availability"
+        "status": "passed on physical iPhone after user returned",
+        "build": "1.2.1 (149)",
+        "bundle": "build/loading-followup-20261029/Remaining149.xcresult"
       }
     ],
     "installedVersion": "1.2.1 (147); 148 prepared locally. User took phone before remaining reruns.",
@@ -313,6 +323,16 @@
       "app": "build/AuditDeviceDerivedData/Build/Products/Release-iphoneos/UkrainianCommunity.app",
       "installed": false,
       "reason": "User took phone; no installation or further physical actions while away"
+    },
+    "remaining149": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "bundle": "build/loading-followup-20261029/Remaining149.xcresult",
+      "installation": "build/loading-followup-20261029/install149.json",
+      "note": "Closes the five corrected loading scenarios. Earlier 18 physical passes remain separately attributed to build147; no claim that all23 were rerun on149.",
+      "screenshotReview": "Read-only native screenshots inspected: publication tabs/calendar/news/event details, account-security actual loaded key list, announcement initial/reentry lists, numeric banner report and public feeds/details. Dark system appearance preserved in this run."
     }
   },
   "productionEvidence": {
@@ -331,11 +351,9 @@
     "No new messages, test pushes, publication or production deletion"
   ],
   "openChecks": [
-    "Repeat five corrected physical scenarios recorded in nativeRepeatLedger when user returns",
-    "Install final reviewed local build after seasonal-controls follow-up; no TestFlight requested",
-    "Backend cold-start improvement remains separate; no paid service change made",
-    "Native journal detail cannot be exercised while production has zero records; fixture detail/filter checks passed and limitation retained",
-    "Apple Maps live address selection and new seasonal management controls on physical device after user returns"
+    "Backend cold-start improvement remains separate; no paid service change or deployment made",
+    "Native journal detail cannot be exercised while production has zero records; fixture detail/filter evidence retained separately",
+    "Stable display frame rate is not established by unsupported zero-frame XCTest counters; user smoothness acceptance remains separate"
   ],
   "latestPreparedBuild": "1.2.1 (149); no installation while user is away with the phone",
   "seasonalControlsFollowup": "Docs/Verification/SeasonalControlsClarity20261029.json",
@@ -344,5 +362,6 @@
     "Observed backend instance startup delay remains; client fixes do not remove cold starts",
     "Known generic Decodable concurrency warning remains in DirectoryEditorAccessStore.swift:50; no warning-free claim",
     "Final local build does not imply TestFlight delivery or physical acceptance"
-  ]
+  ],
+  "physicalFollowup": "Docs/Verification/PhysicalLoadingFollowup20261029.json"
 }

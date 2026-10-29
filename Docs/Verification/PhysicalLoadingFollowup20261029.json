@@ -1,0 +1,125 @@
+{
+  "date": "2026-10-29",
+  "device": "Serlest Mobile, physical iPhone 16 Pro Max, iOS 27.2",
+  "installedBuild": "1.2.1 (149)",
+  "initialSourceRevision": "fbd09ff661c9a5a293f30897b6d694c7291bab4f",
+  "installation": "build/loading-followup-20261029/install149.json",
+  "hostedCI": {
+    "run": 40894082951,
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "remainingLoadingScenarios": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "bundle": "build/loading-followup-20261029/Remaining149.xcresult",
+    "screenshots": "build/loading-followup-20261029/remaining149-contact.jpg",
+    "scope": [
+      "Publication control date, tabs, region, news and event readers",
+      "Existing account security and key-list reads without credential changes",
+      "Announcement management initial/reentry reads",
+      "Banner list and measured report values",
+      "Public news/events/organizations feeds and details"
+    ]
+  },
+  "conditions": [
+    "Incoming call overlay appeared during the read-only navigation run; navigation completed, but no performance measurement is inferred from that run",
+    "Phone call had ended before planned performance comparison, confirmed through Device Hub screenshot"
+  ],
+  "nextChecks": [],
+  "productionWrites": "No save, publication, activation, credential, message, moderation or role mutation is part of this follow-up",
+  "status": "Scoped physical follow-up completed: thirteen distinct methods passed across retained bundles; earlier native menu automation failures preserved below. No production app source change retained.",
+  "supplementaryProgress": {
+    "seasonalSettings": {
+      "status": "passed",
+      "durationSeconds": 142.438,
+      "scope": "Ukrainian light and German dark: live state, unsaved local draft, discard, preview separation/stop, library and schedule; no publishing"
+    },
+    "maps": {
+      "status": "passed on original application source using an explicit native-menu action coordinate",
+      "bundle": "build/loading-followup-20261029/FinalPhysical149.xcresult",
+      "durationSeconds": 152.665,
+      "humanAssistanceUsed": false,
+      "flow": [
+        "Existing public event opened under existing Serlest owner",
+        "Native Edit action selected at 15 percent width rather than default center",
+        "Original public title/venue/address/city attached before edit",
+        "Actual Apple Maps query Stephansplatz Wien; resolved selection applied to editor memory",
+        "Explicit cancel and discard; original event detail returned"
+      ],
+      "earlierFailures": [
+        "Three default-center tap/press attempts left native menu visible",
+        "Isolated glass-label styling experiment also failed and was fully reverted"
+      ],
+      "diagnosticLimit": "Precise action coordinate closed this test; the underlying reason for default-center XCTest menu tap failure is not established. Do not claim a verified production menu defect or an app fix from this workaround.",
+      "productionWriteRequested": false,
+      "serverReadbackPending": false,
+      "serverReadback": "build/loading-followup-20261029/map-no-mutation.json",
+      "originalTitleVenueAddressCityMatchServerAfterDiscard": true
+    },
+    "scenes": {
+      "status": "passed; captured frames visually reviewed",
+      "tests": {
+        "fourScenesAllFiveTabsLightDarkSeconds": 587.944,
+        "pinnedHangersAndHolidayFlightSeconds": 260.153
+      },
+      "bundle": "build/loading-followup-20261029/Additional149Retry.xcresult",
+      "screenshots": [
+        "build/loading-followup-20261029/controls-contact.jpg",
+        "build/loading-followup-20261029/scenes-contact.jpg",
+        "build/loading-followup-20261029/alltabs-contact.jpg",
+        "build/loading-followup-20261029/flights-contact.jpg"
+      ],
+      "observed": "Snow visible on both appearances, snow rim over real tab bar, hangers retained after scroll, Santa traverses lower and middle viewport in consecutive frames. Infrequent New Year fireworks were not captured in the seven post-scroll frames; do not infer missing or correct fireworks from those frames."
+    },
+    "winterDetails": {
+      "bundle": "build/loading-followup-20261029/MenuSurfaceAndWinter149.xcresult",
+      "idleAndRotationTestPassedSeconds": 145.028,
+      "fireworksBothThemesTestPassedSeconds": 125.94,
+      "observed": "Multiple saturated colour streaks captured in a native dark-theme burst. Portrait snow accumulation and return captured.",
+      "orientationLimit": "Resolved by repeating capture with XCUIScreen.main.screenshot(); full native display reviewed.",
+      "scopeNote": "These seasonal scenarios ran with an isolated menu-styling experiment; seasonal source was unchanged. Original menu styling restored before final verification.",
+      "finalOrientationVerification": {
+        "bundle": "build/loading-followup-20261029/FinalPhysical149.xcresult",
+        "durationSeconds": 148.799,
+        "capture": "Full XCUIScreen display; landscape layout fits the display with compact-mode decorations suppressed, then portrait effects return. Earlier black/cropped area was app-window screenshot artifact, not reproduced in full-display capture.",
+        "portraitRestored": true
+      }
+    }
+  },
+  "performance": {
+    "bundle": "build/loading-followup-20261029/Scroll149.xcresult",
+    "passed": 2,
+    "iterationsEach": 3,
+    "baselineCPUSeconds": 6.995,
+    "winterCPUSeconds": 7.883,
+    "baselinePeakKB": 81419.661,
+    "winterPeakKB": 100578.043,
+    "interpretation": "Winter adds about 0.89 CPU seconds across matched repeated scroll actions and about 19 MB peak memory; small live-feed sequential comparison, no universal cost or threshold claim.",
+    "unsupportedCounter": "Both tests report frame count zero while computing FPS. Calculated FPS/hitch ratios are retained in raw artifacts but not accepted as a measured display refresh rate or proof of smoothness. Prior Animation Hitches export also lacked frame rows on this device/toolchain.",
+    "highRefreshEnabledInInstalledRelease": true,
+    "visibleSmoothnessAcceptance": "Requires normal hands-on user acceptance; no verified 120 FPS claim."
+  },
+  "productionReadback": {
+    "seasonalArtifact": "build/loading-followup-20261029/seasonal-final-unchanged.json",
+    "bothPackageUpdateTimesPayloadHashesAndRevisionsUnchanged": true,
+    "eventArtifact": "build/loading-followup-20261029/map-no-mutation.json",
+    "eventTitleVenueAddressCityAndUpdateTimeUnchanged": true
+  },
+  "uniquePhysicalMethodsPassed": 13,
+  "remainingLimits": [
+    "Backend first-call cold starts remain a separate server-side issue; no paid minimum-instance change or deployment made.",
+    "Production system journal currently has zero records; fixture detail/filter evidence does not equal a real production detail visit.",
+    "No verified sustained 120 FPS or universal zero-overhead claim: current device/toolchain frame counter reports zero. Normal hands-on smoothness remains user acceptance.",
+    "Existing signed-in Serlest owner used on physical device; do not infer all account roles exercised physically.",
+    "No global activation/save/publication was tested on production; those write paths remain covered by existing source/model/fixture evidence."
+  ],
+  "preservation": {
+    "appSource": "Original fbd09ff6 application source restored; menu-styling experiment not retained.",
+    "localizationSHA256": "bb56175012119a73fddd48100c4dc0c9116c6237f9432a1e9d0b8a186c25793a",
+    "projectMetadata": "Pre-existing project.pbxproj reorder remains unstaged.",
+    "userState": "No account switch, credential, role, push, message or system-setting mutation. Ordinary portrait launch restored."
+  }
+}

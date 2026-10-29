@@ -60,6 +60,13 @@
       "app": "build/AuditDeviceDerivedData/Build/Products/Release-iphoneos/UkrainianCommunity.app",
       "installed": false,
       "reason": "User took phone; no installation or further physical actions while away"
+    },
+    "physical149Settings": {
+      "status": "passed",
+      "sourceTest": "PhysicalRemaining149UITests/testSeasonalStatusDraftDiscardAndPrivatePreviewInBothAppearances",
+      "durationSeconds": 142.438,
+      "resultBundle": "build/loading-followup-20261029/Additional149Retry.xcresult",
+      "scope": "Actual live status, disposable in-memory draft/apply controls (without saving), discard confirmation, reopened unchanged library, preview separation and stop, library and schedule in Ukrainian light/German dark"
     }
   },
   "boundaries": [
@@ -69,5 +76,7 @@
     "Physical device runs stopped when user needed to take phone; installed version remains 147",
     "Local signed 149 installation and actual-device acceptance remain pending user return"
   ],
-  "status": "Implementation, model tests, simulator UI and signed Release compilation complete; physical acceptance pending user return"
+  "status": "Settings source, simulator and real-device read/local-draft verification passed; actual production publication was intentionally not invoked",
+  "physicalFollowupEvidence": "Docs/Verification/PhysicalLoadingFollowup20261029.json",
+  "publishedStateReadback": "Both seasonalLibraries/current and seasonalPresentations/current payload hashes, revisions and updateTimes unchanged after ALL physical local-only tests."
 }

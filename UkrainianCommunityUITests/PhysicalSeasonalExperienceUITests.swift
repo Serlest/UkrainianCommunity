@@ -20,7 +20,9 @@ import UIKit
     }
     private func capture(_ app:XCUIApplication,_ name:String) {
         XCTAssertEqual(app.state,.runningForeground)
-        let a=XCTAttachment(screenshot:app.screenshot());a.name=name;a.lifetime = .keepAlways;add(a)
+        // App-window cropping can retain portrait bounds during rotation on a
+        // physical device. Capture the actual display for visual evidence.
+        let a=XCTAttachment(screenshot:XCUIScreen.main.screenshot());a.name=name;a.lifetime = .keepAlways;add(a)
     }
     private func reveal(_ item:XCUIElement,_ app:XCUIApplication,down:Bool=false) {
         for _ in 0..<20 where !item.exists || !item.isHittable || item.frame.midY<100 || item.frame.midY>app.frame.height-110 {
