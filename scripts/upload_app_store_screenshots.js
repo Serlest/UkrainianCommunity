@@ -5,9 +5,9 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
-const [locale, directory, displayType = "APP_IPHONE_67"] = process.argv.slice(2);
-if (!locale || !directory) {
-  console.error("Usage: upload_app_store_screenshots.js <locale> <directory> [displayType]");
+const [locale, directory, displayType = "APP_IPHONE_67", targetVersion] = process.argv.slice(2);
+if (!locale || !directory || !targetVersion) {
+  console.error("Usage: upload_app_store_screenshots.js <locale> <directory> <displayType> <targetVersion>");
   process.exit(2);
 }
 
@@ -98,8 +98,9 @@ async function main() {
   const app = (await api(token, `/v1/apps?filter%5BbundleId%5D=${encodeURIComponent(bundleId)}&limit=1`)).data?.[0];
   if (!app) throw new Error(`App not found for bundle ID ${bundleId}.`);
   const versions = (await api(token, `/v1/apps/${app.id}/appStoreVersions?filter%5Bplatform%5D=IOS&limit=20`)).data || [];
-  const version = versions.find((item) => item.attributes?.versionString === "1.0") || versions[0];
-  if (!version) throw new Error("No iOS App Store version found.");
+  const version = versions.find((item) => item.attributes?.versionString === targetVersion);
+  if (!version) throw new Error(`iOS version ${targetVersion} not found.`);
+  if (version.attributes.appStoreState !== "PREPARE_FOR_SUBMISSION") throw new Error("Screenshots may only replace assets in an explicit editable draft version.");
   const localizations = (await api(token, `/v1/appStoreVersions/${version.id}/appStoreVersionLocalizations?limit=20`)).data || [];
   const localization = localizations.find((item) => item.attributes?.locale === locale);
   if (!localization) throw new Error(`Localization ${locale} was not found.`);
