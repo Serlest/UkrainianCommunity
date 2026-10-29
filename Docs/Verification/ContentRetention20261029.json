@@ -1,0 +1,111 @@
+{
+  "date": "2026-10-29",
+  "request": "Audit when events and news are removed and verify actual scheduled deletion",
+  "mode": "Read-only production audit; no cleanup invocation, deletion, schedule change, deployment, app install or TestFlight",
+  "schedule": {
+    "lastAttemptTime": "2026-10-29T03:00:04.325867Z",
+    "name": "projects/ukrainiancommunity-dbd5f/locations/europe-west3/jobs/firebase-schedule-cleanupExpiredData-europe-west3",
+    "schedule": "every day 04:00",
+    "state": "ENABLED",
+    "status": {},
+    "timeZone": "Europe/Vienna"
+  },
+  "deployedFunction": {
+    "buildConfig": {
+      "source": {
+        "storageSource": {
+          "bucket": "gcf-v2-sources-919042658790-europe-west3",
+          "generation": "1792706983118725",
+          "object": "cleanupExpiredData/function-source.zip"
+        }
+      }
+    },
+    "serviceConfig": {
+      "uri": "https://cleanupexpireddata-2kiasqpopq-ey.a.run.app"
+    },
+    "state": "ACTIVE",
+    "updateTime": "2026-10-22T22:09:53.000756932Z"
+  },
+  "sourceVerification": {
+    "retentionSourceIdenticalToDeployedGeneration": true,
+    "sha256": "f672c7f97370827b7b80f8700d3d3e7fe28b9725978dee699430300be414e9a0",
+    "sourceArtifact": "build/content-retention-audit-20261029/deployed-source.json"
+  },
+  "policy": {
+    "news": "30 elapsed days after publishedAt; approved/archived only",
+    "events": "6 UTC calendar months after endDate; approved/archived only",
+    "dailyLimitPerKind": 200,
+    "draftAndPendingDeletion": false,
+    "postEventVisibility": "Upcoming query uses endDate>=now; past query endDate<now. Expiry is separate from display."
+  },
+  "liveData": {
+    "observedAtUTC": "2026-10-29T18:48:58.675368+00:00",
+    "lastSuccessfulRunStartUTC": "2026-10-29T03:00:09.939000+00:00",
+    "collections": {
+      "news": {
+        "documents": 633,
+        "statuses": {
+          "approved": 632,
+          "archived": 1
+        },
+        "dateTypes": {
+          "timestampValue": 633
+        },
+        "missingOrNonTimestampDatesByStatus": {},
+        "oldestEligibleStatusDate": "2026-10-03T14:13:00+00:00",
+        "newestEligibleStatusDate": "2026-10-29T16:39:36.330000+00:00",
+        "cutoffAtLastRun": "2026-09-29T03:00:09.939000+00:00",
+        "overdueAtLastSuccessfulRun": [],
+        "crossedThresholdSinceDailyRun": []
+      },
+      "events": {
+        "documents": 1577,
+        "statuses": {
+          "approved": 1574,
+          "archived": 3
+        },
+        "dateTypes": {
+          "timestampValue": 1577
+        },
+        "missingOrNonTimestampDatesByStatus": {},
+        "oldestEligibleStatusDate": "2026-08-28T18:00:00+00:00",
+        "newestEligibleStatusDate": "2027-09-18T10:00:00+00:00",
+        "cutoffAtLastRun": "2026-04-29T03:00:09.939000+00:00",
+        "overdueAtLastSuccessfulRun": [],
+        "crossedThresholdSinceDailyRun": [],
+        "finishedApprovedOrArchivedEventsRetained": 964
+      }
+    }
+  },
+  "operationalEvidence": {
+    "logArtifact": "build/content-retention-audit-20261029/cleanup-log.json",
+    "latestCompletionUTC": "2026-10-29T03:00:12.873887Z",
+    "recentSuccessfulRuns": 8,
+    "actualNewsDeletedByDateUTC": {
+      "2026-10-29": 0,
+      "2026-10-28": 0,
+      "2026-10-27": 0,
+      "2026-10-26": 0,
+      "2026-10-25": 3,
+      "2026-10-24": 3,
+      "2026-10-23": 3,
+      "2026-10-22": 1
+    },
+    "errorsAfterLatestDeployment": 0
+  },
+  "cleanupPath": {
+    "source": "functions/src/content/contentDeletion.ts",
+    "behavior": "Related likes/bookmarks/views/activity/notification references and banner links are cleaned; root and nested documents removed recursively; canonical media removed last. This path was inspected, not exercised by deleting production data."
+  },
+  "tests": {
+    "build": "passed",
+    "retentionUnitTests": {
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "artifact": "build/content-retention-audit-20261029/unit-tests.log"
+    },
+    "newManualDeletionOrMediaE2E": false
+  },
+  "finding": "No overdue eligible records or malformed retention timestamps found in either complete bounded collection scan. No code or policy change needed for the current rules. Six-month event history is intentional; shortening it would be a separate product decision."
+}
