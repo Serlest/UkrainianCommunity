@@ -62,12 +62,9 @@
       }
     }
   },
-  "unresolvedReleaseBlocks": [
-    "1.2 (107): final App Privacy, archive, TestFlight, physical-device and review-metadata checks remain open before public release.",
-    "1.2 (107): operator content/image-rights confirmation and installed-build comment checks remain open; public App Store submission requires separate authorization."
-  ],
+  "unresolvedReleaseBlocks": [],
   "releaseRecommendations": [
     "qualified Austrian legal review before launch and after material legal changes"
   ],
-  "releaseGateManifest": "Docs/ReleaseGates-1.2.json"
+  "releaseGateManifest": "Docs/ReleaseGates-1.3.json"
 }

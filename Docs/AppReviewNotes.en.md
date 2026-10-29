@@ -54,6 +54,10 @@ dedicated App Review sign-in fields, not in these notes or the repository.
 Support: https://ukrainiancommunity-dbd5f.web.app/support
 Privacy: https://ukrainiancommunity-dbd5f.web.app/privacy
 
+## Release-specific instruction: 1.3 (154)
+
+The operator explicitly requested public submission and automatic release after approval on 2026-10-29. The 1.3 draft therefore uses AFTER_APPROVAL. This is a specific authorized exception to the default manual-release checklist below. The existing dedicated ordinary review account was verified for password authentication and role before this submission; no owner credentials were substituted. Seasonal scenes are cosmetic and user-disableable, and standard screenshots disable them only locally.
+
 ## Internal checklist before submission
 
 - Re-test the dedicated review account on the selected release build. Never

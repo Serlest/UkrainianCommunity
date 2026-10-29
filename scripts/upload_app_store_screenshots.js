@@ -70,10 +70,10 @@ async function uploadOperation(operation, file) {
 }
 
 async function waitUntilProcessed(token, screenshotId) {
-  for (let attempt = 0; attempt < 30; attempt += 1) {
+  for (let attempt = 0; attempt < 300; attempt += 1) {
     const current = await api(token, `/v1/appScreenshots/${screenshotId}`);
     const state = current.data?.attributes?.assetDeliveryState;
-    if (state?.errors?.length) throw new Error(`Screenshot processing failed: ${JSON.stringify(state.errors)}`);
+    if (state?.errors?.length || state?.state === "FAILED") throw new Error(`Screenshot processing failed: ${JSON.stringify(state.errors)}`);
     if (state?.state === "COMPLETE") return;
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
@@ -125,12 +125,36 @@ async function main() {
   }
 
   const existing = (await api(token, `/v1/appScreenshotSets/${set.id}/appScreenshots?limit=50`)).data || [];
+  // Resume a previously committed upload without deleting an asset that Apple
+  // is still processing. Only replace stale files in the explicitly selected draft.
+  const desired = new Map(files.map((filePath) => [path.basename(filePath),
+    crypto.createHash("md5").update(fs.readFileSync(filePath)).digest("hex")]));
+  const desiredSizes = new Map(files.map((filePath) => [path.basename(filePath), fs.statSync(filePath).size]));
+  const retained = new Map();
   for (const screenshot of existing) {
-    await api(token, `/v1/appScreenshots/${screenshot.id}`, {method: "DELETE"});
+    const value = screenshot.attributes || {};
+    const sameCommittedBytes = desired.has(value.fileName) && desired.get(value.fileName) === value.sourceFileChecksum;
+    const checksumPending = !value.sourceFileChecksum && desired.has(value.fileName)
+      && desiredSizes.get(value.fileName) === value.fileSize
+      && ["UPLOAD_COMPLETE", "PROCESSING"].includes(value.assetDeliveryState?.state);
+    if (sameCommittedBytes || checksumPending) {
+      if (retained.has(value.fileName)) throw new Error("Duplicate screenshot name; inspect the draft before replacing assets.");
+      retained.set(value.fileName, screenshot.id);
+    } else {
+      await api(token, `/v1/appScreenshots/${screenshot.id}`, {method: "DELETE"});
+    }
   }
 
+  const orderedUploads = [];
   for (const filePath of files) {
     const file = fs.readFileSync(filePath);
+    const completedID = retained.get(path.basename(filePath));
+    if (completedID) {
+      orderedUploads.push({id: completedID, name: path.basename(filePath)});
+      console.log(`Retained ${path.basename(filePath)}`);
+      continue;
+    }
+    console.log(`Uploading ${path.basename(filePath)}`);
     const reserved = await api(token, "/v1/appScreenshots", {
       method: "POST",
       body: {
@@ -160,11 +184,24 @@ async function main() {
         },
       },
     });
-    await waitUntilProcessed(token, screenshotId);
-    console.log(`Uploaded ${path.basename(filePath)}`);
+    orderedUploads.push({id: screenshotId, name: path.basename(filePath)});
+    console.log(`Uploaded bytes for ${path.basename(filePath)}`);
+  }
+  // Let Apple process all committed files concurrently instead of delaying the
+  // next upload until the previous asset completes asynchronous processing.
+  for (const upload of orderedUploads) {
+    await waitUntilProcessed(token, upload.id);
+    console.log(`Processed ${upload.name}`);
   }
 
   const verified = await api(token, `/v1/appScreenshotSets/${set.id}/appScreenshots?limit=50`);
+  if (verified.data?.length !== files.length) throw new Error("Screenshot count does not match the selected set.");
+  for (const item of verified.data || []) {
+    const value = item.attributes || {};
+    if (value.sourceFileChecksum !== desired.get(value.fileName) || value.assetDeliveryState?.state !== "COMPLETE") {
+      throw new Error(`Final screenshot verification failed for ${value.fileName || item.id}.`);
+    }
+  }
   console.log(JSON.stringify({locale, displayType, count: verified.data?.length || 0, files: verified.data?.map((item) => item.attributes?.fileName)}, null, 2));
 }
 

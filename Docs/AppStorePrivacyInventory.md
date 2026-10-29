@@ -1,5 +1,11 @@
 # App Store privacy inventory
 
+## Current release: 1.3 (154), 2026-10-29
+
+The authenticated App Store Connect questionnaire was reread in Safari for this release. The signed archive contains 34 privacy manifests, 15 distinct collected-data categories, and no tracking declarations. Its category/purpose union is identical to the retained public 1.2 (112) archive. Two historical questionnaire omissions were corrected and published with UI read-back: Other Usage Data is linked to identity for Analytics; Device ID is linked for App Functionality and Analytics. The other 13 categories and their purposes were retained. This reconciles SDK disclosures; it does not enable optional first-party analytics or banner measurement for users. The policy URL remains unchanged. Privacy 2026.23 and the three deployed consent handlers were verified against the checkout. Presence/last-seen is covered separately by the existing policy; local biometric/motion effects do not upload biometric or motion samples. See the final release evidence in `Docs/Verification/AppStoreRelease1320261029.json` when available.
+
+## Historical inventory
+
 Latest candidate (2026-09-09): **1.1 (82)**, source `0538963`, same application code as tested build 81. All 30 archived privacy manifests match build 81. Apple processed the build as VALID / APP_STORE_ELIGIBLE. Authenticated App Privacy answers were **VERIFIED from six user-provided App Store Connect screenshots** captured on 2026-09-09 at 18:14–18:15: all 14 categories, identity linkage and purposes match this inventory; tracking is not indicated. No questionnaire changes were needed. Version 1.1 (82) was submitted at 16:19:49 UTC and Apple read-back confirms WAITING_FOR_REVIEW, with MANUAL release. See [submission checkpoint](AppStore-1.1-82-submission.md).
 
 Historical archive and authenticated App Privacy UI verification: 2026-09-02, version 1.0.1 (65). The 30 archive privacy manifests are unchanged from build 64. See `Docs/PrivacyPublication-2026-09-02.md`, `Docs/Build65ReleaseReadiness-2026-09-02.md` and the ignored release evidence `build65-privacy-readback.md`.

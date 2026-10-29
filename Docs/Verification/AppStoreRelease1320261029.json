@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 1,
+  "candidate": {
+    "version": "1.3",
+    "build": "154",
+    "packagingCommit": "443a516150388d40185d5036cb98f7fec32a5e0e"
+  },
+  "baseline": {
+    "version": "1.2",
+    "build": "112",
+    "sourceCommit": "af22c50a",
+    "evidence": "App Store Connect 2026-10-29: READY_FOR_DISTRIBUTION"
+  },
+  "status": "submitted_waiting_for_apple_review",
+  "build": {
+    "checkedAt": "2026-10-29T20:37:25.683582+00:00",
+    "version": "1.3",
+    "build": "154",
+    "ipaSHA256": "424f1e4e3fbfab32fd55014afbe2e40b2ef2c00785d5c1755c3a38feb62a26f1",
+    "signatureVerified": true,
+    "apsEnvironment": "production",
+    "getTaskAllow": false,
+    "nonExemptEncryption": false
+  },
+  "privacy": {
+    "archiveManifests": 34,
+    "categories": 15,
+    "tracking": false,
+    "categoryPurposeUnionComparedWith112": "unchanged",
+    "publishedQuestionnaire": "Authenticated Safari readback; added Other Usage Data / Analytics; corrected Device ID to App Functionality + Analytics; both linked, no tracking",
+    "optionalFirstPartyAnalytics": "registration default false preserved; deployed consent consumers verified",
+    "policy": "2026.23 active and verified"
+  },
+  "verification": {
+    "priorApplicationSourceCI": {
+      "run": 40941377477,
+      "head": "94d57444677622ce490c29884281c76c05a94d4c",
+      "conclusion": "success"
+    },
+    "packagingCI": {
+      "run": 40944876133,
+      "head": "443a516150388d40185d5036cb98f7fec32a5e0e",
+      "conclusion": "success",
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40944876133",
+      "completedAt": "2026-10-29T20:56:06Z",
+      "jobs": [
+        {
+          "name": "Change classification and static checks",
+          "conclusion": "success"
+        },
+        {
+          "name": "iOS build and unit checks",
+          "conclusion": "success"
+        },
+        {
+          "name": "Firebase and rules",
+          "conclusion": "success"
+        },
+        {
+          "name": "Firebase affected checks",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "iOS build and unit tests",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "physical": {
+      "device": "iPhone 16 Pro Max / iOS 27.2",
+      "configuration": "Release",
+      "result": "guarded capture passed",
+      "durationSeconds": 127.069,
+      "destinations": 8,
+      "variants": 24,
+      "boundaries": "Fresh candidate core routes and actual UI; prior security and push records remain scoped, not rerun exhaustively on 154"
+    },
+    "simulator": {
+      "device": "iPad Pro 13-inch M5 / iPadOS 27.0",
+      "configuration": "Debug",
+      "account": "normal signed-in production account, no fixture/bypass",
+      "capture": "four core tabs in uk and de"
+    },
+    "comments": {
+      "backendSourceComparedWith112": "byte-identical",
+      "emulatorIntegration": {
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "productionPosting": "not performed"
+    }
+  },
+  "screenshots": {
+    "expected": 16,
+    "iphoneSize": [
+      1320,
+      2868
+    ],
+    "ipadSize": [
+      2064,
+      2752
+    ],
+    "appStoreDelivery": "16/16 COMPLETE; ordered filenames, checksums and native dimensions verified",
+    "manifest": "build/appstore-release-20261029/screenshots-manifest.json",
+    "readback": {
+      "checkedAt": "2026-10-29T20:59:18.155108+00:00",
+      "total": 16,
+      "sets": [
+        {
+          "locale": "de-DE",
+          "family": "ipad",
+          "count": 4,
+          "filenames": [
+            "01-news.png",
+            "02-events.png",
+            "03-organizations.png",
+            "04-directory.png"
+          ],
+          "allComplete": true,
+          "checksumsMatch": true,
+          "nativeDimensionsMatch": true
+        },
+        {
+          "locale": "de-DE",
+          "family": "iphone",
+          "count": 4,
+          "filenames": [
+            "01-news.png",
+            "02-events.png",
+            "03-organizations.png",
+            "04-directory.png"
+          ],
+          "allComplete": true,
+          "checksumsMatch": true,
+          "nativeDimensionsMatch": true
+        },
+        {
+          "locale": "uk",
+          "family": "iphone",
+          "count": 4,
+          "filenames": [
+            "01-news.png",
+            "02-events.png",
+            "03-organizations.png",
+            "04-directory.png"
+          ],
+          "allComplete": true,
+          "checksumsMatch": true,
+          "nativeDimensionsMatch": true
+        },
+        {
+          "locale": "uk",
+          "family": "ipad",
+          "count": 4,
+          "filenames": [
+            "01-news.png",
+            "02-events.png",
+            "03-organizations.png",
+            "04-directory.png"
+          ],
+          "allComplete": true,
+          "checksumsMatch": true,
+          "nativeDimensionsMatch": true
+        }
+      ]
+    }
+  },
+  "reviewAccount": {
+    "checkedAt": "2026-10-29T20:22:08.334Z",
+    "success": true,
+    "hasAuthenticatedToken": true,
+    "mfaRequired": false,
+    "error": null,
+    "note": "Normal dedicated review account password sign-in; no credential or security settings changed. This is not installed-UI proof."
+  },
+  "releaseMode": "AFTER_APPROVAL",
+  "telegram": {
+    "thread": "Telegram UAC",
+    "publication": "published",
+    "messageID": 34,
+    "url": "https://t.me/ukrainiancommunitytirol/34",
+    "receipt": "Telegram API: Published successfully. Message ID: 34; verified in posting chat receipt",
+    "image": "fresh 2026-10-29 light appreciation poster, visually checked",
+    "newImagesPrepared": 2,
+    "content": "Thanks for feedback and proposals; 1.3 sent to Apple and waiting for review; availability announced separately, no promised approval time"
+  },
+  "preservation": {
+    "projectPbxproj": "pre-existing order-only dirty diff retained; only release version/build fields staged",
+    "mainLocalizable": "original dirty metadata-only bytes restored; SHA256 bb56175012119a73fddd48100c4dc0c9116c6237f9432a1e9d0b8a186c25793a"
+  },
+  "limitations": [
+    "Capture locator mismatches in two preliminary runs were corrected. A preliminary nominal pass contaminated by parallel phone use was rejected after visual review. Final run guards foreground app, exact route and selected tab.",
+    "One existing generic Decodable isolation warning was emitted by the local Release archive; archive/export/signature verification succeeded. No unsupported claim of a warning-free application is made.",
+    "Existing individual audit reports retain excluded registration/role/performance scenarios. No exhaustive all-roles acceptance, permanent 120 FPS or immediate network loading is claimed."
+  ],
+  "checkedAt": "2026-10-29T21:03:19.606750+00:00",
+  "contentRights": {
+    "confirmedByOperator": true,
+    "confirmation": "Да, права подтверждаю",
+    "date": "2026-10-29"
+  },
+  "submission": {
+    "id": "56d20bb8-79df-445e-9640-cfd624b38952",
+    "state": "WAITING_FOR_REVIEW",
+    "versionID": "ae9dbb81-1496-4ac0-9aa9-5377782c2525",
+    "appStoreState": "WAITING_FOR_REVIEW",
+    "appVersionState": "WAITING_FOR_REVIEW",
+    "releaseType": "AFTER_APPROVAL",
+    "confirmedAt": "2026-10-29T20:59:32.784Z",
+    "publicAvailability": "Public 1.2 (112) remains available until Apple approves and distributes 1.3."
+  }
+}
