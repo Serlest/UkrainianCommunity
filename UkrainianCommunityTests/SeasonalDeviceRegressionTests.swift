@@ -24,6 +24,24 @@ import UIKit
         #expect(allocations == 0)
     }
 
+    @Test func runtimeMotionPolicyMatchesSupportedHardware() {
+        #if targetEnvironment(simulator) || targetEnvironment(macCatalyst)
+        #expect(!SeasonalMotion.deviceMotionSupported)
+        #else
+        #expect(SeasonalMotion.deviceMotionSupported == !ProcessInfo.processInfo.isiOSAppOnMac)
+        #endif
+        if !SeasonalMotion.deviceMotionSupported {
+            var allocations = 0
+            let motion = SeasonalMotion(makeManager: {
+                allocations += 1
+                return CMMotionManager()
+            })
+            motion.setEnabled(true)
+            motion.setEnabled(false)
+            #expect(allocations == 0)
+        }
+    }
+
     @Test func inactiveScenesDoNotConstructMotionManager() {
         var allocations = 0
         let motion = SeasonalMotion(supportsDeviceMotion: true) {
