@@ -121,5 +121,6 @@
     "localizationSHA256": "bb56175012119a73fddd48100c4dc0c9116c6237f9432a1e9d0b8a186c25793a",
     "projectMetadata": "Pre-existing project.pbxproj reorder remains unstaged.",
     "userState": "No account switch, credential, role, push, message or system-setting mutation. Ordinary portrait launch restored."
-  }
+  },
+  "landscapeCorrection": "Docs/Verification/SeasonalLandscape20261029.json"
 }

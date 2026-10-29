@@ -27,7 +27,8 @@ import UIKit
     private func flySanta() {
         guard let image=Self.santaFrames.first else { return }
         let sprite=CALayer();sprite.name="seasonal.santa";sprite.contents=image;sprite.contentsGravity = .resizeAspect
-        let width=min(preview ? 170:285,bounds.width*0.72),height=width*CGFloat(image.height)/CGFloat(image.width)
+        let scale:CGFloat=preview ? 1:CGFloat(SeasonalDecorationGeometry.layoutScale(width:bounds.width,height:bounds.height))
+        let width=min(preview ? 170:285,bounds.width*0.72)*scale,height=width*CGFloat(image.height)/CGFloat(image.width)
         sprite.bounds=CGRect(x:0,y:0,width:width,height:height);sprite.position=CGPoint(x:-width,y:bounds.height*0.84)
         layer.addSublayer(sprite);effectLayers.append(sprite)
         let total=preview ? 26.0:84.0,start=preview ? 1.5:7.0,duration=11.0
@@ -60,7 +61,7 @@ import UIKit
         for burst in 0..<3 {
             let start=(preview ? 2.0:9.0)+Double(burst)*2.8,duration=2.1
             let center=CGPoint(x:bounds.width*[0.27,0.72,0.46][burst],y:max(108,bounds.height*[0.26,0.4,0.59][burst]))
-            let radius=min(100,bounds.width*0.23)
+            let radius=min(100,bounds.width*0.23,bounds.height*0.23)
             for i in 0..<18 {
                 let spark=CALayer();spark.name="seasonal.firework";spark.contents=SeasonalSnowCrystals.fireworkTextures[(i/3+burst*2)%6]
                 spark.cornerRadius=1.1;spark.bounds=CGRect(x:0,y:0,width:4.2,height:15);spark.opacity=0;spark.position=center

@@ -4,6 +4,7 @@ import UIKit
 @MainActor final class SeasonalSnowRim:UIImageView {
     private var renderedSize=CGSize.zero
     private var dark=false,accumulating=false
+    private var cornerRadius:CGFloat=31
     private var startedAt=CACurrentMediaTime()
     private let extra=CALayer()
     private static let material=UIImage(named:"SeasonalSnowMaterial")
@@ -12,11 +13,13 @@ import UIKit
         layer.addSublayer(extra)
     }
     required init?(coder:NSCoder) { fatalError("init(coder:) has not been implemented") }
-    func configure(animated:Bool,accumulate:Bool,dark:Bool) {
+    func configure(animated:Bool,accumulate:Bool,dark:Bool,cornerRadius:CGFloat?=nil) {
         let grows=animated && accumulate
-        if self.dark != dark || accumulating != grows { renderedSize = .zero }
+        let radius=min(31,max(1,cornerRadius ?? self.cornerRadius))
+        guard renderedSize == .zero || self.dark != dark || accumulating != grows || self.cornerRadius != radius else { return }
+        if self.dark != dark || accumulating != grows || self.cornerRadius != radius { renderedSize = .zero }
         if accumulating != grows { startedAt=CACurrentMediaTime() }
-        self.dark=dark;accumulating=grows;setNeedsLayout()
+        self.dark=dark;self.cornerRadius=radius;accumulating=grows;setNeedsLayout()
     }
     /// y=18 is the capsule's horizontal upper lip; its sides turn down by a quarter circle.
     nonisolated static func contour(x:CGFloat,width:CGFloat,radius:CGFloat)->CGFloat {
@@ -46,7 +49,7 @@ import UIKit
     private func render(depth:CGFloat)->UIImage {
         let format=UIGraphicsImageRendererFormat();format.scale=2
         return UIGraphicsImageRenderer(size:bounds.size,format:format).image { context in
-            let c=context.cgContext,w=bounds.width,r=min(31,w/5)
+            let c=context.cgContext,w=bounds.width,r=min(cornerRadius,w/5)
             let path=CGMutablePath()
             // Irregular, reproducible banks with unequal spacing; no periodic scallop/tile.
             var seed:UInt64=0x5A17D93

@@ -1,0 +1,85 @@
+{
+  "date": "2026-10-29",
+  "request": "Keep seasonal themes visible when rotating from portrait to either landscape orientation",
+  "localDeviceBuild": "1.2.1 (152), installed and independently read back",
+  "baseRevision": "deb16ce3",
+  "rootCause": "The runtime SeasonalSelectionInput and both full-screen preview views rejected compact vertical size class, intentionally removing all seasonal decoration in landscape. The earlier149 rotation check verified navigation and return but wrongly accepted this product behavior.",
+  "changes": [
+    "Keep active/public and private-preview theme selection through compact orientation; retain user opt-out, section/account eligibility and accessibility-size safeguards.",
+    "Use height-aware reduced decoration scale on short wide displays; align the static web and first spider through shared geometry; shorten spider descent, bound Santa and firework dimensions.",
+    "Map gravity and acceleration from device coordinates into current interface axes and reset only motion calibration on orientation changes. Do not recreate the theme or restart its arrival clock merely because of rotation.",
+    "Use full-display screenshots for physical landscape evidence; app-window capture previously clipped the rotated frame.",
+    "Resolve snow-bank width from the real native tab-item UIControl frames, preserving language-dependent floating-bar width; do not use private UIKit classes or fixed screen-wide assumptions."
+  ],
+  "models": {
+    "passed": 55,
+    "failed": 0,
+    "skipped": 0,
+    "bundle": "build/seasonal-landscape-20261029/FinalSimulator152.xcresult",
+    "fixtureUI": {
+      "passed": 1,
+      "scope": "Winter editor full-screen preview, both landscape directions, Ukrainian light/German dark"
+    },
+    "totalIncludingFixtureUI": 56,
+    "newRegressions": [
+      "Rotation does not discard active/local-preview themes; opt-out and accessible-size safeguards remain enforced",
+      "Upright landscape axes do not create false horizontal gravity",
+      "Observed ten overlapping native controls resolve to one five-item capsule; missing positions return no invented geometry"
+    ]
+  },
+  "physical": {
+    "status": "passed; native screenshots visually reviewed",
+    "device": "Serlest Mobile, iPhone16ProMax, iOS27.2",
+    "bundle": "build/seasonal-landscape-20261029/FinalPhysical152.xcresult",
+    "passedMethods": 3,
+    "failedMethods": 0,
+    "skippedMethods": 0,
+    "methodDurationsSeconds": [
+      485.282,
+      77.288,
+      141.839
+    ],
+    "scope": [
+      "All four local scenes in light/dark; both landscape directions, scroll and portrait return",
+      "Winter panel geometry under Ukrainian light and German dark labels, both directions and portrait",
+      "Editor full-screen preview in both directions and return to unchanged editor"
+    ],
+    "screenshots": "build/seasonal-landscape-20261029/final152-contact.jpg",
+    "observed": "All themes remain visible. Snow bank follows the floating item capsule rather than the full screen; native German landscape was also observed live in Apple Devices. Snow, hangers and edge decorations remain after scroll.",
+    "initial150Bundle": "build/seasonal-landscape-20261029/Physical150.xcresult",
+    "initial151Bundle": "build/seasonal-landscape-20261029/Physical151.xcresult"
+  },
+  "performanceBoundary": "No new animation loops, particles, sensors, remote requests or image assets. Existing bounded renderer budgets retained. This is not a measured sustained120FPS claim. One native editor-preview screenshot showed the iOS Fence Hang HUD (513ms / UAC751ms) during automated rotation. Cause is not established; retain artifact and do not use functional success as performance acceptance.",
+  "productionBoundary": "No theme activation, package/library save, publication, role/credential change, push, message or server deployment. Local preview only; no TestFlight upload.",
+  "references": [
+    "https://developer.apple.com/documentation/uikit/uiinterfaceorientation/landscapeleft",
+    "https://developer.apple.com/documentation/coremotion/cmdevicemotion/gravity"
+  ],
+  "nativeGeometryDiagnosis": {
+    "artifact": "build/seasonal-landscape-20261029/tabbar-geometry.json",
+    "observed": "Two backing copies of five UIControls had identical rectangles. The initial exact view-count check incorrectly rejected them. Position deduplication gives the measured507.33x44 capsule from an874x64 tab-bar container.",
+    "productionImplementation": "Public UIControl/UIView bounds only, deduplicated by position; no private UIKit type names, KVC, diagnostic file writer or fixed width. Snow shoulder radius follows measured capsule height; unchanged layouts do not regenerate snow rasters.",
+    "initial151Result": "Navigation scenarios passed but visual review rejected missing landscape snow. Initial150 over-wide and151 missing-rim evidence retained; neither is accepted as final visual closure."
+  },
+  "productionReadback": {
+    "artifact": "build/seasonal-landscape-20261029/production-unchanged.json",
+    "savedAndPublishedPayloadHashesRevisionsAndUpdateTimesUnchanged": true
+  },
+  "remainingLimits": [
+    "Physical UI automation changes interface orientation; actual hand-held tilt sensation still requires normal user acceptance. Screen-axis mapping has dedicated deterministic tests.",
+    "A fence-hang developer HUD appeared during automated editor-preview rotation. A targeted Time Profiler capture completed, but overlapping-image timeline errors and missing app symbol mapping prevent reliable cause attribution. Sustained frame rate and this transition performance remain unclosed; functional visibility is separately verified.",
+    "No production theme activation or publication was exercised; all scene selections here were private local previews."
+  ],
+  "delivery": "Direct signed Release install on iPhone; no TestFlight or public release.",
+  "performanceProbe": {
+    "trace": "build/seasonal-landscape-20261029/Rotation152.trace",
+    "symbolicatedTrace": "build/seasonal-landscape-20261029/Rotation152Symbolicated.trace",
+    "driverBundle": "build/seasonal-landscape-20261029/RotationProfile152.xcresult",
+    "driverPassed": true,
+    "driverDurationSeconds": 71.776,
+    "captureDurationSeconds": 111.054,
+    "result": "Inconclusive for app hotspot attribution: timeline dylib-overlap errors persisted after dSYM symbolication; no sustained-FPS or zero-hang claim. Raw potential-hang intervals retained in rotation152-hangs.xml.",
+    "sourceChangesFromProbe": false
+  },
+  "restoration": "Physical test teardown restored portrait, language/theme originals and ordinary arguments. Explicit ordinary launch subsequently observed on Apple Devices: Ukrainian news, existing Halloween scene, no preview banner."
+}

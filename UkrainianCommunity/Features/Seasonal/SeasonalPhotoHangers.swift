@@ -58,7 +58,7 @@ struct SeasonalPhotoHangers:UIViewRepresentable {
     private func draw(delta:Double,force:Bool) {
         guard let element,bounds.width>0 else { return }
         let moving=animated && element.effectiveMotion == .swing && element.motionStrength>0
-        let sample=moving && reactsToTilt ? motion.sample():SeasonalMotionSample()
+        let sample=moving && reactsToTilt ? motion.sample(orientation:window?.windowScene?.interfaceOrientation ?? .portrait):SeasonalMotionSample()
         if abs(sample.gravityX-lastGravity)>0.002 || abs(sample.acceleration)>0.025 { activeUntil=elapsed+0.8 }
         lastGravity=sample.gravityX
         let arriving=moving && elapsed<9
@@ -77,7 +77,7 @@ struct SeasonalPhotoHangers:UIViewRepresentable {
             let anchor=CGPoint(x:bounds.midX+(parts.count==1 ? 18:(i==0 ? 6:30)),y:max(18,safeTop-12))
             let length=8+max(24,safeTop+(i==0 ? 30:15)-anchor.y)*progress
             let end=CGPoint(x:anchor.x+sin(angle)*length,y:anchor.y+cos(angle)*length)
-            let height=CGFloat(element.size)*(i==0 ? 1.65:1.4)
+            let height=CGFloat(element.size)*(i==0 ? 1.65:1.4)*CGFloat(SeasonalDecorationGeometry.layoutScale(width:bounds.width,height:bounds.height))
             parts[i].image.bounds=CGRect(x:0,y:0,width:height*ratio,height:height)
             parts[i].image.position=end;parts[i].image.setAffineTransform(CGAffineTransform(rotationAngle:-angle))
             let thread=CGMutablePath();thread.move(to:anchor);thread.addLine(to:end);parts[i].thread.path=thread

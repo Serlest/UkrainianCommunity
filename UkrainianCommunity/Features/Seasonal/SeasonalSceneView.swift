@@ -225,7 +225,7 @@ struct SeasonalScene: UIViewRepresentable {
 
     private func draw(delta:Double) {
         guard let theme else { return }
-        let input=animated && hangingVisible && theme.reactsToTilt && !spiders.isEmpty ? motion.sample() : SeasonalMotionSample()
+        let input=animated && hangingVisible && theme.reactsToTilt && !spiders.isEmpty ? motion.sample(orientation:window?.windowScene?.interfaceOrientation ?? .portrait) : SeasonalMotionSample()
         let moved=abs(input.acceleration)>0.025 || abs(input.x-lastMotion.x)>0.003 || abs(input.y-lastMotion.y)>0.003 || abs(input.gravityX-lastMotion.gravityX)>0.003
         if moved { fastMotionUntil=elapsed+0.8 }
         lastMotion=input
@@ -266,7 +266,7 @@ struct SeasonalScene: UIViewRepresentable {
         let top=Double(placement.webTop)
         let webElement=hangingElement
         let nativeSpider=webElement?.artwork == .web || webElement?.artwork == .spider
-        let webScale=min((webElement?.size ?? 44)/44,Double(bounds.width)/300)
+        let webScale=min((webElement?.size ?? 44)/44,Double(bounds.width)/300)*SeasonalDecorationGeometry.layoutScale(width:bounds.width,height:bounds.height)
         for index in spiders.indices {
             let progress=(animated || elapsed>0) && hangingMoves
                 ? SeasonalChoreography.spiderProgress(at:elapsed,preview:preview,index:index):1
@@ -278,7 +278,7 @@ struct SeasonalScene: UIViewRepresentable {
             let attachmentSize=elements.first{$0.artwork == .web}?.size ?? 34
             let point:CGPoint
             if nativeSpider {
-                point=SeasonalDecorationGeometry.spiderAnchor(index:index,width:bounds.width,top:top,safeTop:safeTop,elementSize:attachmentSize)
+                point=SeasonalDecorationGeometry.spiderAnchor(index:index,width:bounds.width,top:top,safeTop:safeTop,elementSize:attachmentSize,height:bounds.height)
             } else {
                 point=CGPoint(x:bounds.width/2+(spiders.count == 1 ? 18:(index == 0 ? 6:30)),y:top+max(18,safeTop-12))
             }

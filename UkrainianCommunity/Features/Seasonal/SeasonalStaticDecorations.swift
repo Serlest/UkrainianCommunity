@@ -50,12 +50,29 @@ import UIKit
 
 /// Shared screen-space geometry keeps the static web and its first silk thread aligned.
 enum SeasonalDecorationGeometry {
-    static func webSide(width: Double, elementSize: Double) -> Double {
-        min(width * 0.30, max(78, min(122, 78+(elementSize-16)*44/28)))
+    static func layoutScale(width: Double, height: Double) -> Double {
+        width > height ? max(0.65, min(1, height / 600)) : 1
     }
-    static func spiderAnchor(index: Int, width: Double, top: Double, safeTop: Double, elementSize: Double) -> CGPoint {
+    static func navigationCapsule(bar:CGRect,itemFrames:[CGRect],expectedCount:Int)->CGRect? {
+        var unique:[CGRect]=[]
+        // Liquid Glass keeps overlapping selected/unselected copies of each
+        // control. Count positions, not backing views (ten controls for five tabs).
+        for frame in itemFrames {
+            if let index=unique.firstIndex(where:{abs($0.midX-frame.midX)<1 && abs($0.midY-frame.midY)<1}) {
+                unique[index]=unique[index].union(frame)
+            } else { unique.append(frame) }
+        }
+        guard unique.count>=2,unique.count==expectedCount else { return nil }
+        let group=unique.reduce(CGRect.null) { $0.union($1) }
+        return group.insetBy(dx:-4,dy:-4).intersection(bar)
+    }
+    static func webSide(width: Double, elementSize: Double, height: Double? = nil) -> Double {
+        min(width * 0.30, max(78, min(122, 78+(elementSize-16)*44/28)))
+            * (height.map { layoutScale(width: width, height: $0) } ?? 1)
+    }
+    static func spiderAnchor(index: Int, width: Double, top: Double, safeTop: Double, elementSize: Double, height: Double? = nil) -> CGPoint {
         if index == 0 {
-            let side = webSide(width: width, elementSize: elementSize)
+            let side = webSide(width: width, elementSize: elementSize, height: height)
             let radius = side * (178.0 / 180) * 0.9
             return CGPoint(x: cos(0.85) * radius, y: top + sin(0.85) * radius)
         }
@@ -74,7 +91,7 @@ struct SeasonalStaticDecorations: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let side = SeasonalDecorationGeometry.webSide(width: geometry.size.width, elementSize: element.size)
+            let side = SeasonalDecorationGeometry.webSide(width: geometry.size.width, elementSize: element.size, height: geometry.size.height)
             ZStack(alignment: .topLeading) {
                 Image(uiImage: SeasonalStaticArtwork.web(dark: dark))
                     .resizable().frame(width: side, height: side)

@@ -165,12 +165,13 @@ struct SeasonalAmbientOrnaments:UIViewRepresentable {
         for (index,record) in ornaments.enumerated() {
             let view=record.view,element=record.element,copy=record.copy
             let leading=element.zone == .edges || (element.zone == .navigation && element.artwork == .leaves) ? copy==0:element.anchor == .leading
-            let width=CGFloat(element.size)*(preview ? 0.65:(element.artwork == .palm ? 1.7:1.25))
+            let layoutScale:CGFloat=preview ? 1:CGFloat(SeasonalDecorationGeometry.layoutScale(width:bounds.width,height:bounds.height))
+            let width=CGFloat(element.size)*(preview ? 0.65:(element.artwork == .palm ? 1.7:1.25))*layoutScale
             let ratio=max(0.1,(view.image?.size.width ?? 1)/(view.image?.size.height ?? 1))
             var rect:CGRect
             switch element.zone {
             case .corner:
-                let w=min(bounds.width*0.29,CGFloat(element.size)*3)
+                let w=min(bounds.width*0.29,CGFloat(element.size)*3)*layoutScale
                 rect=CGRect(x:-w*0.45,y:-8,width:w,height:min(155,w/ratio))
                 view.alpha=0.7
             case .edges:
@@ -180,9 +181,10 @@ struct SeasonalAmbientOrnaments:UIViewRepresentable {
                 let bar=navigationFrame()
                 if element.artwork == .snowLedge || element.artwork == .image {
                     if element.artwork == .snowLedge {
-                        rect=CGRect(x:bar.minX+16,y:bar.minY-18,width:max(1,bar.width-32),height:58)
+                        (view as? SeasonalSnowRim)?.configure(animated:animated,accumulate:element.accumulatesSnow ?? true,dark:traitCollection.userInterfaceStyle == .dark,cornerRadius:bar.height/2)
+                        rect=CGRect(x:bar.minX,y:bar.minY-18,width:max(1,bar.width),height:58)
                     } else {
-                        rect=CGRect(x:bar.minX+16,y:bar.minY-10,width:max(1,bar.width-32),height:14)
+                        rect=CGRect(x:bar.minX,y:bar.minY-10,width:max(1,bar.width),height:14)
                     }
                 } else {
                     let w=CGFloat(12+(element.size-16)*0.5)*(preview ? 0.65:1)
@@ -244,7 +246,26 @@ struct SeasonalAmbientOrnaments:UIViewRepresentable {
             tabBar=find(window)
         }
         guard let tabBar,!tabBar.isHidden,tabBar.alpha>0.1 else { return .zero }
-        return convert(tabBar.bounds,from:tabBar)
+        let frame=convert(tabBar.bounds,from:tabBar)
+        // A floating bar's bounds span the screen in landscape. Its public
+        // UIControl descendants describe the actual item group, including
+        // language-dependent widths. Never depend on private UIKit class names.
+        var items:[CGRect]=[]
+        func collect(_ parent:UIView) {
+            for child in parent.subviews where !child.isHidden && child.alpha>0.1 {
+                if let control=child as? UIControl,
+                   control.bounds.width>=20,control.bounds.width<=frame.width/2,
+                   control.bounds.height>=16 {
+                    let rect=convert(control.bounds,from:control)
+                    if rect.intersects(frame) { items.append(rect) }
+                } else { collect(child) }
+            }
+        }
+        collect(tabBar)
+        if let capsule=SeasonalDecorationGeometry.navigationCapsule(bar:frame,itemFrames:items,expectedCount:tabBar.items?.count ?? 0) { return capsule }
+        // Do not draw a fictitious full-width bank when the floating group has
+        // not laid out yet. Snowfall and the other decorations remain visible.
+        return bounds.width>bounds.height ? .zero:frame.insetBy(dx:16,dy:0)
     }
     func stop() {
         festivities.stop()

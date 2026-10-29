@@ -3,6 +3,23 @@ import UIKit
 
 @MainActor final class SeasonalUITests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
+    func testLandscapeWinterPreviewKeepsControlsInBothLanguages() {
+        defer { XCUIDevice.shared.orientation = .portrait }
+        for (language,appearance) in [("uk","light"),("de","dark")] {
+            let app=launch(scope:"editor-christmas",appearance:appearance,language:language)
+            let open=app.buttons["seasonal.preview.fullScreen"];XCTAssertTrue(open.waitForExistence(timeout:15));open.tap()
+            let close=app.buttons["seasonal.preview.close"];XCTAssertTrue(close.waitForExistence(timeout:10))
+            for orientation in [UIDeviceOrientation.landscapeLeft,.landscapeRight] {
+                XCUIDevice.shared.orientation=orientation
+                let wide=NSPredicate { _,_ in app.frame.width>app.frame.height }
+                XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:wide,object:nil)],timeout:10),.completed)
+                XCTAssertTrue(close.isHittable)
+                let a=XCTAttachment(screenshot:XCUIScreen.main.screenshot());a.name="WinterPreview-Landscape-"+language+"-"+String(orientation.rawValue);a.lifetime = .keepAlways;add(a)
+            }
+            XCUIDevice.shared.orientation = .portrait
+            close.tap();XCTAssertTrue(open.waitForExistence(timeout:10));app.terminate()
+        }
+    }
     private func launch(scope: String, appearance: String = "light", language: String = "uk", maximum: Bool = false, effects:Bool = true, rejectPublic: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]

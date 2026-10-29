@@ -363,5 +363,6 @@
     "Known generic Decodable concurrency warning remains in DirectoryEditorAccessStore.swift:50; no warning-free claim",
     "Final local build does not imply TestFlight delivery or physical acceptance"
   ],
-  "physicalFollowup": "Docs/Verification/PhysicalLoadingFollowup20261029.json"
+  "physicalFollowup": "Docs/Verification/PhysicalLoadingFollowup20261029.json",
+  "landscapeCorrection": "Docs/Verification/SeasonalLandscape20261029.json"
 }

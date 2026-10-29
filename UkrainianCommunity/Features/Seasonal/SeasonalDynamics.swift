@@ -1,5 +1,6 @@
 import CoreMotion
 import Foundation
+import UIKit
 
 /// Bounded, deterministic pendulum. Long pauses never accumulate a physics jump.
 struct SeasonalPendulum {
@@ -28,6 +29,16 @@ struct SeasonalMotionSample {
     private let manager = CMMotionManager()
     private var origin: (Double, Double)?
     private var filtered = SeasonalMotionSample()
+    private var orientation = UIInterfaceOrientation.unknown
+
+    nonisolated static func screenVector(x: Double, y: Double, orientation: UIInterfaceOrientation) -> (x: Double, y: Double) {
+        switch orientation {
+        case .landscapeLeft: (y, -x)
+        case .landscapeRight: (-y, x)
+        case .portraitUpsideDown: (-x, -y)
+        default: (x, y)
+        }
+    }
 
     func setEnabled(_ enabled: Bool) {
         if enabled && !manager.isDeviceMotionActive && manager.isDeviceMotionAvailable {
@@ -41,13 +52,18 @@ struct SeasonalMotionSample {
         }
     }
 
-    func sample() -> SeasonalMotionSample {
+    func sample(orientation: UIInterfaceOrientation = .portrait) -> SeasonalMotionSample {
         guard let data = manager.deviceMotion else { return SeasonalMotionSample() }
-        if origin == nil { origin = (data.gravity.x, data.gravity.y) }
-        filtered.x += (min(1, max(-1, (data.gravity.x - (origin?.0 ?? 0)) * 2)) - filtered.x) * 0.14
-        filtered.y += (min(1, max(-1, (data.gravity.y - (origin?.1 ?? 0)) * 2)) - filtered.y) * 0.14
-        filtered.acceleration = min(2, max(-2, data.userAcceleration.x))
-        filtered.gravityX = min(1,max(-1,data.gravity.x))
+        if self.orientation != orientation {
+            self.orientation = orientation; origin = nil; filtered = SeasonalMotionSample()
+        }
+        let gravity = Self.screenVector(x:data.gravity.x,y:data.gravity.y,orientation:orientation)
+        let acceleration = Self.screenVector(x:data.userAcceleration.x,y:data.userAcceleration.y,orientation:orientation)
+        if origin == nil { origin = (gravity.x, gravity.y) }
+        filtered.x += (min(1, max(-1, (gravity.x - (origin?.0 ?? 0)) * 2)) - filtered.x) * 0.14
+        filtered.y += (min(1, max(-1, (gravity.y - (origin?.1 ?? 0)) * 2)) - filtered.y) * 0.14
+        filtered.acceleration = min(2, max(-2, acceleration.x))
+        filtered.gravityX = min(1,max(-1,gravity.x))
         return filtered
     }
     deinit { manager.stopDeviceMotionUpdates() }

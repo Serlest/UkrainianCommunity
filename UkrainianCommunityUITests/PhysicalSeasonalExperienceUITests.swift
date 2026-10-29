@@ -9,9 +9,9 @@ import UIKit
         throw XCTSkip("Physical iPhone required")
         #else
         guard ProcessInfo.processInfo.environment["UACPhysicalSeasonal"]=="1" else { throw XCTSkip("Opt-in physical visual audit") }
-        #endif
         let context=XCTAttachment(string:"Low Power Mode: \(ProcessInfo.processInfo.isLowPowerModeEnabled); Reduce Motion: \(UIAccessibility.isReduceMotionEnabled)")
         context.name="Physical-Seasonal-Accessibility-And-Power";context.lifetime = .keepAlways;add(context)
+        #endif
     }
     override func tearDown() {
         XCUIDevice.shared.orientation = .portrait
@@ -63,6 +63,79 @@ import UIKit
         XCTAssertFalse(app.staticTexts["Christmas · Warm Evergreen"].exists)
         XCTAssertFalse(app.staticTexts["New Year · Golden Midnight"].exists)
         capture(app,"Physical-Quick-Catalog-Ukrainian-No-Duplicates")
+    }
+    func testAllScenesSurviveBothLandscapeDirectionsAndReturnToPortrait() {
+        let app=XCUIApplication()
+        for appearance in ["light","dark"] {
+            app.launchArguments=["-selectedAppLanguage","uk","-selectedAppAppearance",appearance];app.launch()
+            for scene in ["halloween","gta","christmas","newyear"] {
+                management(app)
+                let preview=app.buttons["seasonal.quick.preview.uac.preset."+scene];reveal(preview,app);preview.tap()
+                app.tabBars.buttons["Новини"].tap()
+                let stop=app.buttons["seasonal.localPreview.stop"]
+                XCTAssertTrue(stop.waitForExistence(timeout:10))
+                capture(app,"SeasonalRotation-"+scene+"-"+appearance+"-PortraitBefore")
+                for (name,orientation) in [("Left",UIDeviceOrientation.landscapeLeft),("Right",.landscapeRight)] {
+                    XCUIDevice.shared.orientation=orientation
+                    let wide=NSPredicate { _,_ in app.frame.width>app.frame.height }
+                    XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:wide,object:nil)],timeout:10),.completed)
+                    Thread.sleep(forTimeInterval:2)
+                    XCTAssertTrue(stop.isHittable);XCTAssertTrue(app.tabBars.buttons["Новини"].isHittable)
+                    capture(app,"SeasonalRotation-"+scene+"-"+appearance+"-"+name)
+                    app.swipeUp();capture(app,"SeasonalRotation-"+scene+"-"+appearance+"-"+name+"-Scrolled");app.swipeDown()
+                }
+                XCUIDevice.shared.orientation = .portrait
+                let tall=NSPredicate { _,_ in app.frame.height>app.frame.width }
+                XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:tall,object:nil)],timeout:10),.completed)
+                capture(app,"SeasonalRotation-"+scene+"-"+appearance+"-PortraitRestored")
+                stop.tap();XCTAssertTrue(stop.waitForNonExistence(timeout:5))
+            }
+            app.terminate()
+        }
+    }
+    func testEditorFullScreenPreviewKeepsWinterSceneDuringRotation() {
+        let app=XCUIApplication();app.launchArguments=["-selectedAppLanguage","uk"];app.launch()
+        management(app)
+        let edit=app.buttons["seasonal.quick.edit.uac.preset.christmas"];reveal(edit,app);edit.tap()
+        let open=app.buttons["seasonal.preview.fullScreen"];XCTAssertTrue(open.waitForExistence(timeout:10));reveal(open,app);open.tap()
+        let close=app.buttons["seasonal.preview.close"];XCTAssertTrue(close.waitForExistence(timeout:10))
+        for (name,orientation) in [("Left",UIDeviceOrientation.landscapeLeft),("Right",.landscapeRight)] {
+            XCUIDevice.shared.orientation=orientation
+            let wide=NSPredicate { _,_ in app.frame.width>app.frame.height }
+            XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:wide,object:nil)],timeout:10),.completed)
+            Thread.sleep(forTimeInterval:2)
+            XCTAssertTrue(close.isHittable);capture(app,"SeasonalRotation-EditorPreview-"+name)
+        }
+        XCUIDevice.shared.orientation = .portrait
+        Thread.sleep(forTimeInterval:2);close.tap()
+        XCTAssertTrue(open.waitForExistence(timeout:10))
+        capture(app,"SeasonalRotation-EditorPreview-PortraitReturned")
+    }
+    func testWinterNavigationRimFollowsFloatingItemsInBothLanguages() {
+        let app=XCUIApplication()
+        for (language,appearance,scene) in [("uk","light","christmas"),("de","dark","newyear")] {
+            app.launchArguments=["-selectedAppLanguage",language,"-selectedAppAppearance",appearance];app.launch()
+            management(app)
+            let preview=app.buttons["seasonal.quick.preview.uac.preset."+scene];reveal(preview,app);preview.tap()
+            let news=app.tabBars.buttons.matching(NSPredicate(format:"label IN %@",["Новини","Nachrichten"])).firstMatch
+            XCTAssertTrue(news.waitForExistence(timeout:10));news.tap()
+            capture(app,"WinterNavigation-"+language+"-Portrait")
+            for (name,orientation) in [("Left",UIDeviceOrientation.landscapeLeft),("Right",.landscapeRight)] {
+                XCUIDevice.shared.orientation=orientation
+                let wide=NSPredicate { _,_ in app.frame.width>app.frame.height }
+                XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:wide,object:nil)],timeout:10),.completed)
+                Thread.sleep(forTimeInterval:2)
+                XCTAssertTrue(news.isHittable)
+                capture(app,"WinterNavigation-"+language+"-"+name)
+                app.swipeUp();capture(app,"WinterNavigation-"+language+"-"+name+"-Scrolled");app.swipeDown()
+            }
+            XCUIDevice.shared.orientation = .portrait
+            let tall=NSPredicate { _,_ in app.frame.height>app.frame.width }
+            XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:tall,object:nil)],timeout:10),.completed)
+            capture(app,"WinterNavigation-"+language+"-PortraitRestored")
+            let stop=app.buttons["seasonal.localPreview.stop"];XCTAssertTrue(stop.isHittable);stop.tap()
+            app.terminate()
+        }
     }
     func testPhotographicHangersFitBothThemesAfterViewportReduction() {
         let app=XCUIApplication()

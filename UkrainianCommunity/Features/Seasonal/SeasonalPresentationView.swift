@@ -68,7 +68,7 @@ struct SeasonalDecorationLayer: View {
             let placement = SeasonalScenePlacement(
                 pumpkin: dock.map { CGPoint(x:$0.midX,y:$0.midY) } ?? CGPoint(x:geometry.size.width-30,y:top+80),
                 webTop: top,
-                descent: preview ? 116 : 180,
+                descent: preview ? 116 : min(180, geometry.size.height * 0.27),
                 objectScale: dock.map { min(1,$0.width/40) } ?? 0.85)
             ZStack(alignment:.topLeading) {
                 if let web = theme.visibleElements.first(where: { $0.artwork == .web }) {
@@ -183,7 +183,8 @@ struct SeasonalSelectionInput:Equatable {
     let compact:Bool
     let accessible:Bool
     func theme(at date:Date)->SeasonalTheme? {
-        guard eligible,!compact,!accessible,enabled || preview != nil else { return nil }
+        // Rotation changes geometry, not whether the selected scene is active.
+        guard eligible,!accessible,enabled || preview != nil else { return nil }
         if let preview { return preview.sections.contains(section) ? preview.preparedForCurrentRenderer:nil }
         return library.active(at:date,section:section)?.preparedForCurrentRenderer
     }

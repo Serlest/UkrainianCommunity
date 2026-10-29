@@ -4,6 +4,43 @@ import UIKit
 @testable import UkrainianCommunity
 
 @MainActor struct SeasonalDeviceRegressionTests {
+    @Test func glassControlCopiesResolveToOneFloatingCapsule() throws {
+        // Actual native landscape geometry: selected and ordinary content each
+        // contain the same five controls; the full UITabBar is much wider.
+        let bar=CGRect(x:-62,y:338,width:874,height:64)
+        let frames=[CGRect(x:125.333333,y:342,width:93.666667,height:36),CGRect(x:223,y:342,width:76.666667,height:36),CGRect(x:303.666667,y:342,width:113,height:36),CGRect(x:420.666667,y:342,width:105.333333,height:36),CGRect(x:530,y:342,width:94.666667,height:36)]
+        let result=try #require(SeasonalDecorationGeometry.navigationCapsule(bar:bar,itemFrames:frames+frames,expectedCount:5))
+        #expect(abs(result.minX-121.333333)<0.01 && abs(result.width-507.333334)<0.01)
+        #expect(result.minY==338 && result.height==44)
+        #expect(SeasonalDecorationGeometry.navigationCapsule(bar:bar,itemFrames:Array(frames.dropLast()),expectedCount:5)==nil)
+    }
+    @Test func rotationKeepsEverySceneSelectedAndPreservesUserOptOut() {
+        let date=Date(timeIntervalSince1970:1_800_000_000)
+        for var theme in presets() {
+            theme.isEnabled=true;theme.repeatsYearly=false
+            theme.startsAt=date.addingTimeInterval(-60);theme.endsAt=date.addingTimeInterval(60)
+            let library=SeasonalLibrary(themes:[theme])
+            for compact in [false,true] {
+                let active=SeasonalSelectionInput(library:library,preview:nil,section:.news,enabled:true,eligible:true,compact:compact,accessible:false)
+                #expect(active.theme(at:date)?.id==theme.id)
+                let off=SeasonalSelectionInput(library:library,preview:nil,section:.news,enabled:false,eligible:true,compact:compact,accessible:false)
+                #expect(off.theme(at:date)==nil)
+                let preview=SeasonalSelectionInput(library:library,preview:theme,section:.news,enabled:false,eligible:true,compact:compact,accessible:false)
+                #expect(preview.theme(at:date)?.id==theme.id)
+                let accessible=SeasonalSelectionInput(library:library,preview:theme,section:.news,enabled:true,eligible:true,compact:compact,accessible:true)
+                #expect(accessible.theme(at:date)==nil)
+            }
+        }
+    }
+    @Test func uprightLandscapeMotionHasNoFalseHorizontalGravity() {
+        for (orientation,gravity) in [(UIInterfaceOrientation.portrait,(0.0,-1.0)),(.landscapeLeft,(1.0,0.0)),(.landscapeRight,(-1.0,0.0)),(.portraitUpsideDown,(0.0,1.0))] {
+            let value=SeasonalMotion.screenVector(x:gravity.0,y:gravity.1,orientation:orientation)
+            #expect(value.x==0 && value.y == -1)
+        }
+        let left=SeasonalMotion.screenVector(x:0.8,y:0.2,orientation:.landscapeLeft)
+        let right=SeasonalMotion.screenVector(x:-0.8,y:-0.2,orientation:.landscapeRight)
+        #expect(left.x==right.x && left.y==right.y)
+    }
     private func presets()->[SeasonalTheme] {
         zip(SeasonalPresetKind.allCases,[SeasonalTheme.halloweenScene(),.gtaVI(),.christmas(),.newYear()]).map { kind,item in
             var item=item;item.id=kind.controlID;item.name=kind.title;return item

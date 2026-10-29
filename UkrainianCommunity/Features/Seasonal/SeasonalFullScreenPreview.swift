@@ -8,9 +8,8 @@ struct SeasonalFullScreenPreview:View {
     @Environment(\.dismiss) private var dismiss
     @State private var selected=SeasonalSection.news
     @State private var detailSections:Set<SeasonalSection>=[]
-    @Environment(\.verticalSizeClass) private var verticalSize
     @Environment(\.dynamicTypeSize) private var textSize
-    private var effectsVisible:Bool { theme.sections.contains(selected) && verticalSize != .compact && !textSize.isAccessibilitySize }
+    private var effectsVisible:Bool { theme.sections.contains(selected) && !textSize.isAccessibilitySize }
     var body:some View {
         TabView(selection:$selected) {
             ForEach(SeasonalSection.allCases) { section in
@@ -53,9 +52,8 @@ private struct SeasonalPreviewPage:View {
     let section:SeasonalSection
     let isActive:Bool
     @Binding var detail:Bool
-    @Environment(\.verticalSizeClass) private var verticalSize
     @Environment(\.dynamicTypeSize) private var textSize
-    private var enabled:Bool { isActive && theme.sections.contains(section) && verticalSize != .compact && !textSize.isAccessibilitySize }
+    private var enabled:Bool { isActive && theme.sections.contains(section) && !textSize.isAccessibilitySize }
     var body:some View {
         NavigationStack {
             ScrollView {
