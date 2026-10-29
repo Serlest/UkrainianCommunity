@@ -36,6 +36,13 @@ struct PasskeyManagementView: View {
                         .disabled(isLoading)
                         .accessibilityIdentifier("accountSecurity.passkey.retry")
                 }
+                if hasLoaded && !isLoading && !loadFailed {
+                    Text(passkeys.isEmpty
+                         ? LocalizationStore.localizedString("account_security.passkey.not_added", defaultValue: "Noch kein Passkey eingerichtet.", table: "AccountSecurity")
+                         : AppStrings.AccountSecurity.passkeyEnabled)
+                        .font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                        .accessibilityIdentifier("accountSecurity.passkeys.loaded")
+                }
                 ForEach(passkeys) { passkey in
                     (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12)) : AnyLayout(HStackLayout(spacing: AppTheme.dashboardSpacing))) {
                         Image(systemName: "key.fill")
@@ -89,8 +96,6 @@ struct PasskeyManagementView: View {
                 }
             }
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier(hasLoaded && !isLoading && !loadFailed ? "accountSecurity.passkeys.loaded" : "accountSecurity.passkeys.pending")
         .task(id: userID) { await reload() }
         .alert(
             AppStrings.AccountSecurity.passkeyRemove,

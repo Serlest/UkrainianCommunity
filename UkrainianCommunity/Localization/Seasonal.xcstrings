@@ -2547,7 +2547,6 @@
       }
     },
     "seasonal.endLocalPreview": {
-      "extractionState": "manual",
       "localizations": {
         "uk": {
           "stringUnit": {
@@ -2559,12 +2558,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vorschau beenden"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "End preview"
           }
         }
       }
@@ -2767,6 +2760,406 @@
           "stringUnit": {
             "state": "translated",
             "value": "Feuerwerk"
+          }
+        }
+      }
+    },
+    "seasonal.localPreviewTitle": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Локальний перегляд"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lokale Vorschau"
+          }
+        }
+      }
+    },
+    "seasonal.localPreviewHint": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Лише на цьому пристрої. Для інших користувачів нічого не змінено."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur auf diesem Gerät. Für andere Nutzer unverändert."
+          }
+        }
+      }
+    },
+    "seasonal.advancedControls": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Бібліотека та автоматичний розклад"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bibliothek und automatischer Zeitplan"
+          }
+        }
+      }
+    },
+    "seasonal.instantSwitchHint": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увімкнення одразу замінює сцену для всіх, без окремої публікації. Перегляд бачите лише ви."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einschalten ersetzt die Szene sofort für alle, ohne zusätzliche Veröffentlichung. Die Vorschau sehen nur Sie."
+          }
+        }
+      }
+    },
+    "seasonal.liveEnabled": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увімкнено для всіх"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für alle eingeschaltet"
+          }
+        }
+      }
+    },
+    "seasonal.liveNotActive": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зараз неактивна"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jetzt nicht aktiv"
+          }
+        }
+      }
+    },
+    "seasonal.liveUnknown": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Стан не підтверджено"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status nicht bestätigt"
+          }
+        }
+      }
+    },
+    "seasonal.enableForEveryone": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увімкнути для всіх"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für alle einschalten"
+          }
+        }
+      }
+    },
+    "seasonal.libraryScheduled": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Бібліотека · додано до розкладу"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bibliothek · für den Zeitplan vorgemerkt"
+          }
+        }
+      }
+    },
+    "seasonal.libraryStored": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Збережено в бібліотеці"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In der Bibliothek gespeichert"
+          }
+        }
+      }
+    },
+    "seasonal.checkingStatus": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перевіряємо стан…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status wird geprüft …"
+          }
+        }
+      }
+    },
+    "seasonal.liveOff": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вимкнено"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausgeschaltet"
+          }
+        }
+      }
+    },
+    "seasonal.liveScheduleIdle": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Розклад опубліковано · зараз без активної сцени"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeitplan veröffentlicht · jetzt keine aktive Szene"
+          }
+        }
+      }
+    },
+    "seasonal.liveStatusTitle": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Для користувачів застосунку"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für die Nutzer der App"
+          }
+        }
+      }
+    },
+    "seasonal.refreshUnknownStatus": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зміну не вдалося підтвердити. Оновіть стан перед наступним перемиканням."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Änderung wurde nicht bestätigt. Laden Sie den Status neu, bevor Sie erneut umschalten."
+          }
+        }
+      }
+    },
+    "seasonal.connectionDeliveryHint": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пристрої з інтернетом отримують зміни одразу, без інтернету — після наступного підключення."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Änderungen erreichen verbundene Geräte sofort, Geräte ohne Internet nach der nächsten Verbindung."
+          }
+        }
+      }
+    },
+    "seasonal.pendingChanges": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Незбережені зміни"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht gespeicherte Änderungen"
+          }
+        }
+      }
+    },
+    "seasonal.draftNotLiveHint": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ці зміни ще не бачать інші користувачі."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Änderungen sind für andere Nutzer noch nicht sichtbar."
+          }
+        }
+      }
+    },
+    "seasonal.saveAndEnable": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зберегти та увімкнути для всіх"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speichern und für alle einschalten"
+          }
+        }
+      }
+    },
+    "seasonal.saveLibraryOnly": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Лише зберегти в бібліотеці"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur in der Bibliothek speichern"
+          }
+        }
+      }
+    },
+    "seasonal.finishEditing": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Готово"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fertig"
+          }
+        }
+      }
+    },
+    "seasonal.schedulePublication": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Автоматичний розклад"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatischer Zeitplan"
+          }
+        }
+      }
+    },
+    "seasonal.expanded": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Розгорнуто"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausgeklappt"
+          }
+        }
+      }
+    },
+    "seasonal.collapsed": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Згорнуто"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eingeklappt"
+          }
+        }
+      }
+    },
+    "seasonal.reloadState": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оновити стан"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status neu laden"
           }
         }
       }

@@ -31,6 +31,8 @@ struct SeasonalManagementView: View {
     @State private var exportFile = SeasonalPackageFile(data: Data())
     @State private var confirmation: Confirmation?
     @State private var currentThemeID:String?
+    @State private var pendingEditedThemeID: String?
+    @State private var advancedExpanded = false
     private enum Confirmation: Identifiable {
         case leave, reload, publish, disable, remove(String)
         var id: String { String(describing: self) }
@@ -47,13 +49,15 @@ struct SeasonalManagementView: View {
         }
         .accessibilityIdentifier("seasonal.management")
         .task(id: ProfileAccessIdentity(user: authState.user)) {
-            editing = nil; imports = false; exports = false; confirmation = nil
+            editing = nil; pendingEditedThemeID = nil; imports = false; exports = false; confirmation = nil
             model.reset()
             await model.load(user: authState.user)
         }
         .sheet(item: $editing) { theme in
             SeasonalThemeEditor(theme: theme) { updated in
                 guard owner, model.hasLoaded else { return }
+                model.message = nil
+                pendingEditedThemeID = updated.id
                 model.library.manualThemeID=nil
                 if let index = model.library.themes.firstIndex(where: { $0.id == updated.id }) {
                     model.library.themes[index] = updated
@@ -67,11 +71,13 @@ struct SeasonalManagementView: View {
             case .reload:
                 Button(SeasonalText.value("reloadDiscard", "Neu laden und Änderungen verwerfen"), role: .destructive) { Task { await model.load(user: authState.user) } }
             case .publish:
-                Button(SeasonalText.value("publish", "Zeitplan veröffentlichen")) { Task { await model.save(user: authState.user, publish: true) } }
+                Button(SeasonalText.value("publish", "Zeitplan veröffentlichen")) { Task {
+                    if await model.save(user: authState.user, publish: true) { seasonalStore.preview(nil) }
+                } }
             case .remove(let id):
                 Button(AppStrings.Action.delete, role: .destructive) { if model.library.manualThemeID==id { model.library.manualThemeID=nil };model.library.themes.removeAll { $0.id == id } }
             case .disable:
-                Button(SeasonalText.value("disable", "Für alle ausschalten"), role: .destructive) { Task { await model.save(user: authState.user, publish: true, disable: true) } }
+                Button(SeasonalText.value("disable", "Für alle ausschalten"), role: .destructive) { Task { await disableScene() } }
             case nil: EmptyView()
             }
             Button(AppStrings.Action.cancel, role: .cancel) {}
@@ -104,6 +110,16 @@ struct SeasonalManagementView: View {
         VStack(spacing: AppTheme.sectionSpacing) {
             if model.isSaving { ProgressView(AppStrings.Common.loading).accessibilityIdentifier("seasonal.saving") }
             if model.isLoading { ProgressView(AppStrings.Common.loading).frame(maxWidth:.infinity,minHeight:44) }
+            liveStatus
+            if let preview = seasonalStore.localPreview {
+                ProfileSectionCard(title: SeasonalText.value("localPreviewTitle", "Lokale Vorschau")) {
+                    Text(preview.localizedSceneName + " · " + SeasonalText.value("localPreviewHint", "Nur auf diesem Gerät. Für andere Nutzer unverändert."))
+                        .font(.callout).foregroundStyle(AppTheme.textSecondary)
+                    Button(SeasonalText.value("endLocalPreview", "Vorschau beenden")) { seasonalStore.preview(nil) }
+                        .frame(minHeight: 44).accessibilityIdentifier("seasonal.management.stopPreview")
+                }
+            }
+            if model.hasChanges { draftActions }
             quickScenes
             if let message = model.message {
                 Text(message).font(.callout).fixedSize(horizontal: false, vertical: true)
@@ -113,8 +129,17 @@ struct SeasonalManagementView: View {
                 if model.hasChanges { confirmation = .reload } else { Task { await model.load(user: authState.user) } }
             } label: {
                 Text(model.hasLoaded ? SeasonalText.value("reload", "Neu laden") : AppStrings.Action.retry).frame(minHeight: 44)
-            }.disabled(model.isSaving)
+            }.disabled(model.isSaving).accessibilityIdentifier("seasonal.reload")
             if model.hasLoaded {
+                Button { advancedExpanded.toggle() } label: {
+                    HStack {
+                        Label(SeasonalText.value("advancedControls", "Bibliothek und automatischer Zeitplan"), systemImage: "calendar.badge.clock")
+                        Spacer(minLength: 8)
+                        Image(systemName: advancedExpanded ? "chevron.up" : "chevron.down")
+                    }.font(.headline).foregroundStyle(AppTheme.textPrimary).frame(minHeight: 44)
+                }.buttonStyle(.plain).accessibilityIdentifier("seasonal.advanced")
+                    .accessibilityValue(SeasonalText.value(advancedExpanded ? "expanded" : "collapsed", advancedExpanded ? "Ausgeklappt" : "Eingeklappt"))
+                if advancedExpanded {
                 ProfileSectionCard(title: SeasonalText.value("library", "Bibliothek")) {
                     VStack(alignment: .leading, spacing: 16) {
                         Text(SeasonalText.value("libraryHint", "Themen bleiben für das nächste Jahr erhalten. Speichern ändert nur die Bibliothek; der veröffentlichte Zeitplan bleibt bestehen."))
@@ -125,7 +150,7 @@ struct SeasonalManagementView: View {
                                     Image(systemName: "sparkles").foregroundStyle(AppTheme.accentPrimaryForeground)
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(theme.localizedSceneName).foregroundStyle(AppTheme.textPrimary)
-                                        Text(model.published.manualThemeID == theme.id ? SeasonalText.value("manualOn","Jetzt aktiv · bis zum Ausschalten"):SeasonalText.value(theme.isEnabled ? "scheduled" : "archived", theme.isEnabled ? "Im Zeitplan" : "Gespeichert · ausgeschaltet"))
+                                        Text(SeasonalText.value(theme.isEnabled ? "libraryScheduled" : "libraryStored", theme.isEnabled ? "Bibliothek · für den Zeitplan vorgemerkt" : "In der Bibliothek gespeichert"))
                                             .font(.caption).foregroundStyle(AppTheme.textSecondary)
                                     }
                                     Spacer(minLength: 0)
@@ -160,15 +185,10 @@ struct SeasonalManagementView: View {
                             Label(SeasonalText.value("export", "Bibliothek exportieren"), systemImage: "square.and.arrow.up")
                                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).contentShape(Rectangle())
                         }.disabled(!model.isValid)
-                        Button { Task { await model.save(user: authState.user) } } label: {
-                            Text(SeasonalText.value("save", "Bibliothek speichern")).frame(minHeight: 44)
-                        }
-                            .buttonStyle(.borderedProminent).disabled(!model.hasChanges || !model.isValid)
-                            .accessibilityIdentifier("seasonal.saveLibrary")
                         if !model.isValid { Text(SeasonalText.invalid).foregroundStyle(.red).font(.footnote) }
                     }.disabled(model.isSaving)
                 }
-                ProfileSectionCard(title: SeasonalText.value("publication", "Für die Community")) {
+                ProfileSectionCard(title: SeasonalText.value("schedulePublication", "Automatischer Zeitplan")) {
                     if model.savedLibrary.themes.contains(where:{$0.isEnabled && $0.isComposedScene}) {
                         Text(SeasonalText.value("sceneUpdateHint","Dieses Design benötigt die aktualisierte App. Ältere Versionen zeigen die Oberfläche ohne die neuen Dekorationen."))
                             .font(.footnote).foregroundStyle(AppTheme.textSecondary)
@@ -177,25 +197,92 @@ struct SeasonalManagementView: View {
                         if model.published.manualThemeID != nil { Text(SeasonalText.value("manualCalendarHint","Die manuelle Szene ersetzt den Zeitplan vorübergehend. Ihre gespeicherten Termine bleiben erhalten.")).font(.footnote).foregroundStyle(AppTheme.textSecondary) }
                         Text(SeasonalText.value("publicationHint", "Veröffentlicht werden nur gespeicherte, eingeschaltete Themen. Beginn und Ende gelten in der gewählten Zeitzone. Bei Überschneidung gewinnt die höhere Priorität."))
                             .font(.footnote).foregroundStyle(AppTheme.textSecondary)
-                        Text(SeasonalText.value("publishedCount", "Themen im veröffentlichten Zeitplan") + ": \(model.published.themes.count)")
+                        if model.published.manualThemeID == nil {
+                            Text(SeasonalText.value("publishedCount", "Themen im veröffentlichten Zeitplan") + ": \(model.published.themes.count)")
+                        }
                         ForEach(model.published.themes) { theme in Text(theme.localizedSceneName).font(.callout) }
                         Button { confirmation = .publish } label: {
                             Text(model.published.manualThemeID == nil ? SeasonalText.value("publish", "Zeitplan veröffentlichen"):SeasonalText.value("resumeSchedule","Zum Zeitplan wechseln")).frame(minHeight: 44)
                         }
                             .buttonStyle(.borderedProminent)
-                            .disabled(model.hasChanges || !model.hasPublicationChanges || model.isSaving)
+                            .disabled(model.hasChanges || !model.hasPublicationChanges || model.isSaving || model.publicStateUnconfirmed)
                             .accessibilityIdentifier("seasonal.publish")
                         Button(role: .destructive) { confirmation = .disable } label: {
                             Text(SeasonalText.value("disable", "Für alle ausschalten")).frame(minHeight: 44)
                         }
-                            .disabled(model.published.themes.isEmpty || model.isSaving)
+                            .disabled(model.published.themes.isEmpty || model.isSaving || model.publicStateUnconfirmed)
                         Text(SeasonalText.value("offline", "Bereits geladene Pakete funktionieren offline. Ein vorzeitiges Ausschalten erreicht offline befindliche Geräte erst bei der nächsten Verbindung."))
                             .font(.footnote).foregroundStyle(AppTheme.textSecondary)
                     }
                 }
-                if model.isSaving { ProgressView(AppStrings.Common.loading) }
+                }
             }
         }
+    }
+    private var activePublishedTheme: SeasonalTheme? {
+        model.published.themes.first { $0.id == currentThemeID }
+    }
+    private var liveStatusTitle: String {
+        if model.isLoading { return SeasonalText.value("checkingStatus", "Status wird geprüft …") }
+        if !model.hasLoaded || model.publicStateUnconfirmed { return SeasonalText.value("liveUnknown", "Status nicht bestätigt") }
+        if let theme = activePublishedTheme { return theme.localizedSceneName }
+        return SeasonalText.value(model.published.themes.isEmpty ? "liveOff" : "liveScheduleIdle",
+                                  model.published.themes.isEmpty ? "Ausgeschaltet" : "Zeitplan veröffentlicht · jetzt keine aktive Szene")
+    }
+    private var liveStatus: some View {
+        ProfileSectionCard(title: SeasonalText.value("liveStatusTitle", "Für die Nutzer der App")) {
+            Label(liveStatusTitle, systemImage: !model.hasLoaded || model.publicStateUnconfirmed ? "questionmark.circle" : activePublishedTheme == nil ? "power" : "checkmark.circle.fill")
+                .font(.headline).foregroundStyle(AppTheme.textPrimary).fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("seasonal.liveStatus.title")
+            if model.publicStateUnconfirmed {
+                Text(SeasonalText.value("refreshUnknownStatus", "Die Änderung wurde nicht bestätigt. Laden Sie den Status neu, bevor Sie erneut umschalten."))
+                    .font(.callout).foregroundStyle(AppTheme.textSecondary)
+            } else if activePublishedTheme != nil {
+                Text(model.published.manualThemeID != nil ? SeasonalText.value("manualOn", "Jetzt aktiv · bis zum Ausschalten") : SeasonalText.value("calendarOn", "Jetzt laut Zeitplan aktiv"))
+                    .font(.callout).foregroundStyle(AppTheme.textSecondary)
+            }
+            if !model.isLoading && (!model.hasLoaded || model.publicStateUnconfirmed) {
+                Button(SeasonalText.value("reloadState", "Status neu laden")) {
+                    if model.hasChanges { confirmation = .reload }
+                    else { Task { await model.load(user: authState.user) } }
+                }.frame(minHeight: 44).disabled(model.isSaving)
+                    .accessibilityIdentifier("seasonal.status.reload")
+            }
+            Text(SeasonalText.value("connectionDeliveryHint", "Änderungen erreichen verbundene Geräte sofort, Geräte ohne Internet nach der nächsten Verbindung."))
+                .font(.footnote).foregroundStyle(AppTheme.textSecondary)
+        }
+    }
+    private var draftActions: some View {
+        ProfileSectionCard(title: SeasonalText.value("pendingChanges", "Nicht gespeicherte Änderungen")) {
+            Text(SeasonalText.value("draftNotLiveHint", "Diese Änderungen sind für andere Nutzer noch nicht sichtbar."))
+                .font(.callout).foregroundStyle(AppTheme.textSecondary)
+            if let theme = model.library.themes.first(where: { $0.id == pendingEditedThemeID }) {
+                Text(theme.localizedSceneName).font(.headline).foregroundStyle(AppTheme.textPrimary)
+                Button {
+                    Task {
+                        if await model.saveAndActivate(theme, user: authState.user) {
+                            seasonalStore.preview(nil); pendingEditedThemeID = nil
+                        }
+                    }
+                } label: {
+                    Text(SeasonalText.value("saveAndEnable", "Speichern und für alle einschalten"))
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }.buttonStyle(.borderedProminent)
+                    .disabled(!model.isValid || model.publicStateUnconfirmed)
+                    .accessibilityIdentifier("seasonal.saveAndActivate")
+            }
+            Button { Task { await model.save(user: authState.user) } } label: {
+                Text(SeasonalText.value("saveLibraryOnly", "Nur in der Bibliothek speichern"))
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }.buttonStyle(.bordered).disabled(!model.isValid)
+                .accessibilityIdentifier("seasonal.saveLibrary")
+        }.disabled(model.isSaving || model.isLoading || !model.hasLoaded)
+    }
+    private func disableScene() async {
+        if await model.save(user: authState.user, publish: true, disable: true) { seasonalStore.preview(nil) }
+    }
+    private func activateScene(_ scene: SeasonalTheme) async {
+        if await model.activate(scene, user: authState.user) { seasonalStore.preview(nil) }
     }
     private var quickOptions:[SeasonalTheme] {
         SeasonalPresetKind.quickScenes(defaults:presets,saved:model.savedLibrary.themes,published:model.published)
@@ -212,16 +299,17 @@ struct SeasonalManagementView: View {
     private var quickScenes:some View {
         ProfileSectionCard(title:SeasonalText.value("quickScenes","Szene auswählen")) {
             VStack(alignment:.leading,spacing:14) {
-                Text(SeasonalText.value("oneSceneHint","Eine Szene für die gesamte App. Einschalten ersetzt die bisherige Szene. Einstellungen und Zeitpläne bleiben in der Bibliothek erhalten."))
+                Text(SeasonalText.value("instantSwitchHint", "Einschalten gilt sofort für alle. Eine zusätzliche Veröffentlichung ist nicht nötig."))
                     .font(.footnote).foregroundStyle(AppTheme.textSecondary)
-                if !model.published.themes.isEmpty {
-                    Button(role:.destructive) { Task { await model.save(user:authState.user,publish:true,disable:true) } } label: {
+                if !model.published.themes.isEmpty && !model.publicStateUnconfirmed {
+                    Button(role:.destructive) { Task { await disableScene() } } label: {
                         Label(SeasonalText.value("disable","Für alle ausschalten"),systemImage:"power").frame(minHeight:44)
                     }.accessibilityIdentifier("seasonal.quick.off")
                 }
                 ForEach(quickOptions) { preset in
                     let scene=preset.preparedForCurrentRenderer
-                    let active=currentThemeID==scene.id
+                    let confirmed = model.hasLoaded && !model.publicStateUnconfirmed
+                    let active = confirmed && currentThemeID == scene.id
                     let update=needsLiveUpdate(scene)
                     VStack(alignment:.leading,spacing:10) {
                         HStack(spacing:12) {
@@ -229,6 +317,10 @@ struct SeasonalManagementView: View {
                                 .font(.title2).foregroundStyle(AppTheme.accentPrimaryForeground).frame(width:32)
                             VStack(alignment:.leading,spacing:3) {
                                 Text(scene.localizedSceneName).font(.headline).foregroundStyle(AppTheme.textPrimary)
+                                Label(active ? SeasonalText.value("liveEnabled", "Für alle eingeschaltet") : SeasonalText.value(!confirmed ? "liveUnknown" : "liveNotActive", !confirmed ? "Status nicht bestätigt" : "Jetzt nicht aktiv"),
+                                      systemImage: active ? "checkmark.circle.fill" : "circle")
+                                    .font(.caption.weight(.semibold)).foregroundStyle(active ? AppTheme.accentPrimaryForeground : AppTheme.textSecondary)
+                                    .accessibilityIdentifier("seasonal.quick.state." + scene.quickControlID)
                                 if active { Text(model.published.manualThemeID != nil ? SeasonalText.value("manualOn","Jetzt aktiv · bis zum Ausschalten"):SeasonalText.value("calendarOn","Jetzt laut Zeitplan aktiv")).font(.caption).foregroundStyle(AppTheme.textSecondary) }
                             }
                         }
@@ -237,9 +329,9 @@ struct SeasonalManagementView: View {
                             Button { guard owner else { return };seasonalStore.preview(scene);dismiss() } label: {
                                 Label(SeasonalText.value("quickPreview","Vorschau"),systemImage:"eye").font(.subheadline.weight(.semibold)).frame(maxWidth:.infinity,minHeight:44)
                             }.buttonStyle(.bordered).disabled(model.hasChanges).accessibilityLabel(SeasonalText.value("quickPreview","Vorschau")+": "+scene.localizedSceneName).accessibilityIdentifier("seasonal.quick.preview."+scene.quickControlID)
-                            Button { Task { if active && !update { await model.save(user:authState.user,publish:true,disable:true) } else { await model.activate(scene,user:authState.user) } } } label: {
-                                Text(active && update ? SeasonalText.value("updateScene","Aktualisieren"):SeasonalText.value(active ? "turnOff":"turnOn",active ? "Aus":"Ein")).frame(maxWidth:.infinity,minHeight:44)
-                            }.buttonStyle(.borderedProminent).disabled(!model.hasLoaded || (model.hasChanges && (!active || update))).accessibilityIdentifier("seasonal.quick."+scene.quickControlID)
+                            Button { Task { if active && !update { await disableScene() } else { await activateScene(scene) } } } label: {
+                                Text(active && update ? SeasonalText.value("updateScene","Aktualisieren"):SeasonalText.value(active ? "turnOff" : "enableForEveryone", active ? "Ausschalten" : "Für alle einschalten")).frame(maxWidth:.infinity,minHeight:44)
+                            }.buttonStyle(.borderedProminent).disabled(!model.hasLoaded || model.isLoading || model.publicStateUnconfirmed || (model.hasChanges && (!active || update))).accessibilityIdentifier("seasonal.quick."+scene.quickControlID)
                             Button { editing=model.library.themes.first{$0.id==scene.id} ?? scene } label: { Image(systemName:"slider.horizontal.3").frame(width:44,height:44) }
                                 .accessibilityLabel(SeasonalText.value("settings","Einstellungen")+": "+scene.localizedSceneName)
                                 .accessibilityIdentifier("seasonal.quick.edit."+scene.quickControlID)

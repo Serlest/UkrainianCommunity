@@ -1,0 +1,73 @@
+{
+  "date": "2026-10-29",
+  "build": "1.2.1 (149)",
+  "request": "Make seasonal enable/disable, preview, library saving and publication understandable; verify on device after user returns",
+  "implementation": [
+    "Verified public status at top: off, active scene, scheduled-but-not-active, loading, or unconfirmed write outcome",
+    "Every scene has an explicit active/inactive state; immediate switching replaces the previous scene without a separate publication step",
+    "Save and enable an edited scene in one explicit operation; private-only save remains available",
+    "Library and automatic schedule are collapsed into a separate advanced block; editor completion is labelled Done rather than implying publication",
+    "Local preview is clearly separate and ends only after confirmed live activation/disable succeeds",
+    "Failed public write keeps the last verified snapshot but marks current public state unknown; status refresh is immediately available",
+    "Owner/revision checks, private future schedules and archive/import/export remain intact"
+  ],
+  "verification": {
+    "models149BeforeMaps": {
+      "total": 1095,
+      "passed": 1052,
+      "failed": 0,
+      "skipped": 43,
+      "bundle": "build/loading-audit-20261029/AllModels149.xcresult"
+    },
+    "seasonalControls149": {
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "bundle": "build/loading-audit-20261029/SeasonalControls149Verified.xcresult",
+      "screenshots": "build/loading-audit-20261029/seasonal-controls149-contact.jpg"
+    },
+    "initialUIIssues": {
+      "bundle": "build/loading-audit-20261029/SeasonalControls149.xcresult",
+      "explanation": "Container accessibility identifiers replaced nested action/label IDs; removed the inherited IDs and gave the advanced header its own button. Repeated assertions unchanged and passed."
+    },
+    "finalSourceFollowup": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "bundle": "build/loading-audit-20261029/SeasonalControls149Final.xcresult",
+      "scenarios": [
+        "One-action draft save and live enable, verified enabled/off labels",
+        "Local preview remains private and ends after confirmed live switch or disable",
+        "German dark maximum text controls remain reachable",
+        "Failed public write displays unknown state and top-level refresh restores confirmed state"
+      ]
+    },
+    "models149Complete": {
+      "total": 1097,
+      "passed": 1054,
+      "failed": 0,
+      "skipped": 43,
+      "bundle": "build/loading-audit-20261029/AllModels149Complete.xcresult"
+    },
+    "uniqueSeasonalControlScenarios": 9,
+    "signedRelease149": {
+      "build": "1.2.1 (149)",
+      "buildSucceeded": true,
+      "signatureVerified": true,
+      "buildLog": "build/loading-audit-20261029/device149-delivery-build.log",
+      "app": "build/AuditDeviceDerivedData/Build/Products/Release-iphoneos/UkrainianCommunity.app",
+      "installed": false,
+      "reason": "User took phone; no installation or further physical actions while away"
+    }
+  },
+  "boundaries": [
+    "Only in-memory simulator switching/publication performed",
+    "No production scene activated, disabled, saved or published during this audit",
+    "No TestFlight upload",
+    "Physical device runs stopped when user needed to take phone; installed version remains 147",
+    "Local signed 149 installation and actual-device acceptance remain pending user return"
+  ],
+  "status": "Implementation, model tests, simulator UI and signed Release compilation complete; physical acceptance pending user return"
+}

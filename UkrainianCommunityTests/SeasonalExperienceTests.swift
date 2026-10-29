@@ -47,6 +47,50 @@ import UIKit
         await sut.activate(sut.savedLibrary.themes[1],user:owner)
         #expect(sut.published.manualThemeID==sut.savedLibrary.themes[1].id)
     }
+    @Test func editedSceneSavesAndEnablesInOneActionWithoutDestroyingCalendar() async throws {
+        let repository = SeasonalExperienceRepository()
+        let model = SeasonalManagementModel(repository: repository), owner = MockContentBuilder.ownerUser()
+        await model.load(user: owner)
+        let halloween = SeasonalTheme.halloweenScene()
+        #expect(await model.activate(halloween, user: owner))
+        var scheduled = SeasonalTheme.christmas(); scheduled.isEnabled = true
+        model.library.themes.append(scheduled)
+        var edited = model.library.themes[0]; edited.name += " edited"
+        model.library.themes[0] = edited
+        #expect(model.hasChanges)
+        #expect(await model.saveAndActivate(edited, user: owner))
+        #expect(!model.hasChanges && !model.publicStateUnconfirmed)
+        #expect(model.published.themes.count == 1 && model.published.manualThemeID == edited.id)
+        #expect(model.published.themes[0].name == edited.name)
+        #expect(model.savedLibrary.themes.first { $0.id == scheduled.id }?.isEnabled == true)
+    }
+    @Test func failedPublicChangeIsUnknownUntilServerReadConfirmsState() async {
+        let repository = SeasonalExperienceRepository()
+        let model = SeasonalManagementModel(repository: repository), owner = MockContentBuilder.ownerUser()
+        await model.load(user: owner)
+        let original = SeasonalTheme.halloweenScene()
+        #expect(await model.activate(original, user: owner))
+        repository.rejectPublic = true
+        #expect(!(await model.activate(.christmas(), user: owner)))
+        #expect(model.publicStateUnconfirmed)
+        #expect(model.published.manualThemeID == original.id) // Last verified snapshot only.
+        await model.load(user: owner)
+        #expect(!model.publicStateUnconfirmed && model.published.manualThemeID == original.id)
+        repository.rejectPublic = false
+        #expect(await model.activate(.christmas(), user: owner))
+        #expect(!model.publicStateUnconfirmed)
+    }
+    @Test func failedPrivateSaveCannotClaimAlreadyActiveSceneWasUpdated() async {
+        let repository = SeasonalExperienceRepository()
+        let model = SeasonalManagementModel(repository: repository), owner = MockContentBuilder.ownerUser()
+        await model.load(user: owner)
+        #expect(await model.activate(.halloweenScene(), user: owner))
+        let original = model.published
+        var edited = model.library.themes[0]; edited.name += " unsaved"
+        model.library.themes[0] = edited; repository.rejectLibrary = true
+        #expect(!(await model.saveAndActivate(edited, user: owner)))
+        #expect(model.hasChanges && model.published == original && !model.publicStateUnconfirmed)
+    }
     @Test func loadingHasABoundedFailureAndCanBeRetried() async {
         let repository=SeasonalExperienceRepository()
         repository.suspendedReads=true
@@ -163,10 +207,11 @@ import UIKit
 }
 
 @MainActor private final class SeasonalExperienceRepository:SeasonalRepositoryProtocol {
-    var docs:[String:SeasonalDocument]=[:];var rejectPublic=false;var suspendedReads=false
+    var docs:[String:SeasonalDocument]=[:];var rejectPublic=false;var rejectLibrary=false;var suspendedReads=false
     func fetch(path:String) async throws -> SeasonalDocument { if suspendedReads { try await Task.sleep(for:.seconds(60)) };return docs[path] ?? SeasonalDocument() }
     func save(_ library:SeasonalLibrary,path:String,expectedRevision:String?,userID:String) async throws -> SeasonalDocument {
         if rejectPublic && path==SeasonalRepository.presentationPath { throw SeasonalError.unavailable }
+        if rejectLibrary && path==SeasonalRepository.libraryPath { throw SeasonalError.unavailable }
         guard docs[path]?.revision==expectedRevision else { throw SeasonalError.conflict }
         let document=SeasonalDocument(library:try library.validated(),revision:UUID().uuidString);docs[path]=document;return document
     }

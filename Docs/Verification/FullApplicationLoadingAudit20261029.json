@@ -304,6 +304,15 @@
       "skipped": 43,
       "bundle": "build/loading-audit-20261029/AllModels149Complete.xcresult",
       "interpretation": "Includes bounded address lookup retry/cancellation tests; SDK/emulator/physical-only exclusions remain explicitly skipped."
+    },
+    "signedRelease149": {
+      "build": "1.2.1 (149)",
+      "buildSucceeded": true,
+      "signatureVerified": true,
+      "buildLog": "build/loading-audit-20261029/device149-delivery-build.log",
+      "app": "build/AuditDeviceDerivedData/Build/Products/Release-iphoneos/UkrainianCommunity.app",
+      "installed": false,
+      "reason": "User took phone; no installation or further physical actions while away"
     }
   },
   "productionEvidence": {

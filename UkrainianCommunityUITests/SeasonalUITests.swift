@@ -2,23 +2,88 @@ import XCTest
 import UIKit
 
 @MainActor final class SeasonalUITests: XCTestCase {
-    private func launch(scope: String, appearance: String = "light", language: String = "uk", maximum: Bool = false, effects:Bool = true) -> XCUIApplication {
+    override func setUpWithError() throws { continueAfterFailure = false }
+    private func launch(scope: String, appearance: String = "light", language: String = "uk", maximum: Bool = false, effects:Bool = true, rejectPublic: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
         app.launchEnvironment = ["UITestSeasonal":"1", "UITestSeasonalScope":scope == "custom" ? "home" : scope, "UITestSeasonalCustomArtwork":scope == "custom" ? "1" : "0",
             "UITestForceOwnerSession":"1", "UITestAppLanguage":language,
-            "UITestAppAppearance":appearance, "UITestSeasonalMaximum":maximum ? "1":"0", "UITestSeasonalEffects":effects ? "1":"0"]
+            "UITestAppAppearance":appearance, "UITestSeasonalMaximum":maximum ? "1":"0", "UITestSeasonalEffects":effects ? "1":"0", "UITestSeasonalRejectPublic": rejectPublic ? "1" : "0"]
         app.launch(); return app
     }
     private func shot(_ name: String) {
         let attachment=XCTAttachment(screenshot:XCUIApplication().screenshot());attachment.name=name;attachment.lifetime = .keepAlways;add(attachment)
     }
-    private func reveal(_ item:XCUIElement,_ app:XCUIApplication) {
-        for _ in 0..<16 where !item.exists || !item.isHittable { app.swipeUp() }
+    private func reveal(_ item: XCUIElement, _ app: XCUIApplication) {
+        for _ in 0..<25 {
+            if item.exists && item.isHittable && item.frame.midY > 110 && item.frame.midY < app.frame.height - 80 { return }
+            if item.exists && item.frame.midY < 110 { app.swipeDown() } else { app.swipeUp() }
+        }
         XCTAssertTrue(item.exists && item.isHittable)
     }
+    private func openAdvanced(_ app: XCUIApplication) {
+        let control = app.buttons["seasonal.advanced"].firstMatch
+        XCTAssertTrue(control.waitForExistence(timeout: 15)); reveal(control, app); control.tap()
+    }
+    func testLiveStateAndOneActionForEditedSceneStayExplicit() throws {
+        let app = launch(scope: "management")
+        let status = app.staticTexts["seasonal.liveStatus.title"]
+        XCTAssertTrue(status.waitForExistence(timeout: 15)); XCTAssertEqual(status.label, "Вимкнено")
+        XCTAssertFalse(app.buttons["seasonal.publish"].exists, "Immediate switching must not require the advanced schedule")
+        let toggle = app.buttons["seasonal.quick.uac.preset.christmas"]
+        reveal(toggle, app); toggle.tap()
+        let state = app.staticTexts["seasonal.quick.state.uac.preset.christmas"]
+        XCTAssertTrue(state.waitForExistence(timeout: 10)); XCTAssertEqual(state.label, "Увімкнено для всіх")
+        let edit = app.buttons["seasonal.quick.edit.uac.preset.christmas"]; reveal(edit, app); edit.tap()
+        let name = app.textFields["seasonal.editor.name"]; reveal(name, app); name.tap(); name.typeText(" REVIEWED\n")
+        app.buttons["seasonal.editor.apply"].tap()
+        let apply = app.buttons["seasonal.saveAndActivate"]
+        XCTAssertTrue(apply.waitForExistence(timeout: 10)); reveal(apply, app); XCTAssertTrue(apply.isEnabled); apply.tap()
+        XCTAssertTrue(apply.waitForNonExistence(timeout: 10))
+        XCTAssertEqual(state.label, "Увімкнено для всіх")
+        reveal(status, app); shot("SeasonalControls-UK-Verified-Enabled")
+        let off = app.buttons["seasonal.quick.off"]; reveal(off, app); off.tap()
+        XCTAssertTrue(off.waitForNonExistence(timeout: 10)); XCTAssertEqual(status.label, "Вимкнено")
+        XCTAssertEqual(state.label, "Зараз неактивна")
+        reveal(status, app); shot("SeasonalControls-UK-Verified-Off")
+        app.terminate()
+    }
+    func testLocalPreviewNeverMasqueradesAsPublicActivationAndClearsOnSwitch() throws {
+        let app = launch(scope: "management")
+        let preview = app.buttons["seasonal.quick.preview.uac.preset.halloween"]
+        XCTAssertTrue(preview.waitForExistence(timeout: 15)); reveal(preview, app); preview.tap()
+        let stop = app.buttons["seasonal.management.stopPreview"]
+        XCTAssertTrue(stop.waitForExistence(timeout: 10))
+        let status = app.staticTexts["seasonal.liveStatus.title"]
+        XCTAssertEqual(status.label, "Вимкнено", "Local preview must not claim the scene is published")
+        let christmas = app.buttons["seasonal.quick.uac.preset.christmas"]
+        reveal(christmas, app); christmas.tap()
+        XCTAssertTrue(stop.waitForNonExistence(timeout: 10), "Confirmed live activation must stop the old local preview")
+        reveal(preview, app); preview.tap(); XCTAssertTrue(stop.waitForExistence(timeout: 10))
+        let off = app.buttons["seasonal.quick.off"]; reveal(off, app); off.tap()
+        XCTAssertTrue(stop.waitForNonExistence(timeout: 10)); XCTAssertEqual(status.label, "Вимкнено")
+        reveal(status, app); shot("SeasonalControls-Local-Preview-Cleared-On-Disable")
+        app.terminate()
+    }
+
+    func testUnconfirmedPublicWriteNeverLooksSwitchedOn() throws {
+        let app = launch(scope: "management", rejectPublic: true)
+        let toggle = app.buttons["seasonal.quick.uac.preset.halloween"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 15)); reveal(toggle, app); toggle.tap()
+        let status = app.staticTexts["seasonal.liveStatus.title"]
+        let unknown = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Стан не підтверджено"), object: status)
+        XCTAssertEqual(XCTWaiter.wait(for: [unknown], timeout: 10), .completed)
+        XCTAssertFalse(toggle.isEnabled)
+        reveal(status, app); shot("SeasonalControls-UK-Unconfirmed-Write")
+        let reload = app.buttons["seasonal.status.reload"]; reveal(reload, app); reload.tap()
+        let off = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Вимкнено"), object: status)
+        XCTAssertEqual(XCTWaiter.wait(for: [off], timeout: 10), .completed)
+        XCTAssertTrue(toggle.isEnabled)
+        app.terminate()
+    }
+
     func testQuickManagementAtMaximumGermanTextKeepsControlsReachable() throws {
-        let app=launch(scope:"management",language:"de",maximum:true)
+        let app=launch(scope:"management",appearance:"dark",language:"de",maximum:true)
         let preview=app.buttons["seasonal.quick.preview.uac.preset.halloween"]
         XCTAssertTrue(preview.waitForExistence(timeout:15));reveal(preview,app)
         XCTAssertGreaterThanOrEqual(preview.frame.height,44)
@@ -299,7 +364,7 @@ import UIKit
         app.terminate()
     }
     func testEnabledThemePublishesOnlyAfterExplicitConfirmation() throws {
-        let app=launch(scope:"management")
+        let app=launch(scope:"management"); openAdvanced(app)
         let add=app.buttons["seasonal.library.addScene"]
         XCTAssertTrue(add.waitForExistence(timeout:15));reveal(add,app);add.tap();app.buttons["GTA VI · Vice Nights"].tap()
         let toggle=app.switches["Додати до розкладу"]
@@ -310,10 +375,10 @@ import UIKit
         XCTAssertEqual(toggle.value as? String,"1")
         app.buttons["seasonal.editor.apply"].tap()
         let save=app.buttons["seasonal.saveLibrary"]
-        for _ in 0..<8 where !save.isHittable { app.swipeUp() }
+        reveal(save, app)
         XCTAssertTrue(save.isEnabled);save.tap()
         let publish=app.buttons["seasonal.publish"]
-        for _ in 0..<8 where !publish.isHittable { app.swipeUp() }
+        reveal(publish, app)
         XCTAssertTrue(publish.isEnabled);publish.tap()
         // The sheet's action uses the same explicit label as the originating button.
         let confirm=app.sheets.buttons["Опублікувати розклад"]
@@ -326,19 +391,19 @@ import UIKit
     }
     func testLibrarySaveAndPublishAreSeparate() throws {
         let app=launch(scope:"management")
-        XCTAssertTrue(app.otherElements["seasonal.management"].waitForExistence(timeout:15))
+        XCTAssertTrue(app.otherElements["seasonal.management"].waitForExistence(timeout:15)); openAdvanced(app)
         let add=app.buttons["seasonal.library.addScene"]
         for _ in 0..<8 where !add.isHittable { app.swipeUp() }
         XCTAssertTrue(add.waitForExistence(timeout:10));add.tap();app.buttons["Хелловін"].tap()
         let apply=app.buttons["seasonal.editor.apply"]
         XCTAssertTrue(apply.waitForExistence(timeout:10));apply.tap()
         let save=app.buttons["seasonal.saveLibrary"]
-        for _ in 0..<8 where !save.isHittable { app.swipeUp() }
+        reveal(save, app)
         XCTAssertTrue(save.isEnabled);save.tap()
         let status=app.staticTexts["seasonal.status"]
         XCTAssertTrue(status.waitForExistence(timeout:10));shot("SeasonalLibrary-Saved-NotPublished")
         let publish=app.buttons["seasonal.publish"]
-        for _ in 0..<6 where !publish.isHittable { app.swipeUp() }
+        reveal(publish, app)
         // The newly added Halloween theme is disabled, so no public presentation changed.
         XCTAssertFalse(publish.isEnabled)
         app.terminate()

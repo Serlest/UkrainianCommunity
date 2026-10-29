@@ -202,7 +202,7 @@ struct SeasonalThemeEditor: View {
                     Button(AppStrings.Action.cancel) { nameFocused = false; if draft != original { confirmDiscard = true } else { dismiss() } }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(SeasonalText.value("apply", "Übernehmen")) { nameFocused = false; onApply(draft); dismiss() }
+                    Button(SeasonalText.value("finishEditing", "Fertig")) { nameFocused = false; onApply(draft); dismiss() }
                         .disabled(!valid).accessibilityIdentifier("seasonal.editor.apply")
                 }
             }

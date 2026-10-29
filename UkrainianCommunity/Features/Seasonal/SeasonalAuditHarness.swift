@@ -6,6 +6,7 @@ import UIKit
     private var documents: [String: SeasonalDocument] = [:]
     func fetch(path: String) async throws -> SeasonalDocument { documents[path] ?? SeasonalDocument() }
     func save(_ library: SeasonalLibrary, path: String, expectedRevision: String?, userID: String) async throws -> SeasonalDocument {
+        if path == SeasonalRepository.presentationPath, ProcessInfo.processInfo.environment["UITestSeasonalRejectPublic"] == "1" { throw SeasonalError.unavailable }
         guard documents[path]?.revision == expectedRevision else { throw SeasonalError.conflict }
         let result = SeasonalDocument(library: try library.validated(), revision: UUID().uuidString)
         documents[path] = result; return result

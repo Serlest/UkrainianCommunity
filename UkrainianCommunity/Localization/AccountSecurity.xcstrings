@@ -198,6 +198,28 @@
           }
         }
       }
+    },
+    "account_security.passkey.not_added": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ключ доступу ще не створено."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch kein Passkey eingerichtet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No passkey has been created yet."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
