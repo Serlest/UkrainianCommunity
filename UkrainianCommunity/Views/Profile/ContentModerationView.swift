@@ -123,6 +123,11 @@ final class ContentModerationModel: ObservableObject {
         hasMore = false; hasLoaded = false; isLoading = false; error = nil; failedLoadWasMore = false
     }
 
+    func loadIfNeeded(type: String, historyMode: Bool, access: ProfileAccessIdentity?) async {
+        guard !hasLoaded || !matches(type: type, historyMode: historyMode, access: access) else { return }
+        await load(type: type, historyMode: historyMode, reset: true, access: access)
+    }
+
     func load(type: String, historyMode: Bool, reset: Bool, access: ProfileAccessIdentity? = nil) async {
         let requested = ContentModerationLoadScope(type: type, history: historyMode, access: access)
         if isLoading && scope == requested && (loadingFirstPage || !reset) { return }
@@ -136,7 +141,9 @@ final class ContentModerationModel: ObservableObject {
         isLoading = true; loadingFirstPage = reset; error = nil
         defer { if generation == expected { isLoading = false; loadingFirstPage = false } }
         do {
-            let response = try await client.read(.init(action: historyMode ? "history" : "list", contentType: type, limit: 30, cursor: requestedCursor, includeCounts: requestedCursor == nil))
+            let response = try await RefreshRequest.run { [client] in
+                try await client.read(.init(action: historyMode ? "history" : "list", contentType: type, limit: 30, cursor: requestedCursor, includeCounts: requestedCursor == nil))
+            }
             guard generation == expected, scope == requested, !Task.isCancelled else { return }
             if reset { items = []; history = [] }
             var itemIDs = Set(items.map(\.id)); var historyIDs = Set(history.map(\.id))
@@ -235,7 +242,7 @@ struct ContentModerationView: View {
             Color.clear.frame(height: 96)
         }
         .task(id: ContentModerationLoadScope(type: contentType, history: showsHistory, access: access)) {
-            if canAccess { await reload() } else { model.reset() }
+            if canAccess { await model.loadIfNeeded(type: contentType, historyMode: showsHistory, access: access) } else { model.reset() }
         }
         .onChange(of: access) { _, _ in selected = nil }
         .appRefreshable { await reload() }

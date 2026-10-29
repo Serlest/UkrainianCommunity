@@ -73,7 +73,8 @@ final class ModerationQueueViewModel: ObservableObject {
     private let organizationID: String?
     private let requestedOrganizationID: String?
     private var loadTask: Task<Void, Never>?
-    private var hasLoaded = false
+    @Published private(set) var hasLoaded = false
+    private var hasLoadedHistory = false
     private var allowedSections: Set<AppSection> = []
     private var pendingContentOperationIDs: [String: String] = [:]
 
@@ -111,6 +112,7 @@ final class ModerationQueueViewModel: ObservableObject {
         if allowedSections != normalizedSections {
             generation += 1
             history = []
+            hasLoadedHistory = false
             historyCursor = nil
             historyError = nil
             isLoadingHistory = false
@@ -118,6 +120,7 @@ final class ModerationQueueViewModel: ObservableObject {
             processingItemIDs = []
             allowedSections = normalizedSections
             loadTask?.cancel()
+            loadTask = nil
             items = []
             error = nil
             if !normalizedSections.contains(.organizations) {
@@ -162,6 +165,7 @@ final class ModerationQueueViewModel: ObservableObject {
             }
 
             items.removeAll { $0.id == item.id }
+            hasLoadedHistory = false
             actionError = nil
             NotificationCenter.default.post(name: .moderationStatusDidChange, object: nil)
             return true
@@ -188,6 +192,7 @@ final class ModerationQueueViewModel: ObservableObject {
             try await organizationRepository.reviewOrganizationRequest(id: item.contentID, reviewerID: reviewerID,
                 expectedRevision: item.expectedRevision, decision: .requestRevision, message: message)
             items.removeAll { $0.id == item.id }
+            hasLoadedHistory = false
             actionError = nil
             AppContentChangeBus.postOrganizationsChanged(organizationID: item.contentID)
             NotificationCenter.default.post(name: .moderationStatusDidChange, object: nil)
@@ -215,6 +220,7 @@ final class ModerationQueueViewModel: ObservableObject {
             try await organizationRepository.reviewOrganizationRequest(id: item.contentID, reviewerID: reviewerID,
                 expectedRevision: item.expectedRevision, decision: .reject, message: reason)
             items.removeAll { $0.id == item.id }
+            hasLoadedHistory = false
             actionError = nil
             AppContentChangeBus.postOrganizationsChanged(organizationID: item.contentID)
             NotificationCenter.default.post(name: .moderationStatusDidChange, object: nil)
@@ -229,7 +235,9 @@ final class ModerationQueueViewModel: ObservableObject {
 
     private func startLoad(force: Bool) async {
         guard force || !hasLoaded else { return }
+        if !force, let loadTask { await loadTask.value; return }
         generation += 1
+        let expected = generation
         isLoadingMore = false
         requestCursor = nil
         hasMoreRequests = false
@@ -240,6 +248,7 @@ final class ModerationQueueViewModel: ObservableObject {
         }
         loadTask = task
         await task.value
+        if generation == expected { loadTask = nil }
     }
 
     private func performLoad() async {
@@ -251,13 +260,13 @@ final class ModerationQueueViewModel: ObservableObject {
         do {
             let allItems = try await RefreshRequest.run { [self] in try await loadAllowedItems() }
 
-            guard !Task.isCancelled else { return }
+            guard generation == expected, !Task.isCancelled else { return }
             items = allItems
             error = nil
             hasLoaded = true
         } catch is CancellationError {
         } catch {
-            guard !Task.isCancelled else { return }
+            guard generation == expected, !Task.isCancelled else { return }
             let appError = FirebaseReadErrorMapper.map(error)
             if requestedOrganizationID != nil, appError == .notFound || appError == .permissionDenied {
                 items = []
@@ -333,6 +342,11 @@ final class ModerationQueueViewModel: ObservableObject {
         } catch { if generation == expected { self.error = FirebaseReadErrorMapper.map(error) } }
     }
 
+    func loadHistoryIfNeeded() async {
+        guard !hasLoadedHistory else { return }
+        await loadHistory(reset: true)
+    }
+
     func loadHistory(reset: Bool = false) async {
         guard allowedSections.contains(.organizations), !isLoadingHistory else { return }
         if !reset, !history.isEmpty, !hasMoreHistory { return }
@@ -340,13 +354,17 @@ final class ModerationQueueViewModel: ObservableObject {
         isLoadingHistory = true
         defer { if generation == expected { isLoadingHistory = false } }
         do {
-            let page = try await organizationRepository.fetchOrganizationReviewHistory(limit: 30, after: reset ? nil : historyCursor)
+            let requestedCursor = reset ? nil : historyCursor
+            let page = try await RefreshRequest.run { [organizationRepository] in
+                try await organizationRepository.fetchOrganizationReviewHistory(limit: 30, after: requestedCursor)
+            }
             guard generation == expected, !Task.isCancelled else { return }
             let ids = reset ? Set<String>() : Set(history.map(\.id))
             history = (reset ? [] : history) + page.items.filter { !ids.contains($0.id) }
             historyCursor = page.nextCursor
             hasMoreHistory = page.nextCursor != nil
             historyError = nil
+            hasLoadedHistory = true
         } catch { if generation == expected { historyError = FirebaseReadErrorMapper.map(error) } }
     }
 
@@ -514,7 +532,7 @@ struct ModerationToolsView: View {
             }
             if showsHistory && canAccessModeration { historyContent } else { moderationContent }
         }
-        .task(id: showsHistory) { if showsHistory { await viewModel.loadHistory(reset: true) } }
+        .task(id: showsHistory) { if showsHistory { await viewModel.loadHistoryIfNeeded() } }
         .appRefreshable {
             guard viewModel.processingItemIDs.isEmpty else { return }
             if showsHistory { await viewModel.loadHistory(reset: true) } else { await viewModel.refresh() }
@@ -601,8 +619,9 @@ struct ModerationToolsView: View {
                     title: screenTitle,
                     message: AppStrings.Moderation.loadPermissionError
                 )
-            } else if viewModel.isLoading && viewModel.items.isEmpty {
+            } else if (viewModel.isLoading || !viewModel.hasLoaded && viewModel.error == nil) && viewModel.items.isEmpty {
                 LoadingStateCard(title: AppStrings.Profile.reviewPendingContent)
+                    .accessibilityIdentifier("organization.requests.loading")
             } else if let error = viewModel.error, viewModel.items.isEmpty {
                 UnifiedEmptyStateCard(
                     systemImage: "exclamationmark.triangle",
@@ -613,12 +632,14 @@ struct ModerationToolsView: View {
                         viewModel.reload()
                     }
                 }
+                .accessibilityIdentifier("organization.requests.error")
             } else if viewModel.items.isEmpty {
                 UnifiedEmptyStateCard(
                     systemImage: "checkmark.shield",
                     title: screenTitle,
                     message: emptyMessage
                 )
+                .accessibilityIdentifier("organization.requests.empty")
             } else {
                 if let error = viewModel.error {
                     InlineMessageCard(style: .error, message: errorMessage(for: error))

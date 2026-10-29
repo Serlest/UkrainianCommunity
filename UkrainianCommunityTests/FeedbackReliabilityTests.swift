@@ -5,6 +5,19 @@ import Testing
 
 @Suite(.serialized) @MainActor
 struct FeedbackReliabilityTests {
+    @Test func confirmedEmptyInboxDoesNotReloadOnRepeatedAppearanceButRefreshStillReads() async {
+        let repo = FeedbackAuditRepository(items: [])
+        let model = FeedbackInboxViewModel(repository: repo)
+        await model.configure(actorID: "owner", filter: "all", search: "", oldest: false)
+        let first = repo.fetchCalls
+        await model.configure(actorID: "owner", filter: "all", search: "", oldest: false)
+        await model.loadIfNeeded(actorID: "owner")
+        #expect(first > 0); #expect(repo.fetchCalls == first)
+        await model.refresh(actorID: "owner")
+        #expect(repo.fetchCalls == first + 1)
+        await model.loadIfNeeded(actorID: "different-owner")
+        #expect(repo.fetchCalls == first + 2)
+    }
     private func item(_ id: String = "case", status: FeedbackStatus = .open, context: Bool = false) -> FeedbackItem {
         let time = Timestamp(seconds: 1792670000, nanoseconds: 123456000).dateValue()
         return FeedbackItem(id: id, type: .report, subject: "Subject", message: "Request", status: status,

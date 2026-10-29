@@ -145,7 +145,9 @@ struct OrganizationManagementHubView: View {
             // editor snapshot may survive an account switch and may contain an
             // organization deleted by another account, so reconcile it here.
             if !searchText.isEmpty { try? await Task.sleep(for: .milliseconds(300)); guard !Task.isCancelled else { return } }
-            await reloadOrganizations()
+            await authoringOrganizations.loadIfNeeded(actor: authorityUser, search: searchText, region: region, organizationID: focusedOrganizationID)
+        }
+        .task(id: accessIdentity) {
             await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
         }
         .appRefreshable {
@@ -243,8 +245,9 @@ struct OrganizationManagementHubView: View {
 
     @ViewBuilder
     private var managedOrganizationsContent: some View {
-        if (organizationsViewModel.isLoading || authoringOrganizations.isLoading) && allOrganizationSectionsAreEmpty {
+        if (organizationsViewModel.isLoading || authoringOrganizations.isLoading || !authoringOrganizations.hasLoaded && authoringOrganizations.error == nil) && allOrganizationSectionsAreEmpty {
             LoadingStateCard(title: nil)
+                .accessibilityIdentifier("organization.management.loading")
         } else if let error = authoringOrganizations.error, organizationRequests.isEmpty {
             // Cached organizations include role-bearing fields. If the server
             // cannot confirm them, keep the snapshot for a retry but do not
@@ -276,6 +279,7 @@ struct OrganizationManagementHubView: View {
                 title: managementTitle,
                 message: !searchText.isEmpty || region != nil ? OrganizationWorkspaceCopy.noMatches : AppStrings.Profile.noOrganizations
             )
+            .accessibilityIdentifier("organization.management.empty")
         } else {
             if let error = authoringOrganizations.error {
                 ErrorStateCard(
@@ -306,6 +310,7 @@ struct OrganizationManagementHubView: View {
                             retryStats: { Task { await loadStats(for: organization.id, force: true) } },
                             newsRepository: newsRepository, eventRepository: eventRepository
                         )
+                        .accessibilityIdentifier("organization.management.card.\(organization.id)")
                         .task(id: "\(accessIdentity)-\(organization.id)-\(statsEpoch)") { await loadStats(for: organization.id) }
                     }
                 }
@@ -400,8 +405,10 @@ struct OrganizationManagementHubView: View {
                 async let events = eventRepository.fetchOrganizationEventCount(organizationID: id)
                 stats = try await .init(newsCount: news, eventCount: events)
             } else {
-                let response: OrganizationWorkspaceResponse = try await CloudFunctionsClient.shared.call(.manageOrganizationWorkspace,
-                    request: OrganizationWorkspaceRequest(action: "stats", principalId: user.id, organizationId: id))
+                let response: OrganizationWorkspaceResponse = try await RefreshRequest.run {
+                    try await CloudFunctionsClient.shared.call(.manageOrganizationWorkspace,
+                        request: OrganizationWorkspaceRequest(action: "stats", principalId: user.id, organizationId: id))
+                }
                 stats = .init(newsCount: response.counts?["news"] ?? 0, eventCount: response.counts?["events"] ?? 0)
             }
             guard accessIdentity == expected, statsEpoch == epoch else { return }

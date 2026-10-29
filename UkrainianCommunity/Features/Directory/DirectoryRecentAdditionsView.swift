@@ -71,17 +71,18 @@ struct DirectoryRecentAdditionsView: View {
                     .accessibilityIdentifier("directory.recent.\(item.id)")
                 }
             }
-            if store.isLoading {
-                ProgressView().frame(maxWidth: .infinity)
+            if store.isLoading || (!store.hasLoaded && !store.failed) {
+                ProgressView().frame(maxWidth: .infinity).accessibilityIdentifier("directory.recent.loading")
             } else if store.failed {
                 Text(text("Не вдалося завантажити нові матеріали.", "Neue Inhalte konnten nicht geladen werden."))
                     .font(.subheadline).foregroundStyle(AppTheme.textSecondary)
                 Button(text("Повторити", "Erneut versuchen")) {
                     Task { await store.retry() }
-                }
+                }.accessibilityIdentifier("directory.recent.retry")
             } else if store.items.isEmpty {
                 Text(text("Нові матеріали з’являться тут після публікації.", "Neue Inhalte erscheinen hier nach der Veröffentlichung."))
                     .font(.subheadline).foregroundStyle(AppTheme.textSecondary)
+                    .accessibilityIdentifier("directory.recent.empty")
             } else if !isPreview && store.hasMore {
                 Button(text("Показати ще", "Weitere anzeigen")) {
                     Task { await store.load(reset: false) }

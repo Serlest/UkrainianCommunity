@@ -57,7 +57,7 @@ final class DirectoryRecentAdditionsStore: ObservableObject {
     var hasMoreThanPreview: Bool { items.count > Self.previewLimit || hasMore }
 
     private var cursor: DirectoryRecentCursor?
-    private var loaded = false
+    @Published private(set) var hasLoaded = false
     private var failedReset = true
     private let loader: Loader
 
@@ -95,7 +95,7 @@ final class DirectoryRecentAdditionsStore: ObservableObject {
     }
 
     func loadIfNeeded() async {
-        guard !loaded else { return }
+        guard !hasLoaded else { return }
         await load(reset: true)
     }
 
@@ -107,14 +107,15 @@ final class DirectoryRecentAdditionsStore: ObservableObject {
         failed = false
         defer { isLoading = false }
         do {
-            let page = try await loader(reset ? nil : cursor)
+            let requestedCursor = reset ? nil : cursor
+            let page = try await RefreshRequest.run { [loader] in try await loader(requestedCursor) }
             try Task.checkCancellation()
             var seen = Set<String>()
             items = ((reset ? [] : items) + page.items).filter { seen.insert($0.id).inserted }
             // A broken/non-advancing cursor must not create an endless load-more loop.
             hasMore = page.hasMore && page.nextCursor != nil && (reset || page.nextCursor != cursor)
             cursor = page.nextCursor
-            loaded = true
+            hasLoaded = true
         } catch is CancellationError {
         } catch {
             failedReset = reset

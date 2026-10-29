@@ -794,7 +794,7 @@ struct FeedbackInboxView: View {
             InlineMessageCard(style: .error, message: feedbackActionErrorMessage(actionError))
                 .accessibilityIdentifier("feedbackInbox.actionError")
         }
-        if viewModel.isLoading && viewModel.items.isEmpty {
+        if (viewModel.isLoading || !viewModel.hasLoadedQuery && viewModel.error == nil) && viewModel.items.isEmpty {
             LoadingStateCard(title: AppStrings.Feedback.inboxTitle).accessibilityIdentifier("feedbackInbox.loading")
         } else if let error = viewModel.error, viewModel.items.isEmpty {
             UnifiedEmptyStateCard(
@@ -813,6 +813,7 @@ struct FeedbackInboxView: View {
                 title: AppStrings.Feedback.inboxTitle,
                 message: AppStrings.Feedback.inboxEmpty
             )
+            .accessibilityIdentifier("feedbackInbox.empty")
         } else if filteredItems.isEmpty {
             UnifiedEmptyStateCard(
                 systemImage: "line.3.horizontal.decrease.circle",

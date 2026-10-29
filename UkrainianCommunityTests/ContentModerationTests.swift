@@ -6,6 +6,22 @@ import Testing
 @Suite(.serialized)
 @MainActor
 struct ContentModerationTests {
+    @Test func confirmedEmptyQueueSurvivesAppearanceButScopeAndExplicitRefreshReadAgain() async {
+        var reads = 0
+        let model = ContentModerationModel(client: .init(read: { _ in
+            reads += 1; return .init(items: [], counts: ["news": 0])
+        }, decide: { _, _, _, _, _ in }))
+        let owner = ProfileAccessIdentity(user: MockContentBuilder.ownerUser())
+        await model.loadIfNeeded(type: "news", historyMode: false, access: owner)
+        await model.loadIfNeeded(type: "news", historyMode: false, access: owner)
+        #expect(reads == 1); #expect(model.hasLoaded)
+        await model.load(type: "news", historyMode: false, reset: true, access: owner)
+        #expect(reads == 2)
+        await model.loadIfNeeded(type: "event", historyMode: false, access: owner)
+        #expect(reads == 3)
+        await model.loadIfNeeded(type: "event", historyMode: false, access: nil)
+        #expect(reads == 4)
+    }
     private func item() async throws -> ContentReviewItem {
         try #require(try await ContentModerationFixture.shared.client.read(.init(action: "preview", contentType: "news", contentId: "moderation-news-0")).item)
     }

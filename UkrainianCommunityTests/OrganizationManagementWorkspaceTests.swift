@@ -4,6 +4,28 @@ import Testing
 
 @Suite(.serialized) @MainActor
 struct OrganizationManagementWorkspaceTests {
+    @Test func appearanceKeepsConfirmedEmptyPageAndRefreshStillReconcilesServer() async {
+        var reads = 0
+        let model = OrganizationManagementListModel(repository: MockOrganizationRepository(), fetch: { _, _ in
+            reads += 1
+            try await Task.sleep(for: .milliseconds(30))
+            return .init(items: [], cursor: nil)
+        })
+        let owner = MockContentBuilder.ownerUser()
+        let first = Task { await model.loadIfNeeded(actor: owner, search: "", region: nil) }
+        await Task.yield()
+        await model.loadIfNeeded(actor: owner, search: "", region: nil)
+        await first.value
+        await model.loadIfNeeded(actor: owner, search: "", region: nil)
+        #expect(reads == 1)
+        await model.load(actor: owner, search: "", region: nil)
+        #expect(reads == 2)
+        await model.loadIfNeeded(actor: owner, search: "new", region: nil)
+        #expect(reads == 3)
+        model.reset()
+        await model.loadIfNeeded(actor: owner, search: "new", region: nil)
+        #expect(reads == 4)
+    }
     private func org(_ id: String = "workspace", region: AustrianFederalState = .tirol) -> Organization {
         .init(id: id, name: id, description: "Organization", federalState: region, city: "Innsbruck", subscriberCount: 50000,
               ownerId: MockContentBuilder.ownerUser().id, adminIds: ["admin"], moderatorIds: ["moderator"],

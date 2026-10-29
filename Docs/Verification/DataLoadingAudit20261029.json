@@ -1,0 +1,108 @@
+{
+  "date": "2026-10-29",
+  "build": "1.2.1 (144)",
+  "scope": [
+    "directoryRecentAdditions",
+    "organizationRequests",
+    "feedbackInbox",
+    "contentModeration",
+    "organizationManagement",
+    "userManagement"
+  ],
+  "status": "six named sections verified; full-application extension in progress",
+  "productionEvidence": {
+    "artifact": "build/loading-audit-20261029/server-baseline.json",
+    "range": "preceding 24 hours at capture",
+    "requestLatencies": {
+      "manageuserdirectory": {
+        "sampleCount": 4,
+        "minimumSeconds": 0.407255077,
+        "maximumSeconds": 5.236290775
+      },
+      "manageorganizationworkspace": {
+        "sampleCount": 2,
+        "minimumSeconds": 3.68383041,
+        "maximumSeconds": 4.247085467
+      },
+      "managecontentmoderation": {
+        "sampleCount": 2,
+        "minimumSeconds": 4.279539418,
+        "maximumSeconds": 4.846398415
+      },
+      "listfeedbackinbox": {
+        "sampleCount": 1,
+        "minimumSeconds": 5.544447897,
+        "maximumSeconds": 5.544447897
+      },
+      "getdirectoryrecentadditions": {
+        "sampleCount": 16,
+        "minimumSeconds": 0.435970718,
+        "maximumSeconds": 7.160557737
+      },
+      "listorganizationreviewhistory": {
+        "sampleCount": 1,
+        "minimumSeconds": 4.510192903,
+        "maximumSeconds": 4.510192903
+      }
+    },
+    "confirmedColdStart": {
+      "service": "getdirectoryrecentadditions",
+      "requestAtUTC": "2026-10-29T11:58:59.865203Z",
+      "newInstanceAtUTC": "2026-10-29T11:58:59.893158Z",
+      "startupProbeAtUTC": "2026-10-29T11:59:04.037109Z",
+      "totalRequestSeconds": 5.232050128
+    },
+    "interpretation": "Observed startup accounts for most of this request delay. Fast repeat reads do not support database volume as the primary cause. Other slow requests have fewer samples and cannot all be classified by latency alone."
+  },
+  "implemented": [
+    "Distinguish confirmed-empty inbox from not loaded; preserve retries and account reset",
+    "Keep confirmed moderation result on same-view appearance; explicit refresh and scope changes still read server",
+    "Coalesce concurrent organization-queue initial reads and reject obsolete generations",
+    "Load organization review history once per view unless explicitly refreshed or invalidated by a decision",
+    "Separate organization requests subscription lifecycle from organization search; deduplicate management reads",
+    "Bound directory recent, content moderation, feedback page, organization management/history/stats reads using existing 20-second read race",
+    "Show initial loading state instead of premature empty placeholders"
+  ],
+  "unchanged": [
+    "Backend configuration and deployment",
+    "Authentication, App Check, authorization rules and write confirmation",
+    "User management existing bounded paginated read pipeline"
+  ],
+  "remaining": [
+    "Backend cold-start delay remains; no paid minimum instance setting enabled",
+    "Full application loading inventory and additional sections requested by user are now in progress"
+  ],
+  "localTests": {
+    "bundle": "build/loading-audit-20261029/Models144.xcresult",
+    "passed": 61,
+    "failed": 0,
+    "skipped": 0
+  },
+  "physicalTests": {
+    "status": "passed",
+    "bundle": "build/loading-audit-20261029/Physical144Retry.xcresult",
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0,
+    "coverage": "Directory initial read; other five sections initial and repeated root entry",
+    "initialAttempt": "Stopped before any test by iOS automation confirmation; user confirmed and rerun passed",
+    "timingsInclude": "XCTest tap/settle/accessibility polling overhead; not raw network latency"
+  },
+  "delivery": {
+    "localPhone": "1.2.1 (144) installed and official app inventory verified",
+    "TestFlight": "not requested"
+  },
+  "limitations": [
+    "No production mutation or moderation decision is part of this loading audit",
+    "Sibling profile history/analytics/legal lifecycle inspection is not a full device audit of all application screens"
+  ],
+  "navigationTests": {
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "bundles": [
+      "build/loading-audit-20261029/Navigation144.xcresult",
+      "build/loading-audit-20261029/Queues144.xcresult"
+    ]
+  }
+}
