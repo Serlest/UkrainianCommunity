@@ -300,7 +300,7 @@ import FirebaseFirestore
         let data=try #require(Data(base64Encoded:encoded)),decoded=try #require(UIImage(data:data))
         #expect(data.count<=48_000)
         #expect(max(decoded.size.width,decoded.size.height)<=256)
-        #expect(decoded.cgImage?.alphaInfo != .none)
+        #expect(try #require(decoded.cgImage).alphaInfo != CGImageAlphaInfo.none)
         var scene=SeasonalTheme.gtaVI();scene.elements[0].artwork = .image;scene.elements[0].pngFrames=[encoded]
         let library=SeasonalLibrary(themes:[scene]);let same=try SeasonalLibrary.decode(library.encoded())==library
         #expect(same)

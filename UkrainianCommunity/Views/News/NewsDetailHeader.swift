@@ -129,9 +129,7 @@ extension NewsDetailView {
                 .accessibilityLabel(post.mediaMetadata?.alternativeText ?? post.localizedTitle)
 
                 if post.mediaMetadata?.caption != nil || post.mediaMetadata?.credit != nil {
-                    Text([post.mediaMetadata?.caption, post.mediaMetadata?.credit]
-                        .compactMap { $0 }
-                        .joined(separator: " · "))
+                    Text(ContentPublishingStrings.mediaCaption(caption:post.mediaMetadata?.caption,credit:post.mediaMetadata?.credit))
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
                 }

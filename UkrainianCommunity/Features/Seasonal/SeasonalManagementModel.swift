@@ -67,13 +67,14 @@ import FirebaseFirestore
     func activate(_ theme:SeasonalTheme,user:AppUser?) async {
         guard PermissionService.isAppOwner(user:user),let id=user?.id,id==principal,hasLoaded,!hasChanges,!isSaving,!isLoading else { return }
         var next=savedLibrary
-        if !next.themes.contains(where:{$0.id==theme.id}) { guard next.themes.count<12 else { message=SeasonalText.invalid;return };next.themes.append(theme) }
+        if let index=next.themes.firstIndex(where:{$0.id==theme.id}) { next.themes[index]=theme }
+        else { guard next.themes.count<12 else { message=SeasonalText.invalid;return };next.themes.append(theme) }
         next.manualThemeID=nil // A temporary manual choice never destroys the calendar plan.
         guard (try? next.encoded()) != nil else { message=SeasonalText.invalid;return }
         let token=generation;isSaving=true;message=nil
         defer { if generation==token { isSaving=false } }
         do {
-            let stored=try await repository.save(next,path:SeasonalRepository.libraryPath,expectedRevision:libraryRevision,userID:id)
+            let stored = next == savedLibrary ? SeasonalDocument(library:savedLibrary,revision:libraryRevision) : try await repository.save(next,path:SeasonalRepository.libraryPath,expectedRevision:libraryRevision,userID:id)
             guard generation==token,principal==id else { return }
             savedLibrary=stored.library;library=stored.library;libraryRevision=stored.revision
             guard var selected=stored.library.themes.first(where:{$0.id==theme.id}) else { throw SeasonalError.invalidPackage }

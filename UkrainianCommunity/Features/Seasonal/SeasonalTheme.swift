@@ -123,6 +123,8 @@ struct SeasonalElement: Codable, Equatable, Identifiable {
     }
 }
 
+enum SeasonalCelebration:String,Codable,CaseIterable { case santaFlight,fireworks }
+
 struct SeasonalTheme: Codable, Equatable, Identifiable {
     var id = UUID().uuidString
     var name: String
@@ -136,6 +138,8 @@ struct SeasonalTheme: Codable, Equatable, Identifiable {
     var reactsToTilt = true
     var sections = SeasonalSection.allCases
     var elements: [SeasonalElement]
+    var celebration:SeasonalCelebration?
+    var sceneEdition:Int?
 
     var usesHeaderDock: Bool { !headerElements.isEmpty }
 
@@ -222,7 +226,7 @@ struct SeasonalTheme: Codable, Equatable, Identifiable {
             .scene(.snowflake,.atmosphere,size:18,motion:.snow,sway:0.45),
             .scene(.snowLedge,.navigation,size:28)]
         return Self(name:newYear ? "New Year · Golden Midnight":"Christmas · Warm Evergreen",startsAt:start,endsAt:end,
-                    repeatsYearly:true,reactsToTilt:true,elements:ornaments)
+                    repeatsYearly:true,reactsToTilt:true,elements:ornaments,celebration:newYear ? .fireworks:.santaFlight,sceneEdition:2)
     }
 
     static func halloween(now: Date = Date()) -> Self {

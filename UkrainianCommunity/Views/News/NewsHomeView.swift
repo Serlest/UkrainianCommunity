@@ -160,7 +160,7 @@ struct NewsHomeView: View {
     }
 
     @ViewBuilder private var newsContent: some View {
-        VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {
+        LazyVStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {
             Text([filter.period.title, NewsBrowseStrings.text(filter.oldestFirst ? "oldest" : "newest"),
                   filter.scope == .all ? nil : filter.scope.title].compactMap { $0 }.joined(separator: " · "))
                 .font(.caption)

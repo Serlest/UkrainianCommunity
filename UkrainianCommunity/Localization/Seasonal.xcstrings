@@ -2706,6 +2706,70 @@
           }
         }
       }
+    },
+    "seasonal.celebration": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Святковий ефект"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Festlicher Effekt"
+          }
+        }
+      }
+    },
+    "seasonal.celebrationNone": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Без ефекту"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keiner"
+          }
+        }
+      }
+    },
+    "seasonal.santaFlight": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Санта з оленями"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weihnachtsmann mit Rentieren"
+          }
+        }
+      }
+    },
+    "seasonal.fireworks": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Салют"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feuerwerk"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

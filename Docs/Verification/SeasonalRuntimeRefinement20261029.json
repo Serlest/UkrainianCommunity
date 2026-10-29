@@ -1,0 +1,124 @@
+{
+  "date": "2026-10-29",
+  "scope": "Seasonal review corrections, natural snow, real Santa gait, multicolour fireworks, pinned hangers, shared rendering and scrolling cost",
+  "delivery": {
+    "version": "1.2.1",
+    "build": "143",
+    "deviceInstallReceipt": "build/seasonal-device-fixes-20261029/install143.json",
+    "testFlightUploaded": false,
+    "productionScenesWritten": false,
+    "rulesOrFunctionsDeployed": false,
+    "installedVersionReadback": "build/seasonal-device-fixes-20261029/device-version143.json"
+  },
+  "changes": {
+    "layout": "Header visibility no longer hides pinned objects in real roots or full-screen previews. No safe-area spacer added.",
+    "rendering": "GTA keys and winter baubles now use tiny native photo/thread layers plus bounded gravity pendulum; no SceneKit viewport in these roots.",
+    "snowfall": "Six alpha-preserving macro ice crystals, six sizes and depth variations, native compositor fall/drift/rotation, capped at 38 particles. Light contrast is baked once.",
+    "settledSnow": "One continuous irregular bank follows the upper capsule lip and rounded shoulders. Non-periodic seeded control points, sparse overhangs, one non-tiled photographic material. Two small cached rasters for accumulation.",
+    "christmas": "Legacy preset globe becomes tree with nine native garland lights; registered four-frame reindeer gallop/Santa hand movement crosses the viewport from lower-left to upper-right.",
+    "newYear": "Three staggered bursts, 54 saturated comet-head/trail textures; no increase in particle count. Low-opacity dots were rejected on actual device review.",
+    "proMotion": "CADisableMinimumFrameDurationOnPhone=true verified in built Release Info.plist. This enables higher-rate hints, not a promise of fixed 120fps.",
+    "newsFeed": "Only visible news rows are realized with LazyVStack; existing remote image decoding stays off main thread.",
+    "network": "Bounded retries of transient reads, exact-revision recognition on ambiguous own operation, private save skipped when unchanged. Conflicts and denied authority are not retried as internet failures.",
+    "catalog": "One quick card per known preset, existing IDs and private copies preserved. Known legacy names display in selected language. Derived upgrade IDs remain stable on clock ticks; explicit celebration off persists.",
+    "privacy": "No sensor samples or performance data uploaded; no new analytics collection.",
+    "displayClock": "Native photo and 3D ornament display links use system-default range. Timestamp gates retain 10–60Hz ornament work budgets; they no longer request a lower shared display frequency. SCN renderer permits the actual screen maximum."
+  },
+  "verification": {
+    "simulatorModelsAndVisuals": {
+      "bundle": "build/seasonal-device-fixes-20261029/ModelsAndVisual143.xcresult",
+      "passed": 62,
+      "failed": 0,
+      "skipped": 0
+    },
+    "rootComposition": {
+      "bundle": "build/seasonal-device-fixes-20261029/Root142.xcresult",
+      "state": "passed",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    "sdk": {
+      "bundle": "build/seasonal-device-fixes-20261029/SDK141Actual.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Same unchanged repository implementation; actual Auth/Firestore SDK against loopback demo with production rules, private/public separation and denied admin/stale revisions."
+    },
+    "physical": {
+      "bundle": "build/seasonal-device-fixes-20261029/Physical142Refined.xcresult",
+      "state": "passed",
+      "mode": "Existing Serlest owner; real server reads and LOCAL previews only; no scene enable/save/publication.",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "screenshots": 34,
+      "attachments": "build/seasonal-device-fixes-20261029/physical142-images/manifest.json",
+      "burstTiming": {
+        "bundle": "build/seasonal-device-fixes-20261029/Physical142TimingAfterStorage.xcresult",
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "observed": "Colours present but dots too faint at real size; replaced with saturated comet heads and tails in build 143."
+      },
+      "finalFollowup": {
+        "bundle": "build/seasonal-device-fixes-20261029/Physical143Final.xcresult",
+        "state": "passed",
+        "scope": "Winter scroll after separating work budget from display clock; bright multicolour streaks in both appearances.",
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "images": "build/seasonal-device-fixes-20261029/physical143-images/manifest.json",
+        "burstFrames": 32,
+        "observed": "Saturated streaks visibly rendered in light and dark frames; callback work budget uses system display clock."
+      },
+      "restore": "Final ordinary app launch, no transient arguments; test teardown restored portrait. Test runner removed; UAC/account and personal data retained."
+    },
+    "deviceStorage": {
+      "state": "Resolved by user. Clean baseline and targeted timing tests succeeded afterward; generated UI-test runner removed again at end.",
+      "evidence": "build/seasonal-device-fixes-20261029/baseline142-clean.log",
+      "error": "iOS installcoordinationd reports 0 bytes available when staging test runner",
+      "cleanup": "Only the generated UAC UI-test runner was removed; its data was 94618 bytes, installed binary about 11 MiB. Main UAC and personal data retained.",
+      "next": "Read back final retry result; no unrelated data deleted."
+    },
+    "warnings": {
+      "existingUnchangedSource": "DirectoryEditorAccessStore.swift:50, generic Decodable actor-isolation warning in Release. No error; this unrelated source was not modified.",
+      "tooling": "Xcode 27.1 metadata warning invalidDigitCount for iOS 27.2; functional device tests did execute."
+    }
+  },
+  "performance": {
+    "olderSameWinterScrollPeakKB": 152706.493,
+    "newWinterScrollPeakKB": 112806.016,
+    "newWinterCPUSeconds": 6.929,
+    "comparisonLimits": "Exploratory repeated device scrolls with live feed and warm images; memory reduction is not proof of a guaranteed frame rate.",
+    "traceUnavailable": "Animation Hitches exported no frame/hitch rows for this device/tooling pair; it is not evidence of zero hitches. Simultaneous profiling interrupted the first 142 baseline measurement service; exclude it and rerun without profiler.",
+    "framesCaveat": "XCTest scroll metrics reported frame count zero alongside calculated FPS; do not present those values as a reliable measured 120Hz guarantee.",
+    "baselineAfterStorage": {
+      "bundle": "build/seasonal-device-fixes-20261029/Physical142TimingAfterStorage.xcresult",
+      "cpuSeconds": 5.685,
+      "peakKB": 89786.472,
+      "iterations": 3,
+      "scope": "Effects off. No simultaneous profiler. No exact FPS claim because frame-count counter is unsupported/zero."
+    },
+    "finalWinter": {
+      "bundle": "build/seasonal-device-fixes-20261029/Physical143Final.xcresult",
+      "cpuSeconds": 7.185,
+      "peakKB": 105935.659,
+      "iterations": 3,
+      "hitchRatioReportedMSPerS": 370.186,
+      "frameRateGuarantee": false,
+      "note": "Recorded CPU/memory and functional scroll results. OS signpost FPS is not accepted as a verified stable display rate because frame-count reports are zero; visible smoothness remains subject to user acceptance."
+    }
+  },
+  "preservation": {
+    "originalProjectMetadata": "Pre-existing project.pbxproj reorder preserved; only build number staged.",
+    "mainLocalization": "Exact pre-work backup restored; not staged.",
+    "transientPreferences": "Launch arguments only; test teardown restores ordinary portrait launch.",
+    "publicState": "No write to production libraries/presentations by this audit."
+  },
+  "remaining": {
+    "aestheticAcceptance": "User reviews refined scene visuals on the installed iPhone build.",
+    "productionActivation": "Global live activation intentionally not exercised; isolated SDK switching and actual read/local-preview journeys are separate proof.",
+    "ci": "Push the commit containing this receipt; inspect its actual main-branch run. Prior d002076 checks are not counted."
+  }
+}

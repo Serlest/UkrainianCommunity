@@ -58,6 +58,49 @@
       "transparent_background": true,
       "runtimeSizeMaximumPixels": 384,
       "animation": "Nine native staggered opacity light layers; bitmap itself remains static"
+    },
+    {
+      "name": "snow-material",
+      "asset": "SeasonalSnowMaterial",
+      "source": "/Users/serlest/.codex/generated_images/01a11559-70e2-7563-bf0b-6b743c40d10a/exec-9842e566-738a-44a7-8487-e6c360a2591d.png",
+      "runtime": "UkrainianCommunity/Assets.xcassets/SeasonalSnowMaterial.imageset/snow-material.jpg",
+      "prompt": "Use case: product-mockup. Asset type: seamless photographic material texture for realistic settled snow in an iPhone UI, opaque. Macro close-up of pristine freshly fallen white powder snow, delicate irregular fine ice crystals and soft tiny clumps, natural subtle blue-gray shadows, soft grazing winter daylight from upper left. Entire frame is snow surface, no landscape, no horizon, no objects, no distinct drifts or holes, no text, no vignette. Fine microtexture readable when downsampled. Neutral white, never cream, natural understated contrast. Square texture.",
+      "transparent_background": false,
+      "runtimeSize": [
+        384,
+        384
+      ],
+      "preparation": "Lanczos downsample, JPEG90, only a tiny cached clipped raster is composited in the navigation snow cap."
+    },
+    {
+      "name": "santa-gallop-cycle",
+      "asset": "SeasonalSantaCycle0...3",
+      "source": "/Users/serlest/.codex/generated_images/01a11559-70e2-7563-bf0b-6b743c40d10a/exec-ae8c894f-36af-45ea-8b6c-c624f14b2fb3.png",
+      "runtime": "UkrainianCommunity/Assets.xcassets/SeasonalSantaCycle[0-3].imageset/artwork.png",
+      "mode": "image_gen.imagegen",
+      "prompt": "Use case: stylized-concept. Asset: premium PHOTOREALISTIC animation sprite sheet, transparent background. A precise 2 by 2 grid with FOUR animation frames of exactly the SAME Santa in an ornate red sleigh pulled to the RIGHT by four realistic flying reindeer. Each cell contains the full same wide horizontal sleigh-team silhouette, identically registered: Santa/sleigh left, reins, four reindeer to right, no elements touching cell borders. SAME camera, composition, materials, antlers, faces, scale and positions in all four cells. ONLY the reindeers' leg poses change as a four-stage natural galloping flight cycle: top-left legs stretched, top-right tucked, bottom-left opposite stretched, bottom-right tucked opposite. Small believable head/antler bob allowed, Santa's raised hand slightly waves between frames. The four frames must form a seamless cycle when played 1-2-3-4. Fine fur, red velvet, warm lantern, premium realistic miniature cinematic lighting. No cartoon, emoji, captions, labels, cell lines, sky, ground or decoration. Entire background genuinely transparent. Uniform equal cell dimensions, generous transparent gutter. Wide 2:1 canvas so every cell is wide 2:1.",
+      "transparent_background": true,
+      "preparation": "Equal-cell crop, identical registration retained, Lanczos downsample to 600 by 300. Four cached CGImages animate contents only during the flight interval."
+    },
+    {
+      "name": "natural-snow-crystals",
+      "asset": "SeasonalSnowCrystal0...5",
+      "source": "/Users/serlest/.codex/generated_images/01a11559-70e2-7563-bf0b-6b743c40d10a/exec-f3583fc8-06d6-445f-8a6e-45dd18a43f36.png",
+      "runtime": "UkrainianCommunity/Assets.xcassets/SeasonalSnowCrystal[0-5].imageset/artwork.png",
+      "mode": "image_gen.imagegen",
+      "prompt": "Use case: product-mockup. Asset: PHOTOREALISTIC snowflake sprite atlas for a premium winter app, real transparent RGBA. Exactly SIX different actual natural ice snow crystals arranged in a precise equal 3 columns by 2 rows grid, each isolated and centered in its cell with large transparent padding, no overlap. Macro photography of translucent ice, irregular six-armed branched dendritic crystals, subtle unequal arm lengths, organic fine frost, delicate off-white material, slight cool blue-gray edge shadow for visibility on a white background. Variation: 2 small delicate branching crystals, 2 medium feathery crystals, 2 less sharply focused farther snowflakes. Real macro texture, not flat stars, not icons, not circles, no vector outlines, no sparkles, no cartoon, no black/colored backdrop, no captions or grid borders. Exactly one unique complete crystal per cell. Intended displayed at 5–12pt, keep the silhouette readable while avoiding decorative star symbols.",
+      "transparent_background": true,
+      "preparation": "Equal-cell crop and Lanczos downsample to 96 pixels. Light-mode edge shade is rasterized once; no live shadow per particle."
+    }
+  ],
+  "retainedDrafts": [
+    {
+      "name": "santa-flight-static-v1",
+      "selected": false,
+      "source": "/Users/serlest/.codex/generated_images/01a11559-70e2-7563-bf0b-6b743c40d10a/exec-2cac18eb-f37a-4fb6-a092-86a2cd94df75.png",
+      "runtime": "UkrainianCommunity/Assets.xcassets/SeasonalSantaFlight.imageset/santa-flight.png",
+      "prompt": "Use case: stylized-concept. Asset type: premium realistic Christmas app animation sprite, transparent RGBA cutout. A complete Santa Claus seated in an elegant red and aged-gold sleigh pulled in flight by four realistic reindeer, all facing and traveling to the RIGHT, side view with a slight three-quarter perspective. Sleigh on left, two pairs of reindeer extending right, visible reins connecting, believable fur, antlers, leather harnesses, red velvet, subtle warm lantern. Detailed photorealistic miniature cinematic render, tasteful natural proportions, not cartoon, not emoji. Wide horizontal composition filling canvas, entire sleigh and all antlers/hooves inside frame, clean transparent background. No sky, ground, snow particles, shadow rectangle, text, logos, watermark. Must remain readable when reduced to 230pt wide. No extra unrelated objects.",
+      "note": "Initial artwork retained for reuse; the active renderer uses four registered cycle frames and does not load this draft."
     }
   ]
 }

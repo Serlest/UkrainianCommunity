@@ -22,7 +22,7 @@ struct SeasonalThemeEditor: View {
     private var valid: Bool { (try? draft.validate()) != nil }
 
     init(theme: SeasonalTheme, onApply: @escaping (SeasonalTheme) -> Void) {
-        original = theme; _draft = State(initialValue: theme); self.onApply = onApply
+        original = theme; _draft = State(initialValue: theme.preparedForCurrentRenderer); self.onApply = onApply
     }
     private var timeZoneControl: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -112,6 +112,11 @@ struct SeasonalThemeEditor: View {
                     Text(SeasonalText.value("intensity", "Intensität"))
                     Slider(value: $draft.intensity, in: 0.2...1)
                         .accessibilityLabel(SeasonalText.value("intensity", "Intensität"))
+                    Picker(SeasonalText.value("celebration", "Festlicher Effekt"),selection:Binding<SeasonalCelebration?>(get:{draft.celebration},set:{draft.celebration=$0;draft.sceneEdition=2})) {
+                        Text(SeasonalText.value("celebrationNone","Keiner")).tag(Optional<SeasonalCelebration>.none)
+                        Text(SeasonalText.value("santaFlight","Weihnachtsmann mit Rentieren")).tag(Optional(SeasonalCelebration.santaFlight))
+                        Text(SeasonalText.value("fireworks","Feuerwerk")).tag(Optional(SeasonalCelebration.fireworks))
+                    }.accessibilityIdentifier("seasonal.editor.celebration")
                     Text(SeasonalText.preferenceHint).font(.footnote).foregroundStyle(.secondary)
                 }
                 Section(SeasonalText.value("sections", "Hauptseiten")) {

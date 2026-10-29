@@ -2,12 +2,6 @@ import Combine
 import SwiftUI
 import UIKit
 
-struct SeasonalHeaderPresence:PreferenceKey {
-    static let defaultValue=false
-    static func reduce(value:inout Bool,nextValue:()->Bool) { value=value || nextValue() }
-}
-private struct SeasonalSectionActiveKey:EnvironmentKey { static let defaultValue=true }
-
 enum SeasonalHeaderAnchor: Hashable { case pumpkin }
 struct SeasonalHeaderAnchors: PreferenceKey {
     static let defaultValue: [SeasonalHeaderAnchor: Anchor<CGRect>] = [:]
@@ -18,7 +12,6 @@ struct SeasonalHeaderAnchors: PreferenceKey {
 private struct SeasonalHeaderActiveKey: EnvironmentKey { static let defaultValue = false }
 private struct SeasonalHeaderThemeKey: EnvironmentKey { static let defaultValue:SeasonalTheme? = nil }
 extension EnvironmentValues {
-    var seasonalSectionActive:Bool { get { self[SeasonalSectionActiveKey.self] } set { self[SeasonalSectionActiveKey.self]=newValue } }
     var seasonalHeaderTheme:SeasonalTheme? {
         get { self[SeasonalHeaderThemeKey.self] }
         set { self[SeasonalHeaderThemeKey.self] = newValue }
@@ -47,7 +40,7 @@ struct SeasonalDecorationLayer: View {
 
     private var animated: Bool {
         visible && scenePhase == .active && !reduceMotion && !lowPower && !typeSize.isAccessibilitySize
-            && theme.visibleElements.contains(where:\.needsAnimation)
+            && (theme.celebration != nil || theme.visibleElements.contains(where:\.needsAnimation))
     }
     private var customElements: [SeasonalElement] { theme.visibleElements.filter { $0.artwork == .image && $0.zone == nil } }
 
@@ -55,7 +48,8 @@ struct SeasonalDecorationLayer: View {
         var result=theme
         result.elements=theme.visibleElements.filter { element in
             switch element.artwork {
-            case .pumpkin,.bat,.spider,.keychain,.glassBauble:return true
+            case .pumpkin,.bat,.spider:return true
+            case .keychain,.glassBauble:return false
             case .web:return !theme.isComposedScene || theme.visibleElements.contains{$0.artwork == .spider}
             case .image:return element.zone == .hanging
             default:return false
@@ -81,7 +75,11 @@ struct SeasonalDecorationLayer: View {
                     SeasonalStaticDecorations(element: web, top: top, dark: scheme == .dark, preview: preview, includeLeaves: !theme.isComposedScene)
                         .opacity(includesChrome ? 1:0)
                 }
-                SeasonalAmbientOrnaments(elements:theme.visibleElements,animated:animated,intensity:theme.intensity,preview:preview,includesChrome:includesChrome,showsNavigation:showsNavigation)
+                SeasonalAmbientOrnaments(elements:theme.visibleElements,celebration:theme.celebration,animated:animated,intensity:theme.intensity,preview:preview,includesChrome:includesChrome,showsNavigation:showsNavigation)
+                if let hanger=theme.visibleElements.first(where:{$0.zone == .hanging && ($0.artwork == .keychain || $0.artwork == .glassBauble)}) {
+                    SeasonalPhotoHangers(element:hanger,animated:animated && includesChrome,reactsToTilt:theme.reactsToTilt,intensity:theme.intensity,preview:preview)
+                        .frame(width:geometry.size.width,height:geometry.size.height).opacity(includesChrome ? 1:0)
+                }
                 if sceneTheme.elements.contains(where:{[SeasonalArtwork.pumpkin,.web,.bat,.spider,.keychain,.glassBauble].contains($0.artwork) || ($0.artwork == .image && $0.zone == .hanging)}) {
                     SeasonalScene(theme:sceneTheme,placement:placement,animated:animated && includesChrome && sceneTheme.elements.contains{ $0.motionStrength>0 || ($0.glow && $0.motionStyle != .still) || ($0.pngFrames.count>1 && $0.motionStyle != .still) },dark:scheme == .dark,preview:preview,hangingVisible:hangingVisible)
                         .frame(width:geometry.size.width,height:geometry.size.height)
@@ -141,27 +139,52 @@ struct SeasonalRootDecoration: ViewModifier {
     var includesChrome = true
     var showsNavigationDecoration = true
     var headerOnly = false
-    @State private var headerPresent=false
+    @State private var selectedTheme:SeasonalTheme?
     @AppStorage("seasonalEffectsEnabled") private var enabled = true
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.dynamicTypeSize) private var typeSize
 
+    private var selectionInput:SeasonalSelectionInput {
+        SeasonalSelectionInput(library:store.library,preview:store.localPreview,section:section,
+            enabled:enabled,eligible:isEligible,compact:verticalSizeClass == .compact,accessible:typeSize.isAccessibilitySize)
+    }
+    private func refreshSelection(at date:Date) {
+        let next=selectionInput.theme(at:date)
+        if selectedTheme != next { selectedTheme=next }
+    }
+
     func body(content: Content) -> some View {
-        TimelineView(.animation(minimumInterval:1,paused:scenePhase != .active || !isEligible || (!enabled && store.localPreview == nil) || (store.library.themes.isEmpty && store.localPreview == nil))) { context in
-            let theme = (enabled || store.localPreview != nil) && isEligible && verticalSizeClass != .compact && !typeSize.isAccessibilitySize
-                ? store.active(at:context.date,section:section) : nil
+            let theme = selectedTheme
             content
-                .environment(\.seasonalSectionActive,isEligible)
-                .onPreferenceChange(SeasonalHeaderPresence.self) { headerPresent=$0 }
                 .environment(\.seasonalHeaderActive,includesChrome && (theme?.usesHeaderDock ?? false))
                 .environment(\.seasonalHeaderTheme,theme)
                 .overlayPreferenceValue(SeasonalHeaderAnchors.self) { anchors in
                     if !headerOnly, let theme, !theme.visibleElements.isEmpty {
-                        SeasonalDecorationLayer(theme:theme,anchors:anchors,embedsHeaderPumpkin:true,includesChrome:includesChrome,showsNavigation:showsNavigationDecoration,hangingVisible:headerPresent)
+                        SeasonalDecorationLayer(theme:theme,anchors:anchors,embedsHeaderPumpkin:true,includesChrome:includesChrome,showsNavigation:showsNavigationDecoration,hangingVisible:true)
                             .ignoresSafeArea(.container,edges:[.top,.bottom])
                     }
                 }
-        }
+                .onChange(of:selectionInput,initial:true) { refreshSelection(at:.now) }
+                .onReceive(Timer.publish(every:1,on:.main,in:.common).autoconnect()) { date in
+                    guard scenePhase == .active,isEligible else { return }
+                    refreshSelection(at:date)
+                }
+    }
+}
+
+/// The clock checks schedule boundaries without invalidating entire navigation roots each tick.
+struct SeasonalSelectionInput:Equatable {
+    let library:SeasonalLibrary
+    let preview:SeasonalTheme?
+    let section:SeasonalSection
+    let enabled:Bool
+    let eligible:Bool
+    let compact:Bool
+    let accessible:Bool
+    func theme(at date:Date)->SeasonalTheme? {
+        guard eligible,!compact,!accessible,enabled || preview != nil else { return nil }
+        if let preview { return preview.sections.contains(section) ? preview.preparedForCurrentRenderer:nil }
+        return library.active(at:date,section:section)?.preparedForCurrentRenderer
     }
 }

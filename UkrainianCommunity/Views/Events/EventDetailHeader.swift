@@ -96,9 +96,7 @@ extension EventDetailView {
                         accessibilityLabel: event.mediaMetadata?.alternativeText ?? event.localizedTitle
                     )
                     if event.mediaMetadata?.caption != nil || event.mediaMetadata?.credit != nil {
-                        Text([event.mediaMetadata?.caption, event.mediaMetadata?.credit]
-                            .compactMap { $0 }
-                            .joined(separator: " · "))
+                        Text(ContentPublishingStrings.mediaCaption(caption:event.mediaMetadata?.caption,credit:event.mediaMetadata?.credit))
                             .font(.caption)
                             .foregroundStyle(AppTheme.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)

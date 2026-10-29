@@ -34,10 +34,14 @@ import UIKit
         XCTAssertTrue(profile.waitForExistence(timeout:20));profile.tap()
         let entry=app.buttons["profile.seasonalManagement"];reveal(entry,app);entry.tap()
         XCTAssertTrue(app.buttons["seasonal.quick.preview.uac.preset.halloween"].waitForExistence(timeout:25))
+        let switchControl=app.buttons["seasonal.quick.uac.preset.halloween"]
+        let loaded=NSPredicate { _,_ in switchControl.exists && switchControl.isEnabled }
+        XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:loaded,object:nil)],timeout:25),.completed,"Private and public server documents must load on first navigation")
     }
     private func measureFeed(_ app:XCUIApplication) {
         let news=app.tabBars.buttons["Новини"];XCTAssertTrue(news.waitForExistence(timeout:15));news.tap()
         Thread.sleep(forTimeInterval:5)
+        XCTAssertTrue(app.buttons["header.search.toggle"].exists,"Benchmark must start on the news root")
         app.swipeUp();app.swipeDown()
         let options=XCTMeasureOptions();options.iterationCount=3
         measure(metrics:[XCTOSSignpostMetric.scrollDraggingMetric,XCTCPUMetric(application:app),XCTMemoryMetric(application:app)],options:options) {
@@ -45,6 +49,70 @@ import UIKit
             app.swipeDown();app.swipeDown();app.swipeDown()
         }
         capture(app,"Physical-Winter-Scroll-Benchmark")
+        XCTAssertTrue(app.buttons["header.search.toggle"].exists,"Unexpected navigation invalidates the scroll comparison")
+    }
+    func testQuickSceneCatalogHasNoLegacyLanguageDuplicates() {
+        let app=XCUIApplication();app.launchArguments=["-selectedAppLanguage","uk"];app.launch()
+        management(app)
+        for kind in ["halloween","gta","christmas","newyear"] {
+            XCTAssertEqual(app.buttons.matching(identifier:"seasonal.quick.preview.uac.preset."+kind).count,1)
+        }
+        XCTAssertFalse(app.staticTexts["Halloween"].exists)
+        XCTAssertFalse(app.staticTexts["Christmas · Warm Evergreen"].exists)
+        XCTAssertFalse(app.staticTexts["New Year · Golden Midnight"].exists)
+        capture(app,"Physical-Quick-Catalog-Ukrainian-No-Duplicates")
+    }
+    func testPhotographicHangersFitBothThemesAfterViewportReduction() {
+        let app=XCUIApplication()
+        for appearance in ["light","dark"] {
+            app.launchArguments=["-selectedAppAppearance",appearance];app.launch()
+            for scene in ["gta","christmas","newyear"] {
+                management(app)
+                let preview=app.buttons["seasonal.quick.preview.uac.preset."+scene];reveal(preview,app);preview.tap()
+                app.tabBars.buttons["Новини"].tap()
+                let search=app.buttons["header.search.toggle"]
+                for _ in 0..<6 where !search.isHittable { app.swipeDown() }
+                XCTAssertTrue(search.isHittable)
+                Thread.sleep(forTimeInterval:2)
+                capture(app,"Physical-Bounded-Hangers-"+scene+"-"+appearance)
+                app.buttons["seasonal.localPreview.stop"].tap()
+            }
+        }
+    }
+    func testHolidayFlightsSnowAndPersistentHangersDuringRealScroll() {
+        let app=XCUIApplication();app.launchArguments=["-selectedAppAppearance","light"];app.launch()
+        for scene in ["halloween","gta","christmas","newyear"] {
+            management(app)
+            let preview=app.buttons["seasonal.quick.preview.uac.preset."+scene];reveal(preview,app);preview.tap()
+            app.tabBars.buttons["Новини"].tap()
+            capture(app,"Physical141-"+scene+"-BeforeScroll")
+            app.swipeUp();app.swipeUp();app.swipeUp()
+            capture(app,"Physical141-"+scene+"-PinnedAfterScroll")
+            if scene=="christmas" || scene=="newyear" {
+                // Observe the actual infrequent production timing, without a fast-forward flag.
+                for frame in 0..<7 {
+                    Thread.sleep(forTimeInterval:1.4)
+                    capture(app,"Physical141-"+scene+"-Flight-"+String(frame))
+                }
+            }
+            app.swipeDown();app.swipeDown();app.swipeDown()
+            capture(app,"Physical141-"+scene+"-ReturnedHeader")
+            app.buttons["seasonal.localPreview.stop"].tap()
+        }
+    }
+    func testNewYearBurstTimingWithoutScrollDelay() {
+        let app=XCUIApplication()
+        for appearance in ["light","dark"] {
+            app.launchArguments=["-selectedAppAppearance",appearance];app.launch()
+            management(app)
+            let preview=app.buttons["seasonal.quick.preview.uac.preset.newyear"];reveal(preview,app);preview.tap()
+            app.tabBars.buttons["Новини"].tap()
+            for frame in 0..<16 {
+                Thread.sleep(forTimeInterval:0.55)
+                capture(app,"Physical-Multicolour-"+appearance+"-"+String(format:"%02d",frame))
+            }
+            app.buttons["seasonal.localPreview.stop"].tap();app.terminate()
+        }
     }
     func testABaselinePhysicalScrollWithoutEffects() {
         let app=XCUIApplication();app.launchArguments=["-selectedAppAppearance","light","-seasonalEffectsEnabled","NO"];app.launch()

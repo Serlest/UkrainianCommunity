@@ -8,8 +8,8 @@ import Foundation
     @Published private(set) var localPreview:SeasonalTheme?
     func preview(_ theme:SeasonalTheme?) { localPreview=theme }
     func active(at date:Date,section:SeasonalSection) -> SeasonalTheme? {
-        if let localPreview { return localPreview.sections.contains(section) ? localPreview:nil }
-        return library.active(at:date,section:section)
+        if let localPreview { return localPreview.sections.contains(section) ? localPreview.preparedForCurrentRenderer:nil }
+        return library.active(at:date,section:section)?.preparedForCurrentRenderer
     }
     private var listener: ListenerRegistration?
     private let cacheURL: URL

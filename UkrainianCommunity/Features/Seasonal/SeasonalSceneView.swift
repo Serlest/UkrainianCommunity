@@ -57,11 +57,14 @@ struct SeasonalScene: UIViewRepresentable {
     private let target=SeasonalDisplayTarget()
     private let motion=SeasonalMotion()
     private var elapsed=0.0,lastTime=0.0
+    private var updateInterval=1.0/30
+    var displayClockRange:CAFrameRateRange { link?.preferredFrameRateRange ?? .default }
     private var fastMotionUntil=0.0
     private var lastMotion=SeasonalMotionSample()
     private var needsRedraw = true
     private var previouslyActive = false
     private(set) var renderedFrameCount = 0
+    var renderingViewportSize:CGSize { renderer.bounds.size }
 
     override init(frame:CGRect) {
         super.init(frame:frame)
@@ -85,11 +88,18 @@ struct SeasonalScene: UIViewRepresentable {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        guard renderer.frame != bounds else { return }
+        // Photographic baubles/keys occupy the header only. A full-window Metal target
+        // for two small planes wastes tens of MB on a 3x iPhone display.
+        let headerOnly = !elements.isEmpty && elements.allSatisfy {
+            $0.artwork == .keychain || $0.artwork == .glassBauble
+        }
+        let height=headerOnly ? min(bounds.height,max(240,placement.webTop+(window?.safeAreaInsets.top ?? 0)+180)):bounds.height
+        let viewport=CGRect(x:0,y:0,width:bounds.width,height:height)
+        guard renderer.frame != viewport else { return }
         needsRedraw = true
-        renderer.frame=bounds
-        cameraNode.camera?.orthographicScale=Double(max(1,bounds.height)/2)
-        world.position=SCNVector3(-Float(bounds.width)/2,Float(bounds.height)/2,0)
+        renderer.frame=viewport
+        cameraNode.camera?.orthographicScale=Double(max(1,viewport.height)/2)
+        world.position=SCNVector3(-Float(viewport.width)/2,Float(viewport.height)/2,0)
         if !animated { draw(delta:0) }
     }
 
@@ -103,6 +113,7 @@ struct SeasonalScene: UIViewRepresentable {
         if themeChanged { elements=theme.elements }
         if geometryChanged || changedIdentity {
             buildObjects();elapsed=0;fastMotionUntil=0;lastMotion=SeasonalMotionSample()
+            setNeedsLayout()
         } else if themeChanged {
             for index in pumpkinNodes.indices {
                 if let current=elements.first(where:{$0.id==pumpkinNodes[index].3.id}) { pumpkinNodes[index].3=current }
@@ -125,7 +136,7 @@ struct SeasonalScene: UIViewRepresentable {
         if animated && link == nil {
             lastTime=0
             let l=CADisplayLink(target:target,selector:#selector(SeasonalDisplayTarget.tick(_:)))
-            l.preferredFramesPerSecond=60;l.add(to:.main,forMode:.common);link=l
+            l.preferredFrameRateRange = .default;l.add(to:.main,forMode:.common);link=l
         } else if !animated { link?.invalidate();link=nil;lastTime=0 }
         renderer.rendersContinuously=false;renderer.isPlaying=false
         // An active scene is drawn once by DisplayLink, including after placement changes.
@@ -144,9 +155,14 @@ struct SeasonalScene: UIViewRepresentable {
         link?.invalidate();link=nil;motion.setEnabled(false)
         renderer.rendersContinuously=false;renderer.isPlaying=false;lastTime=0
     }
-    override func didMoveToWindow() { super.didMoveToWindow();if window == nil { stop() } }
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if let window { renderer.preferredFramesPerSecond=window.windowScene?.screen.maximumFramesPerSecond ?? 60 }
+        else { stop() }
+    }
     func tick(_ timestamp:Double) {
         guard let window,animated,convert(bounds,to:window).intersects(window.bounds) else { return }
+        guard lastTime==0 || timestamp-lastTime>=updateInterval-0.001 else { return }
         let dt=lastTime == 0 ? 0 : min(0.1,max(0,timestamp-lastTime));lastTime=timestamp;elapsed += dt
         draw(delta:dt)
     }
@@ -225,8 +241,8 @@ struct SeasonalScene: UIViewRepresentable {
         let active=elapsed<fastMotionUntil || swinging || arriving || flying || (spriteFrame != nil && spriteFrame != lastHangingFrame)
         if animated {
             let rate=SeasonalFramePacing.rate(at:elapsed,hasWeb:hasWeb,hasBat:hasBat,preview:preview,moving:elapsed<fastMotionUntil || swinging)
-            if link?.preferredFramesPerSecond != rate { link?.preferredFramesPerSecond=rate }
-            if renderer.preferredFramesPerSecond != rate { renderer.preferredFramesPerSecond=rate }
+            // Limit ornament work, not the app's display clock. Scrolling stays system-paced.
+            updateInterval=1.0/Double(rate)
         }
         // Poll gravity at the calm clock rate, but do not redraw an unmoving full-window
         // scene. The final active frame still hides departed bats and settles the legs.

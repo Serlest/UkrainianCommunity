@@ -142,30 +142,24 @@ import UIKit
         manager.release(second)
         #expect(manager.count==0 && UIApplication.shared.isIdleTimerDisabled==original)
     }
-    @Test func lightSnowIsFilledBlueGrayRatherThanAnOutline() throws {
-        let image=try #require(SeasonalAmbientView.lightSnowTexture)
-        var bytes=[UInt8](repeating:0,count:image.width*image.height*4)
-        bytes.withUnsafeMutableBytes { buffer in
-            let c=CGContext(data:buffer.baseAddress,width:image.width,height:image.height,bitsPerComponent:8,bytesPerRow:image.width*4,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue)!
-            c.draw(image,in:CGRect(x:0,y:0,width:image.width,height:image.height))
+    @Test func photographicSnowHasTransparentPaddingAndDistinctNaturalCrystals() throws {
+        #expect(SeasonalSnowCrystals.light.count==6 && SeasonalSnowCrystals.dark.count==6)
+        var payloads:Set<Data>=[]
+        for texture in SeasonalSnowCrystals.light+SeasonalSnowCrystals.dark {
+            let image=try #require(texture)
+            var bytes=[UInt8](repeating:0,count:image.width*image.height*4)
+            bytes.withUnsafeMutableBytes { buffer in
+                let c=CGContext(data:buffer.baseAddress,width:image.width,height:image.height,bitsPerComponent:8,bytesPerRow:image.width*4,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue)!
+                c.draw(image,in:CGRect(x:0,y:0,width:image.width,height:image.height))
+            }
+            let opaque=stride(from:3,to:bytes.count,by:4).filter{bytes[$0]>100}.count
+            #expect(opaque>30 && opaque<image.width*image.height/2,"Snow must remain a delicate ice crystal, without a rectangular backdrop")
+            #expect(bytes[3]<5)
+            payloads.insert(Data(bytes))
         }
-        let center=(image.height/2*image.width+image.width/2)*4
-        #expect(bytes[center+3]>120)
-        #expect(bytes[center+2]>bytes[center])
-        #expect(bytes[center]<220)
+        #expect(payloads.count>=6)
     }
-    @Test func snowTextureHasWhiteCoreAndCoolContourForBothAppearances() throws {
-        let image=try #require(SeasonalAmbientView.snowTexture)
-        var bytes=[UInt8](repeating:0,count:image.width*image.height*4)
-        bytes.withUnsafeMutableBytes { buffer in
-            let c=CGContext(data:buffer.baseAddress,width:image.width,height:image.height,bitsPerComponent:8,bytesPerRow:image.width*4,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue)!
-            c.draw(image,in:CGRect(x:0,y:0,width:image.width,height:image.height))
-        }
-        let core=(image.height/2*image.width+image.width/2)*4
-        #expect(bytes[core]>200 && bytes[core+1]>200)
-        let edge=(image.height/2*image.width+image.width/2+image.width/4)*4
-        #expect(bytes[edge+3]>15 && bytes[edge+2]>bytes[edge])
-    }
+
 }
 
 @MainActor private final class SeasonalExperienceRepository:SeasonalRepositoryProtocol {

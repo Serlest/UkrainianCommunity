@@ -1,6 +1,19 @@
 import Foundation
 
 enum ContentPublishingStrings {
+    /// Localize the known system-generated disclosure, never split arbitrary image credits.
+    static func mediaCaption(caption:String?,credit:String?,language:AppLanguage=LocalizationStore.language)->String {
+        let bilingual="Тематична ШІ-ілюстрація / KI-generierte Themenillustration"
+        var parts:[String]=[]
+        for raw in [caption,credit].compactMap({$0}) {
+            let normalized=raw.split(whereSeparator:{$0.isWhitespace}).joined(separator:" ")
+            guard !normalized.isEmpty else { continue }
+            let text=normalized==bilingual
+                ? (language == .ukrainian ? "Тематична ШІ-ілюстрація":"KI-generierte Themenillustration") : raw
+            if !parts.contains(text) { parts.append(text) }
+        }
+        return parts.joined(separator:" · ")
+    }
     private static var isUkrainian: Bool { LocalizationStore.language == .ukrainian }
 
     static var ukrainianRequired: String { isUkrainian ? "Українська версія" : "Ukrainische Version" }

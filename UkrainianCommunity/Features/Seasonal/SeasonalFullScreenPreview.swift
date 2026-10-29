@@ -8,7 +8,6 @@ struct SeasonalFullScreenPreview:View {
     @Environment(\.dismiss) private var dismiss
     @State private var selected=SeasonalSection.news
     @State private var detailSections:Set<SeasonalSection>=[]
-    @State private var headerPresent=false
     @Environment(\.verticalSizeClass) private var verticalSize
     @Environment(\.dynamicTypeSize) private var textSize
     private var effectsVisible:Bool { theme.sections.contains(selected) && verticalSize != .compact && !textSize.isAccessibilitySize }
@@ -21,11 +20,10 @@ struct SeasonalFullScreenPreview:View {
         }
         .overlayPreferenceValue(SeasonalHeaderAnchors.self) { anchors in
             if effectsVisible {
-                SeasonalDecorationLayer(theme:theme,anchors:anchors,embedsHeaderPumpkin:true,includesChrome:!detailSections.contains(selected),hangingVisible:headerPresent)
+                SeasonalDecorationLayer(theme:theme,anchors:anchors,embedsHeaderPumpkin:true,includesChrome:!detailSections.contains(selected),hangingVisible:true)
                     .ignoresSafeArea(.container,edges:[.top,.bottom])
             }
         }
-        .onPreferenceChange(SeasonalHeaderPresence.self) { headerPresent=$0 }
         .modifier(SeasonalKeepAwake(enabled:true))
         .tint(AppTheme.accentPrimaryForeground)
         .toolbarBackground(.visible,for:.tabBar)
@@ -70,7 +68,7 @@ private struct SeasonalPreviewPage:View {
                         }
                     }
                     VStack(alignment:.leading,spacing:8) {
-                        Text(theme.name).font(.title2.bold())
+                        Text(theme.localizedSceneName).font(.title2.bold())
                         Text(SeasonalText.value("fullPreviewHint","Vorschau auf diesem Gerät. Es wird nichts veröffentlicht."))
                             .font(.subheadline)
                     }.foregroundStyle(AppTheme.textPrimary)
@@ -96,7 +94,6 @@ private struct SeasonalPreviewPage:View {
                 }.padding(.horizontal,AppTheme.pageHorizontal).padding(.bottom,30)
             }
             .background { AppBackgroundView() }
-            .environment(\.seasonalSectionActive,isActive)
             .environment(\.seasonalHeaderActive,enabled && theme.usesHeaderDock)
             .environment(\.seasonalHeaderTheme,enabled ? theme:nil)
             .navigationDestination(isPresented:$detail) {
