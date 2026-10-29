@@ -31,6 +31,7 @@ test("deletion covers canonical and legacy organization draft media", () => {
   assert.deepEqual(contentStoragePrefixes("events", "event-1", "org-1"), [
     "events/event-1/",
     "organizations/org-1/draftUploads/events/event-1_cover.jpg",
+    "organizations/org-1/events/event-1/",
   ]);
   assert.deepEqual(contentStoragePrefixes("news", "news-1", "org-1"), [
     "news/news-1/",

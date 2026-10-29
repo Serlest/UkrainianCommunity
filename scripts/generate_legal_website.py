@@ -184,8 +184,8 @@ def page_template(slug: str, de_source: str, uk_source: str) -> str:
   <meta name="description" content="{html.escape(page['description'][0])}">
   <meta name="theme-color" content="#0a66c2">
   <title>{html.escape(page['title'][0])} – UkrainianCommunity</title>
-  <link rel="stylesheet" href="/assets/styles.css">
-  <script src="/assets/site.js" defer></script>
+  <link rel="stylesheet" href="/assets/styles.css?v=uac-20261019">
+  <script src="/assets/site.js?v=uac-20261019-bilingual" defer></script>
   {('<script src="/assets/dsa-portal.js" defer></script>' if slug == 'report-illegal-content' else '')}
 </head>
 <body data-title-de="{html.escape(page['title'][0])} – UkrainianCommunity" data-title-uk="{html.escape(page['title'][1])} – UkrainianCommunity">

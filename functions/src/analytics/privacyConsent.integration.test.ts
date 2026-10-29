@@ -36,7 +36,7 @@ test("2026.13 preserves historical receipt evidence and authorizes a new choice"
   }
 });
 
-test("2026.21 keeps an existing content-analytics grant and allows a separate new choice", {
+for (const [previous,current] of [["2026.20","2026.21"],["2026.22","2026.23"]]) test(`${current} keeps an existing content-analytics grant and allows a separate new choice`, {
   skip: !process.env.FIRESTORE_EMULATOR_HOST,
 }, async () => {
   assert.match(process.env.GCLOUD_PROJECT ?? "", /^demo-/);
@@ -53,17 +53,17 @@ test("2026.21 keeps an existing content-analytics grant and allows a separate ne
       disclosureVersion: "2026-08-25.1",
     }));
   try {
-    await profile.set({accountStatus: "active", acceptedPrivacyVersion: "2026.20"});
-    assert.equal(await mutate(existingID, "2026.20"), true);
-    await profile.update({acceptedPrivacyVersion: "2026.21"});
+    await profile.set({accountStatus: "active", acceptedPrivacyVersion: previous});
+    assert.equal(await mutate(existingID, previous), true);
+    await profile.update({acceptedPrivacyVersion: current});
     await requireCurrentAnalyticsConsent(uid, existingID);
-    assert.equal((await existingReceipt.get()).get("privacyVersion"), "2026.20");
-    assert.equal(await mutate(existingID, "2026.21"), true);
-    assert.equal((await state.get()).get("privacyVersion"), "2026.20");
-    assert.equal(await mutate(existingID, "2026.20", false), false);
-    assert.equal(await mutate(newID, "2026.21"), true);
+    assert.equal((await existingReceipt.get()).get("privacyVersion"), previous);
+    assert.equal(await mutate(existingID, current), true);
+    assert.equal((await state.get()).get("privacyVersion"), previous);
+    assert.equal(await mutate(existingID, previous, false), false);
+    assert.equal(await mutate(newID, current), true);
     await requireCurrentAnalyticsConsent(uid, newID);
-    assert.equal((await newReceipt.get()).get("privacyVersion"), "2026.21");
+    assert.equal((await newReceipt.get()).get("privacyVersion"), current);
     await assert.rejects(requireCurrentAnalyticsConsent(uid, existingID), {code: "failed-precondition"});
   } finally {
     await Promise.all([profile, state, existingReceipt, newReceipt].map(ref => ref.delete()));

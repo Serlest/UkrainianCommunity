@@ -1,4 +1,5 @@
 import {CheckedBulkWriter} from "../firebase/checkedBulkWriter";
+import {deleteListedContentStorageObjects} from "./contentStorageDeletion";
 import {
   FieldPath,
   FieldValue,
@@ -689,7 +690,7 @@ async function disableFeaturedBanners(kind: ContentKind, contentId: string): Pro
 }
 
 async function deleteStoragePrefix(prefix: string): Promise<void> {
-  await adminStorage.bucket().deleteFiles({prefix, force: true});
+  await deleteListedContentStorageObjects(adminStorage.bucket().getFilesStream({prefix}));
 }
 
 function requestResourceId(data: unknown, field: string): string {

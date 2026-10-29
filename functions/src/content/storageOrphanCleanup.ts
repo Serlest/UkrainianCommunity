@@ -1,4 +1,5 @@
 import {referencedFeaturedBannerAssets} from "../featured/featuredBannerAssets";
+import {deleteListedContentStorageObjects} from "./contentStorageDeletion";
 import {onDocumentDeleted} from "firebase-functions/v2/firestore";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 
@@ -380,5 +381,5 @@ function isNotFound(error: unknown): boolean {
 }
 
 async function deletePrefix(prefix: string): Promise<void> {
-  await adminStorage.bucket().deleteFiles({prefix, force: true});
+  await deleteListedContentStorageObjects(adminStorage.bucket().getFilesStream({prefix}));
 }

@@ -15,7 +15,7 @@ import {
   auditLogRetentionDays,
   closedFeedbackRetentionMonths,
   newsRetentionDays,
-  eventRetentionMonths,
+  eventRetentionDays,
   contentRetentionStatuses,
   deletedNotificationRetentionDays,
   isContentRetentionEligible,
@@ -26,14 +26,18 @@ import {
   systemLogRetentionDays,
 } from "./dataRetention";
 
-test("news expire after 30 days while events retain six calendar months", () => {
+test("news and completed events expire after 30 elapsed days", () => {
   assert.equal(newsRetentionDays, 30);
-  assert.equal(eventRetentionMonths, 6);
+  assert.equal(eventRetentionDays, 30);
   assert.deepEqual(contentRetentionStatuses, ["approved", "archived"]);
   assert.equal(closedFeedbackRetentionMonths, 6);
   assert.equal(
     subtractUtcDays(new Date("2026-10-12T12:30:00.000Z"), newsRetentionDays).toISOString(),
     "2026-09-12T12:30:00.000Z",
+  );
+  assert.equal(
+    subtractUtcDays(new Date("2026-10-29T03:00:00.000Z"), eventRetentionDays).toISOString(),
+    "2026-09-29T03:00:00.000Z",
   );
   assert.equal(
     subtractUtcMonths(new Date("2026-08-31T12:30:00.000Z"), 6).toISOString(),

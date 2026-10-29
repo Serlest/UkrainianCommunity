@@ -1,0 +1,130 @@
+{
+  "date": "2026-10-29",
+  "request": "Shorten event retention to 30 days after completion, remove older events and verify the same complete deletion lifecycle as news",
+  "policy": {
+    "eventRetentionDays": 30,
+    "eventCutoffField": "endDate",
+    "newsRetentionDays": 30,
+    "newsCutoffField": "publishedAt",
+    "eligibleStatuses": [
+      "approved",
+      "archived"
+    ],
+    "schedule": "04:00 Europe/Vienna daily",
+    "perScheduledRunLimitPerKind": 200,
+    "otherRetentionAndBackupPolicies": "unchanged"
+  },
+  "implementation": {
+    "legacyMediaFix": "Include organizations/{organizationId}/events/{eventId}/ in canonical/draft-prefix cleanup; observed16 such images in the approved deletion plan.",
+    "idempotencyFix": "Both primary deletion and delete-trigger cleanup use bounded streams of per-file delete(ignoreNotFound:true); bucket/listing errors and object permission/provider errors still propagate.",
+    "operatorTool": "functions/scripts/cleanupExpiredEvents.mjs; dry-run default, explicit project/count/plan SHA, age bound, per-record nanosecond update precondition check and fresh eligibility recheck, six concurrent records, durable progress/readback. No unrelated retention jobs invoked."
+  },
+  "productionDeletion": {
+    "planArtifact": "build/event-retention30-20261029/events-plan.json",
+    "planSHA256": "500351a7f1cbc177285b5b92341f5a1f313baa82bee8c7af54eec93826526c75",
+    "fixedCutoffUTC": "2026-09-29T19:04:27.630Z",
+    "startedAtUTC": "2026-10-29T19:11:10.159Z",
+    "finishedAtUTC": "2026-10-29T19:13:19.212Z",
+    "deleted": 472,
+    "changedSkipped": 0,
+    "alreadyAbsent": 0,
+    "failed": 0,
+    "remainingAtFixedCutoff": [],
+    "completeVerification": {
+      "project": "ukrainiancommunity-dbd5f",
+      "verifiedAt": "2026-10-29T19:30:35.814Z",
+      "targetCount": 472,
+      "remainingRoots": [],
+      "remainingSubcollections": [],
+      "remainingReferences": [],
+      "remainingMediaPrefixes": []
+    },
+    "rootAndBoundaryReadback": {
+      "verifiedAtUTC": "2026-10-29T19:13:45.551560+00:00",
+      "eventsBefore": 1577,
+      "eventsAfter": 1105,
+      "targetRootsRemaining": [],
+      "nonTargetEventsUnexpectedlyMissing": [],
+      "newsBefore": 633,
+      "newsAfter": 633,
+      "originalNewsUnexpectedlyMissing": [],
+      "expiredAtCurrentThirtyDayCutoff": [],
+      "bannerLinksToDeletedEvents": []
+    },
+    "lastCurrentExpiryCutoffUTC": "2026-09-29T19:31:29.477Z",
+    "lastCurrentExpiredCount": 0
+  },
+  "tests": {
+    "unit": {
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0,
+      "artifact": "build/event-retention30-20261029/race-fixed-units.log"
+    },
+    "firestoreAndStorageEmulator": {
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "artifact": "build/event-retention30-20261029/race-fixed-integration.log",
+      "covers": [
+        "complete news/event lifecycle isolation",
+        "event registrations/comments/nested replies/bookmarks/views/notifications/banner retirement and canonical/legacy media",
+        "exact30-day cutoff; upcoming/draft/pending/missing-date retention",
+        "real SDK missing-file-after-list and simultaneous workers",
+        "old/new analytics grants/withdrawals and immutable receipt version compatibility"
+      ]
+    },
+    "productionStructuredEventReplays": [
+      {
+        "eventID": "uac-retention-structured-replay-fbb123ff-d837-4b2a-b55c-5125769e35fa",
+        "targetID": "5740DE5C-D265-41D3-B08A-B3F445079B28",
+        "HTTP": 204,
+        "timeUTC": "2026-10-29T19:29:19.917607Z"
+      },
+      {
+        "eventID": "uac-retention-structured-replay-1ac21c1e-f580-40e7-9583-9161fb250827",
+        "targetID": "5740DE5C-D265-41D3-B08A-B3F445079B28",
+        "HTTP": 204,
+        "timeUTC": "2026-10-29T19:29:21.048872Z"
+      }
+    ],
+    "limits": [
+      "No new-user registration, actual user legal acknowledgement, or authenticated analytics mutation was performed.",
+      "The next full scheduled04:00 run remains a future operational observation; exact deployed source and eligible query were verified now."
+    ]
+  },
+  "deployment": {
+    "lifecycleReadinessArtifact": "build/event-retention30-20261029/final-deployed-readiness.json",
+    "analyticsReadinessArtifact": "build/event-retention30-20261029/analytics-readiness.json",
+    "deployedAnalyticsCompatibilityArtifact": "build/event-retention30-20261029/deployed-analytics-validation.json",
+    "verified": "All eight relevant handlers ACTIVE, latest ready revision has100% traffic, on-deploy runtime update policy retained; both deletion triggers retain retry and correct document filters.",
+    "exactLifecycleSourcesVerified": true
+  },
+  "privacyPublication": {
+    "version": "2026.23",
+    "priorVersion": "2026.22",
+    "preservedPriorDocumentCount": 41,
+    "publicationReadback": "build/event-retention30-20261029/privacy-verified.json",
+    "liveBilingualReadback": "build/event-retention30-20261029/public-privacy-readback.json",
+    "websiteDelivery": "Existing serveLegalDocument rewrites. No Hosting release/config/file-map modification.",
+    "fallback": "Canonical sources, generated offline bundle, privacy page and iOS fallback version updated in source; no iPhone binary install or TestFlight in this task.",
+    "analytics": "Explicit compatibility added for23 while preserving12–22 contracts, unchanged purpose/disclosure, original receipts and withdrawals. Three consumers deployed/read back."
+  },
+  "alertInvestigation": {
+    "userAlertAtUTC": "2026-10-29T19:16:00Z",
+    "correlationArtifact": "build/event-retention30-20261029/alert-correlation.json",
+    "originalProduction5xx": 35,
+    "onlyAffectedService": "cleanupeventimagesondelete",
+    "cause": "Race between primary cleanup and Firestore delete-trigger attempting the same listed Storage object; per-object404 errors were aggregated and returned as500.",
+    "eventualSuccessful204Deliveries": 472,
+    "correctiveDeploymentCompleted": true,
+    "verificationBoundary": "Two initial manually constructed replay requests failed SDK payload parsing before cleanup because their binary envelope omitted the content-type property. Failures are preserved in replay-readback.json/correct-cloud-event-replays.json; proper structured CloudEvents both returned204. No parser or alert rules were weakened. Incident automatic closure was not asserted.",
+    "monitoring": "unchanged"
+  },
+  "preservation": {
+    "preExistingProjectReorder": "untouched",
+    "preExistingMainLocalizationSHA256": "bb56175012119a73fddd48100c4dc0c9116c6237f9432a1e9d0b8a186c25793a",
+    "temporaryCredentialFoldersRemaining": 0
+  },
+  "delivery": "Backend and live privacy updated; no App Store/TestFlight release or new app build required for retention."
+}

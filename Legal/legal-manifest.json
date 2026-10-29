@@ -45,10 +45,10 @@
         "de": "Legal/privacy.de.md",
         "uk": "Legal/privacy.uk.md"
       },
-      "version": "2026.22",
-      "effectiveDate": "2026-10-15",
-      "supersedesVersion": "2026.21",
-      "changeSummary": "Опис входу через Apple охоплює застосунки iOS та Android; інші правила обробки даних і добровільних згод не змінені. / Die Beschreibung der Apple-Anmeldung umfasst iOS und Android; sonstige Datenverarbeitung und freiwillige Einwilligungen bleiben unverändert."
+      "version": "2026.23",
+      "effectiveDate": "2026-10-29",
+      "supersedesVersion": "2026.22",
+      "changeSummary": "Заходи очищуються через 30 днів після завершення замість шести місяців; строк новин залишається 30 днів. / Veranstaltungen werden 30 Tage nach ihrem Ende statt nach sechs Monaten bereinigt; Nachrichten bleiben bei 30 Tagen."
     },
     "organizationRules": {
       "requiresAcceptance": true,

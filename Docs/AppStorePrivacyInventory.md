@@ -103,3 +103,7 @@ The local Xcode 26.6 Release-product audit on 2026-08-24 found the app manifest 
 ## Banner regional measurement (source update 2026-10-19)
 
 New disclosure `2026-10-19.1` separately explains the selected display-region filter, including All Austria. This is not GPS or verified residence. Legacy grants continue to support non-regional measurements only. The new client strips the region unless the server confirms `allowsRegion`. Owner reports and CSV contain aggregate counts, no participant lists. Internal receipt/account processing remains account-linked; this is not represented as anonymous collection. Existing manifest declares CoarseLocation linked for Analytics and AppFunctionality, and ProductInteraction linked for Analytics; no new tracking SDK/IDFA/domain or collection type is introduced. Live App Store Privacy must still be re-read before the next public binary release; this source inventory is not proof of its current setting.
+
+## Content retention adjustment — 2026-10-29
+
+Published news become eligible for cleanup 30 days after publication; approved/archived events become eligible 30 days after their end date. The daily 04:00 Europe/Vienna job removes related operational records and media through the shared content-deletion lifecycle. Future events and drafts are retained. Backup, legal evidence, analytics and support retention are unchanged. Privacy notice successor: 2026.23; this change does not add collected data types or tracking. Delivery and read-back evidence: `Docs/Verification/EventRetention30Days20261029.json`.

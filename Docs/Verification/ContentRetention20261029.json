@@ -107,5 +107,7 @@
     },
     "newManualDeletionOrMediaE2E": false
   },
-  "finding": "No overdue eligible records or malformed retention timestamps found in either complete bounded collection scan. No code or policy change needed for the current rules. Six-month event history is intentional; shortening it would be a separate product decision."
+  "finding": "No overdue eligible records or malformed retention timestamps found in either complete bounded collection scan. No code or policy change needed for the current rules. Six-month event history is intentional; shortening it would be a separate product decision.",
+  "supersededBy": "Docs/Verification/EventRetention30Days20261029.json",
+  "historicalBoundary": "This report records the earlier six-month event policy before the operator requested30days and authorized production cleanup later the same day."
 }

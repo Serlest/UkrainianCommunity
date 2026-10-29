@@ -44,7 +44,7 @@ export const maxAnalyticsCleanupPagesPerRun = 20;
 const mutableCleanupConcurrency = 40;
 
 export const newsRetentionDays = 30;
-export const eventRetentionMonths = 6;
+export const eventRetentionDays = 30;
 export const closedFeedbackRetentionMonths = 6;
 export const auditLogRetentionDays = 1_095;
 export const deletedNotificationRetentionDays = 30;
@@ -99,7 +99,7 @@ export const cleanupExpiredData = onSchedule(
   async () => {
     const now = new Date();
     const newsCutoff = subtractUtcDays(now, newsRetentionDays);
-    const eventCutoff = subtractUtcMonths(now, eventRetentionMonths);
+    const eventCutoff = subtractUtcDays(now, eventRetentionDays);
     const summary: CleanupSummary = {
       news: await cleanupExpiredContent("news", "publishedAt", newsCutoff),
       events: await cleanupExpiredContent("events", "endDate", eventCutoff),
@@ -164,7 +164,7 @@ export const cleanupExpiredData = onSchedule(
     logger.info("Scheduled data retention cleanup completed.", {
       ...summary,
       newsRetentionDays,
-      eventRetentionMonths,
+      eventRetentionDays,
       closedFeedbackRetentionMonths,
       auditLogRetentionDays,
       newsCutoff: newsCutoff.toISOString(),
@@ -216,7 +216,7 @@ export function subtractUtcDays(date: Date, days: number): Date {
   return new Date(date.getTime() - days * 24 * 60 * 60 * 1_000);
 }
 
-async function cleanupExpiredContent(
+export async function cleanupExpiredContent(
   kind: ContentKind,
   cutoffField: "publishedAt" | "endDate",
   cutoff: Date,
