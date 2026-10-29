@@ -64,6 +64,41 @@ import UIKit
         XCTAssertFalse(app.staticTexts["New Year · Golden Midnight"].exists)
         capture(app,"Physical-Quick-Catalog-Ukrainian-No-Duplicates")
     }
+    func testViceBadgeAndLocalSceneReplacement() {
+        let app=XCUIApplication()
+        for appearance in ["light","dark"] {
+            app.launchArguments=["-selectedAppLanguage","uk","-selectedAppAppearance",appearance];app.launch()
+            for scene in ["gta","halloween","christmas","gta"] {
+                management(app)
+                let preview=app.buttons["seasonal.quick.preview.uac.preset."+scene];reveal(preview,app);preview.tap()
+                app.tabBars.buttons["Новини"].tap()
+                let stop=app.buttons["seasonal.localPreview.stop"]
+                XCTAssertTrue(stop.waitForExistence(timeout:10))
+                Thread.sleep(forTimeInterval:2)
+                capture(app,"SceneReplacement-"+appearance+"-"+scene)
+                if scene == "gta" {
+                    XCUIDevice.shared.orientation = .landscapeLeft
+                    Thread.sleep(forTimeInterval:2);capture(app,"ViceBadge-"+appearance+"-Landscape")
+                    XCUIDevice.shared.orientation = .portrait
+                    Thread.sleep(forTimeInterval:1)
+                }
+                stop.tap();XCTAssertTrue(stop.waitForNonExistence(timeout:5))
+            }
+            app.terminate()
+        }
+    }
+    func testSavedCalendarConflictsAreVisibleWithoutPublishing() {
+        let app=XCUIApplication()
+        for (language,appearance) in [("uk","light"),("de","dark")] {
+            app.launchArguments=["-selectedAppLanguage",language,"-selectedAppAppearance",appearance];app.launch()
+            management(app)
+            let advanced=app.buttons["seasonal.advanced"];reveal(advanced,app);advanced.tap()
+            let warning=app.descendants(matching:.any).matching(identifier:"seasonal.schedule.overlap").firstMatch
+            reveal(warning,app);capture(app,"CalendarOverlap-"+language+"-"+appearance)
+            XCTAssertTrue(app.buttons["seasonal.publish"].exists)
+            app.terminate()
+        }
+    }
     func testAllScenesSurviveBothLandscapeDirectionsAndReturnToPortrait() {
         let app=XCUIApplication()
         for appearance in ["light","dark"] {

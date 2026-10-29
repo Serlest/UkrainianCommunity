@@ -5,6 +5,7 @@ import UIKit
     private static let cache=NSCache<NSString,UIImage>()
     static func image(_ element:SeasonalElement) -> UIImage? {
         if element.artwork == .image { return frames(element).first }
+        if element.artwork == .viceHeader { return viceEmblem }
         let name:String = switch element.artwork {
         case .christmasTree:"SeasonalChristmasTree"
         case .viceHeader:"SeasonalViceHeader"
@@ -25,6 +26,40 @@ import UIKit
         let result=trimmed(source);cache.setObject(result,forKey:name as NSString,cost:Int(result.size.width*result.size.height*4))
         cache.totalCostLimit=8*1024*1024;return result
     }
+    /// Original VI badge, rasterized once. The existing compositor supplies motion
+    /// and the masked glint; no live text layout, 3D scene or extra display link.
+    private static let viceEmblem:UIImage = {
+        let format=UIGraphicsImageRendererFormat();format.scale=1
+        return UIGraphicsImageRenderer(size:CGSize(width:192,height:192),format:format).image { renderer in
+            let c=renderer.cgContext
+            let face=UIBezierPath()
+            let polygons:[[CGPoint]] = [
+                [.init(x:13,y:34),.init(x:45,y:34),.init(x:73,y:123),.init(x:101,y:34),.init(x:133,y:34),.init(x:90,y:159),.init(x:56,y:159)],
+                [.init(x:142,y:34),.init(x:174,y:34),.init(x:174,y:159),.init(x:142,y:159)]
+            ]
+            for points in polygons {
+                face.move(to:points[0]);points.dropFirst().forEach{face.addLine(to:$0)};face.close()
+            }
+            c.saveGState()
+            c.setShadow(offset:CGSize(width:0,height:4),blur:5,color:UIColor.black.withAlphaComponent(0.4).cgColor)
+            UIColor(red:0.23,green:0.10,blue:0.30,alpha:1).setFill()
+            for depth in stride(from:7,through:1,by:-1) {
+                c.saveGState();c.translateBy(x:CGFloat(depth)*0.55,y:CGFloat(depth));face.fill();c.restoreGState()
+            }
+            c.restoreGState()
+            c.saveGState();face.addClip()
+            let colors=[UIColor(red:1,green:0.89,blue:0.71,alpha:1).cgColor,
+                        UIColor(red:1,green:0.49,blue:0.62,alpha:1).cgColor,
+                        UIColor(red:0.73,green:0.43,blue:0.90,alpha:1).cgColor] as CFArray
+            let gradient=CGGradient(colorsSpace:CGColorSpaceCreateDeviceRGB(),colors:colors,locations:[0,0.48,1])!
+            c.drawLinearGradient(gradient,start:CGPoint(x:0,y:34),end:CGPoint(x:0,y:159),options:[])
+            c.restoreGState()
+            face.lineWidth=2.2;UIColor(red:1,green:0.93,blue:0.94,alpha:0.94).setStroke();face.stroke()
+            // A narrow inner reflection makes the letters legible on light and dark backgrounds.
+            c.saveGState();face.addClip();c.translateBy(x:0,y:2)
+            face.lineWidth=3;UIColor.white.withAlphaComponent(0.3).setStroke();face.stroke();c.restoreGState()
+        }
+    }()
     static func frames(_ element:SeasonalElement) -> [UIImage] {
         element.pngFrames.compactMap { encoded in
             let key=encoded as NSString
@@ -95,8 +130,9 @@ struct SeasonalHeaderImage:UIViewRepresentable {
             switch element.effectiveMotion {
             case .glow:break
             case .float,.rotate:
-                let move=CABasicAnimation(keyPath:element.effectiveMotion == .float ? "transform.translation.y":"transform.rotation.z")
-                let amplitude=(element.effectiveMotion == .float ? 3.0:0.045)*element.sway
+                let viceTurn=element.artwork == .viceHeader && element.effectiveMotion == .rotate
+                let move=CABasicAnimation(keyPath:element.effectiveMotion == .float ? "transform.translation.y":(viceTurn ? "transform.rotation.y":"transform.rotation.z"))
+                let amplitude=(element.effectiveMotion == .float ? 3.0:(viceTurn ? 0.5:0.045))*element.sway
                 move.fromValue = -amplitude;move.toValue=amplitude;move.duration=3.2;move.autoreverses=true;move.repeatCount = .infinity
                 move.timingFunction=CAMediaTimingFunction(name:.easeInEaseOut);imageView.layer.add(move,forKey:"seasonal.object")
             default:break

@@ -1,0 +1,66 @@
+{
+  "date": "2026-10-29",
+  "request": "Replace GTA header palm with animated VI badge and verify seasonal exclusivity",
+  "baseRevision": "9d3b63dd",
+  "changes": [
+    "Use cached original 192px transparent VI artwork in existing viceHeader slot; light chrome outline, peach/pink/lavender face and shallow extrusion. Existing compositor supplies slow Y turn, breathing and masked glint. No new display link, sensor or 3D scene.",
+    "Upgrade legacy default GTA glow to slow turn in memory; retain still/disabled flags and custom PNG artwork.",
+    "Add localized calendar-overlap warning for enabled saved themes, using real annual/cross-January intervals. Does not save, publish or change dates."
+  ],
+  "localModels": {
+    "bundle": "build/seasonal-vice-20261029/Models153Final.xcresult",
+    "passed": 59,
+    "failed": 0,
+    "skipped": 0,
+    "scope": [
+      "manual one-scene replacement and readback failures",
+      "deterministic calendar winner and end-exclusive dates",
+      "local preview replaces global selection",
+      "annual calendar overlap with nonannual dates across January",
+      "VI bitmap cache, compositor animation and stop",
+      "existing seasonal rendering/dynamics regressions"
+    ]
+  },
+  "liveReadback": {
+    "artifact": "build/seasonal-vice-20261029/configuration-before.json",
+    "manualThemeID": "uac.preset.halloween",
+    "publicSceneCount": 1,
+    "behavior": "Manual Halloween ignores its calendar dates until explicitly disabled or replaced by a scene/schedule. Other saved themes are not live.",
+    "privateCalendarIssues": [
+      "Legacy Halloween overlaps GTA on November1; second canonical Halloween is also saved.",
+      "New Year starts November25 and overlaps Christmas December1–25."
+    ],
+    "changesToProduction": false,
+    "unchangedAfterPhysicalTests": true,
+    "afterArtifact": "build/seasonal-vice-20261029/configuration-after.json"
+  },
+  "physical": {
+    "status": "passed; selected native captures visually reviewed",
+    "device": "Serlest Mobile, iPhone16ProMax, iOS27.2",
+    "bundle": "build/seasonal-vice-20261029/Physical153.xcresult",
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0,
+    "durationsSeconds": [
+      112.097,
+      388.728
+    ],
+    "scope": [
+      "VI header and GTA → Halloween → Christmas → GTA private-preview replacement in light/dark",
+      "GTA portrait/landscape and portrait return",
+      "Live saved-calendar overlap warning in Ukrainian light/German dark"
+    ],
+    "attachments": "build/seasonal-vice-20261029/physical-attachments/manifest.json",
+    "observed": "VI readable beside brand; no Halloween spiders/web/leaves in GTA or winter snow/tree left after switching back to GTA. Warning and controls fit the screen.",
+    "restoration": "Test teardown restored portrait and ordinary launch arguments. Ordinary application explicitly relaunched afterward."
+  },
+  "delivery": {
+    "build": "1.2.1 (153)",
+    "directIPhoneInstall": true,
+    "testFlight": false
+  },
+  "limits": [
+    "This scoped change does not establish sustained120FPS or resolve the prior full-screen-preview rotation profiling limitation.",
+    "No global theme activation, save or publication in this audit. Existing owner calendar dates retained."
+  ]
+}

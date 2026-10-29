@@ -35,6 +35,15 @@ extension SeasonalTheme {
     /// Upgrade bundled legacy templates in memory; never writes a public document implicitly.
     /// Edition 2 keeps an explicitly disabled flight disabled on subsequent loads.
     var preparedForCurrentRenderer:Self {
+        if (sceneEdition ?? 0)<3,SeasonalPresetKind.kind(of:self) == .gta {
+            var result=self
+            for i in result.elements.indices where result.elements[i].zone == .brand && result.elements[i].artwork == .viceHeader {
+                // Keep owner opt-outs and custom imagery; upgrade only the old native default.
+                if result.elements[i].effectiveMotion == .glow { result.elements[i].motionStyle = .rotate }
+            }
+            result.sceneEdition=3
+            return result
+        }
         guard (sceneEdition ?? 0)<2,let kind=SeasonalPresetKind.kind(of:self),kind == .christmas || kind == .newyear else { return self }
         var result=isComposedScene ? self:arrangedInZones()
         let storedIDs=Set(elements.map(\.id))

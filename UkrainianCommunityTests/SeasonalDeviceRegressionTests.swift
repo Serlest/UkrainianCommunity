@@ -4,6 +4,17 @@ import UIKit
 @testable import UkrainianCommunity
 
 @MainActor struct SeasonalDeviceRegressionTests {
+    @Test func viceUpgradeKeepsOwnerDisabledMotionAndCustomArtwork() {
+        var old=SeasonalTheme.gtaVI();old.sceneEdition=nil;old.elements[0].motionStyle = .glow
+        let upgraded=old.preparedForCurrentRenderer
+        #expect(upgraded.headerElements.first?.effectiveMotion == .rotate)
+        #expect(upgraded.preparedForCurrentRenderer == upgraded)
+        old.elements[0].motionStyle = .still;old.elements[0].isEnabled=false
+        #expect(old.preparedForCurrentRenderer.elements[0].motionStyle == .still)
+        #expect(old.preparedForCurrentRenderer.elements[0].isEnabled == false)
+        old.elements[0].artwork = .image
+        #expect(old.preparedForCurrentRenderer.elements[0].artwork == .image)
+    }
     @Test func glassControlCopiesResolveToOneFloatingCapsule() throws {
         // Actual native landscape geometry: selected and ordinary content each
         // contain the same five controls; the full UITabBar is much wider.

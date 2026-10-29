@@ -197,6 +197,13 @@ struct SeasonalManagementView: View {
                         if model.published.manualThemeID != nil { Text(SeasonalText.value("manualCalendarHint","Die manuelle Szene ersetzt den Zeitplan vorübergehend. Ihre gespeicherten Termine bleiben erhalten.")).font(.footnote).foregroundStyle(AppTheme.textSecondary) }
                         Text(SeasonalText.value("publicationHint", "Veröffentlicht werden nur gespeicherte, eingeschaltete Themen. Beginn und Ende gelten in der gewählten Zeitzone. Bei Überschneidung gewinnt die höhere Priorität."))
                             .font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                        if !scheduleConflicts.isEmpty {
+                            Label(SeasonalText.value("calendarOverlap", "Einige Termine überschneiden sich. Es wird immer nur eine Szene angezeigt. Prüfen Sie vor der Veröffentlichung die Zeiträume und Prioritäten."),systemImage:"calendar.badge.exclamationmark")
+                                .font(.footnote).foregroundStyle(AppTheme.textPrimary)
+                                .accessibilityIdentifier("seasonal.schedule.overlap")
+                            Text(scheduleConflicts.map(\.localizedSceneName).joined(separator:" · "))
+                                .font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                        }
                         if model.published.manualThemeID == nil {
                             Text(SeasonalText.value("publishedCount", "Themen im veröffentlichten Zeitplan") + ": \(model.published.themes.count)")
                         }
@@ -221,6 +228,10 @@ struct SeasonalManagementView: View {
     }
     private var activePublishedTheme: SeasonalTheme? {
         model.published.themes.first { $0.id == currentThemeID }
+    }
+    private var scheduleConflicts:[SeasonalTheme] {
+        let ids=model.savedLibrary.conflictingThemeIDs(around:.now)
+        return model.savedLibrary.themes.filter{ids.contains($0.id)}
     }
     private var liveStatusTitle: String {
         if model.isLoading { return SeasonalText.value("checkingStatus", "Status wird geprüft …") }

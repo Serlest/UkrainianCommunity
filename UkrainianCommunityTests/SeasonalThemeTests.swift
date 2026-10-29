@@ -5,6 +5,37 @@ import FirebaseFirestore
 @testable import UkrainianCommunity
 
 @MainActor struct SeasonalThemeTests {
+    @Test func overlappingCalendarHasOneGlobalWinnerAndPreviewReplacesIt() throws {
+        let now=Date(timeIntervalSince1970:1793289600)
+        var themes=[SeasonalTheme.halloweenScene(now:now),.gtaVI(now:now),.christmas(now:now),.newYear(now:now)]
+        for i in themes.indices {
+            themes[i].id="scene-\(i)";themes[i].isEnabled=true;themes[i].repeatsYearly=false
+            themes[i].startsAt=now;themes[i].endsAt=now.addingTimeInterval(3600);themes[i].priority=i
+        }
+        let library=try SeasonalLibrary(themes:themes).validated()
+        for section in SeasonalSection.allCases {
+            #expect(library.active(at:now,section:section)?.id == themes[3].id)
+            #expect(library.active(at:now.addingTimeInterval(3600),section:section) == nil)
+            let selection=SeasonalSelectionInput(library:library,preview:themes[1],section:section,enabled:true,eligible:true,compact:false,accessible:false)
+            #expect(selection.theme(at:now)?.id == themes[1].id)
+        }
+        // A section excluded by the winner must not fall back to a different scene.
+        themes[3].sections=[.news]
+        #expect(SeasonalLibrary(themes:themes).active(at:now,section:.events) == nil)
+    }
+    @Test func calendarWarningHandlesAnnualJanuaryWindowsAndExclusiveEndpoints() {
+        let parse=ISO8601DateFormatter()
+        var winter=SeasonalTheme.newYear(now:parse.date(from:"2026-10-29T12:00:00Z")!);winter.id="winter";winter.isEnabled=true
+        winter.startsAt=parse.date(from:"2026-12-28T23:00:00Z")!;winter.endsAt=parse.date(from:"2027-01-08T23:00:00Z")!
+        var next=SeasonalTheme.gtaVI();next.id="next";next.isEnabled=true
+        next.startsAt=parse.date(from:"2028-01-08T23:00:00Z")!;next.endsAt=next.startsAt.addingTimeInterval(86400)
+        let now=parse.date(from:"2026-10-29T12:00:00Z")!
+        #expect(SeasonalLibrary(themes:[winter,next]).conflictingThemeIDs(around:now).isEmpty)
+        next.startsAt=next.startsAt.addingTimeInterval(-1)
+        #expect(SeasonalLibrary(themes:[winter,next]).conflictingThemeIDs(around:now)==Set(["winter","next"]))
+        next.isEnabled=false
+        #expect(SeasonalLibrary(themes:[winter,next]).conflictingThemeIDs(around:now).isEmpty)
+    }
     private func date(_ value: String) -> Date { ISO8601DateFormatter().date(from: value)! }
 
     @Test func legacyStaticWebKeepsSpidersAndExplicitStopSurvivesRoundTrip() throws {

@@ -42,6 +42,38 @@ struct SeasonalLibrary: Codable, Equatable {
         return candidate?.sections.contains(section) == true ? candidate:nil
     }
 
+    /// Read-only calendar guidance. Compare real intervals, including annual
+    /// windows crossing January; adjacent end/start timestamps do not conflict.
+    func conflictingThemeIDs(around date:Date) -> Set<String> {
+        let enabled=themes.filter(\.isEnabled)
+        func windows(_ theme:SeasonalTheme) -> [(Date,Date)] {
+            guard theme.repeatsYearly,let zone=TimeZone(identifier:theme.timeZoneID) else { return [(theme.startsAt,theme.endsAt)] }
+            var calendar=Calendar(identifier:.gregorian);calendar.timeZone=zone
+            let base=calendar.component(.year,from:theme.startsAt)
+            let current=calendar.component(.year,from:date)
+            var years=Set([current-1,current,current+1])
+            for fixed in enabled where !fixed.repeatsYearly {
+                let year=calendar.component(.year,from:fixed.startsAt)
+                years.formUnion([year-1,year,year+1])
+            }
+            return years.filter{$0>=base}.compactMap { year in
+                guard let start=calendar.date(byAdding:.year,value:year-base,to:theme.startsAt),
+                      let end=calendar.date(byAdding:.year,value:year-base,to:theme.endsAt) else { return nil }
+                return (start,end)
+            }
+        }
+        let intervals=enabled.map(windows)
+        var conflicts=Set<String>()
+        for i in enabled.indices {
+            for j in enabled.indices where j>i {
+                if intervals[i].contains(where:{ a in intervals[j].contains{ b in max(a.0,b.0)<min(a.1,b.1) }}) {
+                    conflicts.insert(enabled[i].id);conflicts.insert(enabled[j].id)
+                }
+            }
+        }
+        return conflicts
+    }
+
     static func decode(_ data: Data) throws -> Self {
         guard data.count <= 240_000 else { throw SeasonalError.invalidPackage }
         let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
@@ -203,7 +235,7 @@ struct SeasonalTheme: Codable, Equatable, Identifiable {
     static func gtaVI(now: Date = Date()) -> Self {
         let start=Date(timeIntervalSince1970:floor(now.timeIntervalSince1970))
         return Self(name:"GTA VI · Vice Nights",startsAt:start,endsAt:start.addingTimeInterval(14*86400),reactsToTilt:true,
-             elements:[.scene(.viceHeader,.brand,size:40,motion:.glow,glow:true,accent:"FF5AB5"),
+             elements:[.scene(.viceHeader,.brand,size:44,motion:.rotate,glow:true,accent:"FF5AB5"),
                        .scene(.palm,.corner,size:36),.scene(.keychain,.hanging,size:34,motion:.swing),
                        .scene(.palm,.edges,size:36,motion:.glow,glow:true,accent:"45E9DF"),
                        .scene(.sparkle,.atmosphere,size:18,motion:.glow,glow:true,accent:"F8AE78"),

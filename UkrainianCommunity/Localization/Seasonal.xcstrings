@@ -1724,19 +1724,19 @@
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Неонова пальма"
+            "value": "Емблема VI"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Neon palm"
+            "value": "VI emblem"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Neonpalme"
+            "value": "VI-Emblem"
           }
         }
       }
@@ -3160,6 +3160,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "Status neu laden"
+          }
+        }
+      }
+    },
+    "seasonal.calendarOverlap": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Деякі дати перетинаються. Завжди відображається лише одна сцена. Перед публікацією перевірте періоди та пріоритети."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einige Termine überschneiden sich. Es wird immer nur eine Szene angezeigt. Prüfen Sie vor der Veröffentlichung die Zeiträume und Prioritäten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some dates overlap. Only one scene is displayed at a time. Check the dates and priorities before publishing."
           }
         }
       }

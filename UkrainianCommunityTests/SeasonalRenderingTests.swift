@@ -3,6 +3,27 @@ import SceneKit
 @testable import UkrainianCommunity
 
 @MainActor final class SeasonalRenderingTests: XCTestCase {
+    func testViceEmblemUsesCachedArtworkAndStopsCompositorMotion() throws {
+        let element=try XCTUnwrap(SeasonalTheme.gtaVI().headerElements.first)
+        let image=try XCTUnwrap(SeasonalSceneImages.image(element))
+        XCTAssertTrue(image === SeasonalSceneImages.image(element))
+        XCTAssertEqual(image.size,CGSize(width:192,height:192))
+        let view=SeasonalHeaderImageView(frame:CGRect(x:0,y:0,width:52,height:52))
+        view.configure(element,animated:true,intensity:0.6);view.layoutIfNeeded()
+        let picture=try XCTUnwrap(view.subviews.first as? UIImageView)
+        XCTAssertNotNil(picture.layer.animation(forKey:"seasonal.object"))
+        for dark in [false,true] {
+            let rendered=UIGraphicsImageRenderer(size:CGSize(width:240,height:120)).image { context in
+                (dark ? UIColor(white:0.12,alpha:1):.white).setFill();context.fill(CGRect(x:0,y:0,width:240,height:120))
+                image.draw(in:CGRect(x:24,y:18,width:84,height:84))
+                image.draw(in:CGRect(x:156,y:38,width:44,height:44))
+            }
+            let attachment=XCTAttachment(image:rendered);attachment.name="Vice-VI-"+(dark ? "dark":"light");attachment.lifetime = .keepAlways;add(attachment)
+        }
+        view.configure(element,animated:false,intensity:0.6)
+        XCTAssertNil(picture.layer.animationKeys())
+        XCTAssertTrue(view.layer.sublayers?.allSatisfy{($0.animationKeys() ?? []).isEmpty} == true)
+    }
     func testStaticArtworkIsCachedTransparentAndBounded() throws {
         let light=SeasonalStaticArtwork.web(dark:false),dark=SeasonalStaticArtwork.web(dark:true)
         XCTAssertTrue(light === SeasonalStaticArtwork.web(dark:false))
