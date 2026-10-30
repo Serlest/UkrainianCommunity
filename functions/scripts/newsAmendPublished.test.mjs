@@ -4,7 +4,8 @@ import {createHash} from "node:crypto";
 import {mkdtemp, writeFile, rm} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
-import {buildNewsAmendment, amendPublishedNews} from "./newsAmendPublished.mjs";
+import {buildNewsAmendment, amendPublishedNews, validateArchivedEndCorrection} from "./newsAmendPublished.mjs";
+import {validateNewsEditorialReview} from "./newsEditorialGate.mjs";
 import {buildContentDocument, normalizeAndValidateManifestItem} from "./verifiedContentPublisherCore.mjs";
 
 const now = new Date("2026-10-16T16:25:00Z");
@@ -67,4 +68,47 @@ test("concurrent edit or lock rejection stops live write", async(t)=>{
   f.record.updateTime="2026-10-16T16:20:00Z";
   await assert.rejects(amendPublishedNews(f.config,{...deps,apply:true,checkLocks:async()=>{}}),/Dry-run\/production changed/);
   assert.equal(writes,0);
+});
+
+test("archived explicit end with migrated URL can correct the same record days later", async (t) => {
+  const f = await fixture(t);
+  const archivedURL = url + "-migrated";
+  const text = "Stockerau - Hausleiten Störfall 16.10.2026 17:00 Bis 18:01 Uhr war zwischen Stockerau und Hausleiten nur ein eingeschränkter Zugverkehr möglich. Grund dafür war eine Störung. Aktualisiert : 16.10.2026 18:03 Bitte prüfen Sie Ihre aktuelle Verbindung bei ÖBB.";
+  const report = {checkedAt: "2026-10-16T16:10:00Z", unresolvedPublishedIncidents: [{contentId: record().id,
+    active: false, sourceURL: archivedURL, publishedSourceURL: url, endedAt: "2026-10-16T18:01:00+02:00",
+    sourceUpdatedAt: "2026-10-16T18:03:00+02:00"}]};
+  const articlePath = join(f.config.planPath, "..", "archive.json"), reportPath = join(f.config.planPath, "..", "closed-report.json");
+  const article = {requestedArticleURL: archivedURL, text, textTruncated: false, accessRestricted: false};
+  await writeFile(articlePath, JSON.stringify(article)); await writeFile(reportPath, JSON.stringify(report));
+  const digest = (x) => createHash("sha256").update(JSON.stringify(x)).digest("hex");
+  const proof = {kind: "ended_oebb_restriction", articlePath, articleSHA256: digest(article), reportPath, reportSHA256: digest(report),
+    endQuote: "Bis 18:01 Uhr war zwischen Stockerau und Hausleiten nur ein eingeschränkter Zugverkehr möglich.", routeAnchors: ["Stockerau", "Hausleiten"]};
+  const later = new Date("2026-10-19T12:00:00Z");
+  const review = {scope: "niederoesterreich", evidenceMode: "official", sourceEventKind: "material_update",
+    sourceEventDate: "2026-10-16", sourceEventAt: report.unresolvedPublishedIncidents[0].sourceUpdatedAt, primaryURL: archivedURL};
+  const args = [proof, old, next, review, "uac-niederoesterreich-info", later];
+  const result = await validateArchivedEndCorrection(...args, {readArticle: async () => ({requestedArticleURL: archivedURL, accessRestricted: false, text: ""})});
+  assert.equal(result.publishedSourceURL, url); assert.equal(result.evidenceURL, archivedURL);
+  assert.equal(result.currentSourceHasText, false); assert.equal(result.endedAt, report.unresolvedPublishedIncidents[0].endedAt);
+  await assert.rejects(validateArchivedEndCorrection({...proof, articleSHA256: "0".repeat(64)}, ...args.slice(1)), /hash mismatch/);
+  await assert.rejects(validateArchivedEndCorrection({...proof, routeAnchors: ["Linz", "Marchtrenk"]}, ...args.slice(1)), /route/);
+  await assert.rejects(validateArchivedEndCorrection({...proof, routeAnchors: ["Stockerau", "Stockerau"]}, ...args.slice(1)), /route/);
+  await assert.rejects(validateArchivedEndCorrection(...args, {readArticle: async () => ({requestedArticleURL: archivedURL, accessRestricted: false, text: "New active restriction"})}), /different content/);
+});
+
+test("removed source without an explicit closed-report end cannot authorize a correction", async (t) => {
+  const f = await fixture(t); const articlePath = join(f.config.planPath, "..", "archive.json"), reportPath = join(f.config.planPath, "..", "report.json");
+  const article = {requestedArticleURL: url, text: "This notice disappeared".repeat(15), textTruncated: false, accessRestricted: false};
+  const report = {unresolvedPublishedIncidents: [{contentId: record().id, sourceURL: url, active: null}]};
+  await writeFile(articlePath, JSON.stringify(article)); await writeFile(reportPath, JSON.stringify(report));
+  const digest = (x) => createHash("sha256").update(JSON.stringify(x)).digest("hex");
+  await assert.rejects(validateArchivedEndCorrection({kind: "ended_oebb_restriction", articlePath, articleSHA256: digest(article), reportPath, reportSHA256: digest(report)},
+    old, next, {primaryURL: url}, "uac-niederoesterreich-info", now), /does not establish/);
+});
+
+test("ordinary editorial gate cannot use review fields to backdate a new publication", async (t) => {
+  const f = await fixture(t); const {readFile} = await import("node:fs/promises");
+  const m = JSON.parse(await readFile(f.config.manifestPath)); const r = JSON.parse(await readFile(f.config.reviewPath));
+  const later = new Date("2026-10-19T12:00:00Z"); m.publishedAt = later.toISOString();r.primaryCheckedAt = later.toISOString();r.archivedCorrection = {anything: true};
+  assert.throws(() => validateNewsEditorialReview(m, r, later, {allowRetainedCover: true}), /not today's/);
 });

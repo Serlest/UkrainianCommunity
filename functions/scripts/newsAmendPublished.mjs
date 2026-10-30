@@ -2,13 +2,15 @@
 import {createHash} from "node:crypto";
 import {readFile, writeFile, mkdir, rename} from "node:fs/promises";
 import {homedir} from "node:os";
-import {join, resolve} from "node:path";
+import {isAbsolute, join, resolve} from "node:path";
 import {pathToFileURL} from "node:url";
 import {contentAutomationAccessToken} from "./contentAutomationCredential.mjs";
 import {reviewNewsForPublication} from "./newsEditorialGate.mjs";
 import {readbackPublishedNews} from "./newsProductionReadback.mjs";
 import {convertCoverToCanonicalJPEG} from "./publishVerifiedContent.mjs";
 import {deterministicContentId, normalizeAndValidateManifestItem, EXPECTED_OWNER_ID} from "./verifiedContentPublisherCore.mjs";
+import {canonicalizeURL} from "./contentPlanningBridgeSummary.mjs";
+import {readNewsArticle} from "./newsReadArticle.mjs";
 
 const hash = (x) => createHash("sha256").update(x).digest("hex");
 const load = async (p) => JSON.parse(await readFile(p, "utf8"));
@@ -17,6 +19,57 @@ const one = (d) => {
   if (a.length !== 1) throw new Error("Amend exactly one existing news article.");
   return a[0];
 };
+
+// Existing-record recovery only. Never available to the create-only publisher.
+// A removed notice alone cannot enter this route: a hash-bound closed report and
+// the previously read full operator text must both explicitly confirm the end.
+export async function validateArchivedEndCorrection(proof, oldRaw, newRaw, review, organizationId, now,
+    {readArticle = readNewsArticle} = {}) {
+  if (!proof || proof.kind !== "ended_oebb_restriction" ||
+      !isAbsolute(proof.articlePath ?? "") || !isAbsolute(proof.reportPath ?? "") ||
+      !/^[a-f0-9]{64}$/.test(proof.articleSHA256 ?? "") || !/^[a-f0-9]{64}$/.test(proof.reportSHA256 ?? "")) {
+    throw new Error("Unsupported archived correction proof.");
+  }
+  const [articleBytes, reportBytes] = await Promise.all([readFile(proof.articlePath), readFile(proof.reportPath)]);
+  if (hash(articleBytes) !== proof.articleSHA256 || hash(reportBytes) !== proof.reportSHA256) throw new Error("Archived correction evidence hash mismatch.");
+  const article = JSON.parse(articleBytes), report = JSON.parse(reportBytes);
+  const publishedSourceURL = canonicalizeURL(oldRaw.sourceURL ?? oldRaw.sources?.find((s) => s.isPrimary)?.url);
+  const evidenceURL = canonicalizeURL(article.requestedArticleURL);
+  const cid = deterministicContentId("news", organizationId, publishedSourceURL);
+  const entry = [...(report.unresolvedPublishedIncidents ?? []), ...(report.resolvedPublishedIncidents ?? [])]
+    .find((x) => x.contentId === cid);
+  if (new URL(publishedSourceURL).hostname !== "www.unsereoebb.at" || new URL(evidenceURL).hostname !== "www.unsereoebb.at" ||
+      entry?.active !== false || canonicalizeURL(entry.sourceURL) !== evidenceURL ||
+      canonicalizeURL(entry.publishedSourceURL ?? entry.sourceURL) !== publishedSourceURL ||
+      canonicalizeURL(review.primaryURL) !== evidenceURL || article.textTruncated !== false || article.accessRestricted !== false ||
+      typeof article.text !== "string" || article.text.length < 180) throw new Error("Closed report/official full text does not establish the same ended publication.");
+  const ended = new Date(entry.endedAt), updated = new Date(entry.sourceUpdatedAt), observed = new Date(entry.checkedAt ?? report.checkedAt);
+  if (![ended, updated, observed].every((x) => Number.isFinite(x.getTime())) || ended > updated || updated > observed || observed > now ||
+      ended < new Date(oldRaw.publishedAt) || review.sourceEventAt !== entry.sourceUpdatedAt) throw new Error("Archived end/update/observation dates invalid.");
+  const local = Object.fromEntries(new Intl.DateTimeFormat("en-GB", {timeZone: "Europe/Vienna", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23"}).formatToParts(updated).map((x) => [x.type, x.value]));
+  const sourceEventDate = `${local.year}-${local.month}-${local.day}`;
+  const endLocal = new Intl.DateTimeFormat("en-GB", {timeZone: "Europe/Vienna", hour: "2-digit", minute: "2-digit", hourCycle: "h23"}).format(ended);
+  if (review.sourceEventDate !== sourceEventDate || !article.text.includes(`Bis ${endLocal} Uhr war`) ||
+      !article.text.includes(`Aktualisiert : ${local.day}.${local.month}.${local.year} ${local.hour}:${local.minute}`) ||
+      typeof proof.endQuote !== "string" || !proof.endQuote.includes(`Bis ${endLocal} Uhr war`) || !article.text.includes(proof.endQuote)) {
+    throw new Error("Archived text does not explicitly confirm the reviewed end/update time.");
+  }
+  if (!Array.isArray(proof.routeAnchors) || new Set(proof.routeAnchors).size < 2 ||
+      proof.routeAnchors.some((anchor) => typeof anchor !== "string" || anchor.length < 4 ||
+        !article.text.includes(anchor) || !oldRaw.deBody.includes(anchor) || !newRaw.deBody.includes(anchor))) {
+    throw new Error("Archived correction route does not match both article versions.");
+  }
+  // Reopen the actual migrated source. Its shell is recorded as unknown; it is
+  // never treated as restoration. New nonempty content requires a new review.
+  const current = await readArticle(evidenceURL);
+  if (canonicalizeURL(current.requestedArticleURL) !== evidenceURL || current.accessRestricted !== false ||
+      (current.text?.trim() && current.text.trim() !== article.text.trim())) throw new Error("Archived correction source now has different content; review it before correcting.");
+  return {kind: proof.kind, contentId: cid, publishedSourceURL, evidenceURL, sourceEventDate,
+    endedAt: entry.endedAt, sourceUpdatedAt: entry.sourceUpdatedAt, observedAt: observed.toISOString(),
+    checkedAt: now.toISOString(), articlePath: resolve(proof.articlePath), articleSHA256: hash(articleBytes),
+    reportPath: resolve(proof.reportPath), reportSHA256: hash(reportBytes), endQuote: proof.endQuote,
+    currentSourceTextSHA256: hash(current.text ?? ""), currentSourceHasText: Boolean(current.text?.trim())};
+}
 function decode(v) {
   if (v.mapValue) return Object.fromEntries(Object.entries(v.mapValue.fields ?? {}).map(([k, x]) => [k, decode(x)]));
   if (v.arrayValue) return (v.arrayValue.values ?? []).map(decode);
@@ -72,7 +125,7 @@ async function requireOwnedLocks(runId, threadId, now) {
   }
 }
 
-export async function amendPublishedNews(config, {apply = false, fetchImpl = fetch, getAccessToken = contentAutomationAccessToken, checkLocks = requireOwnedLocks, readback = readbackPublishedNews, convertCover = convertCoverToCanonicalJPEG, now = new Date()} = {}) {
+export async function amendPublishedNews(config, {apply = false, fetchImpl = fetch, getAccessToken = contentAutomationAccessToken, checkLocks = requireOwnedLocks, readback = readbackPublishedNews, convertCover = convertCoverToCanonicalJPEG, readArticle = readNewsArticle, now = new Date()} = {}) {
   const review = await load(config.reviewPath);
   if (review.sourceEventKind !== "material_update") throw new Error("An amendment requires reviewed material_update evidence.");
   const age = now - new Date(review.primaryCheckedAt);
@@ -92,7 +145,9 @@ export async function amendPublishedNews(config, {apply = false, fetchImpl = fet
   }
   // Match the publisher's deterministic PNG/WebP-to-JPEG conversion. The
   // amendment updates bilingual text only; no image is uploaded or replaced.
-  const editorial = await reviewNewsForPublication(config.manifestPath, config.reviewPath, now, {allowRetainedCover: true});
+  const archivedCorrection = config.archivedEndCorrection ? await validateArchivedEndCorrection(config.archivedEndCorrection,
+    oldRaw, newRaw, review, config.organizationId, now, {readArticle}) : null;
+  const editorial = await reviewNewsForPublication(config.manifestPath, config.reviewPath, now, {allowRetainedCover: true, archivedCorrection});
   const token = await getAccessToken();
   const id = deterministicContentId("news", config.organizationId, editorial.canonicalURL);
   const url = `https://firestore.googleapis.com/v1/projects/ukrainiancommunity-dbd5f/databases/(default)/documents/news/${id}`;
@@ -113,6 +168,8 @@ export async function amendPublishedNews(config, {apply = false, fetchImpl = fet
   }
   const dry = await load(config.planPath);
   if (dry.status !== "amend_existing" || dry.contentId !== id || dry.manifestSHA256 !== editorial.manifestSHA256 || dry.baselineSHA256 !== baselineSHA256 || dry.expectedUpdateTime !== record.updateTime) throw new Error("Dry-run/production changed; create a fresh amendment plan.");
+  const stableProof = (x) => x ? {...x, checkedAt: undefined} : null;
+  if (JSON.stringify(stableProof(dry.editorial.archivedCorrection)) !== JSON.stringify(stableProof(archivedCorrection))) throw new Error("Archived correction proof changed after dry run.");
   await checkLocks(config.runId, config.threadId, now);
   const patchURL = new URL(url);
   for (const field of Object.keys(plan.fields)) patchURL.searchParams.append("updateMask.fieldPaths", field);

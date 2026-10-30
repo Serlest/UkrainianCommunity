@@ -59,7 +59,7 @@ function substantiveText(value, field, minimum = 30) {
   }
 }
 
-export function validateNewsEditorialReview(rawItem, review, now = new Date(), {allowRetainedCover = false} = {}) {
+export function validateNewsEditorialReview(rawItem, review, now = new Date(), {allowRetainedCover = false, archivedCorrection = null} = {}) {
   if (!NEWS_SCOPES.includes(review?.scope)) throw new Error("Review needs one news scope.");
   const target = review.scope === "austria" ? "austria" : review.scope;
   const item = normalizeAndValidateManifestItem(rawItem, target);
@@ -79,7 +79,7 @@ export function validateNewsEditorialReview(rawItem, review, now = new Date(), {
   }
   if (!["official", "editorial"].includes(evidenceMode)) throw new Error("Unknown news evidenceMode.");
   const eventDate = officialDate(review.sourceEventDate);
-  if (eventDate !== viennaDate(now)) {
+  if (eventDate !== viennaDate(now) && !archivedCorrection) {
     throw new Error(`sourceEventDate is not today's ${evidenceMode === "official" ? "official" : "direct editorial article's"} news date in Europe/Vienna.`);
   }
   const eventAt = review.sourceEventAt == null ? null : exactTime(review.sourceEventAt, "sourceEventAt");
@@ -95,12 +95,16 @@ export function validateNewsEditorialReview(rawItem, review, now = new Date(), {
   }
   recent(exactTime(review.primaryCheckedAt, "primaryCheckedAt"), now,
     maxSourceReviewAge, "primaryCheckedAt");
-  if (review.primaryOpened !== true ||
+  if ((review.primaryOpened !== true && !archivedCorrection) ||
       !(review.primaryPageKind === "article_or_notice" ||
-        (asfinagNotice && review.primaryPageKind === "live_notice_list"))) {
+        (asfinagNotice && review.primaryPageKind === "live_notice_list") ||
+        (archivedCorrection && review.primaryPageKind === "archived_official_notice"))) {
     throw new Error("Open the actual primary article/notice or ASFINAG live entry before publication.");
   }
-  if (canonicalizeURL(review.primaryURL) !== item.canonicalURL) {
+  if (archivedCorrection ? (canonicalizeURL(review.primaryURL) !== archivedCorrection.evidenceURL ||
+      item.canonicalURL !== archivedCorrection.publishedSourceURL || evidenceMode !== "official" ||
+      review.sourceEventKind !== "material_update" || review.sourceEventDate !== archivedCorrection.sourceEventDate) :
+      canonicalizeURL(review.primaryURL) !== item.canonicalURL) {
     throw new Error("Reviewed primary URL must match the published direct source URL.");
   }
   const primary = item.sources.find((source) => source.isPrimary);
@@ -164,14 +168,14 @@ export function validateNewsEditorialReview(rawItem, review, now = new Date(), {
     sourceEventAt: eventAt};
 }
 
-export async function reviewNewsForPublication(manifestPath, reviewPath, now = new Date(), {readArticle = readNewsArticle, allowRetainedCover = false} = {}) {
+export async function reviewNewsForPublication(manifestPath, reviewPath, now = new Date(), {readArticle = readNewsArticle, allowRetainedCover = false, archivedCorrection = null} = {}) {
   const manifestBytes = await readFile(manifestPath);
   const raw = JSON.parse(manifestBytes.toString("utf8"));
   const rawItems = Array.isArray(raw) ? raw : Array.isArray(raw?.items) ? raw.items : [raw];
   if (rawItems.length !== 1) throw new Error("One news article is required per editorial review.");
   const review = JSON.parse(await readFile(reviewPath, "utf8"));
   const {item, evidenceMode, imageSHA256, sourceEventDate, sourceEventAt} =
-    validateNewsEditorialReview(rawItems[0], review, now, {allowRetainedCover});
+    validateNewsEditorialReview(rawItems[0], review, now, {allowRetainedCover, archivedCorrection});
   let primaryReadback = null;
   if (evidenceMode === "editorial") {
     const article = await readArticle(item.canonicalURL);
@@ -200,7 +204,8 @@ export async function reviewNewsForPublication(manifestPath, reviewPath, now = n
     manifestSHA256: createHash("sha256").update(manifestBytes).digest("hex"),
     imageSHA256: actualImageSHA256,
     primaryReadback,
-    primaryURL: item.canonicalURL,
+    primaryURL: archivedCorrection?.evidenceURL ?? item.canonicalURL,
+    ...(archivedCorrection ? {archivedCorrection} : {}),
     sourcePolicy: item.sourcePolicy ?? "trusted_primary",
   };
 }
