@@ -29,6 +29,12 @@ export function validateAmendment(before,request){
  if(request.kind==='duplicate'&&(!request.keepId||request.keepId===request.id))throw Error('Duplicate needs a distinct retained event');
  for(const l of ['uk','de'])for(const k of ['title','summary','details'])if(typeof next.localizations?.[l]?.[k]!=='string'||!next.localizations[l][k].trim())throw Error('Complete UK/DE copy required');
  for(const k of ['title','summary','details'])if(next[k]!==next.localizations.uk[k])throw Error('Root/UK mismatch: '+k);
+ // Match the editorial preflight's untranslated-body guard. This is not a
+ // language-quality check; unchanged legacy copy can still be archived safely.
+ for(const k of ['summary','details'])if(next[k]!==before[k]&&
+   (next[k].match(/\p{L}/gu)??[]).length>=50&&!/[\u0400-\u04ff]/u.test(next[k])){
+  throw Error('Ukrainian '+k+' contains no Cyrillic text; translate before amendment');
+ }
  if(!Number.isFinite(next.price)||next.price<0)throw Error('Legacy price must remain a nonnegative number required by the event schema');
  const p=next.pricing;
  if(!p||!['unspecified','free','exact','startingFrom','range'].includes(p.kind)||p.currencyCode!=='EUR')throw Error('Supported pricing required');

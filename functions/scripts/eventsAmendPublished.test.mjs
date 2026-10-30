@@ -6,6 +6,23 @@ test('known structured price and legacy price agree',()=>{assert.equal(validateA
 test('identity, counters, region and media cannot change',()=>{for(const k of ['authorId','organizationId','imageURL','federalState','viewCount','id']){let r=req();r.changes[k]='changed';assert.throws(()=>validateAmendment(before,r),/Immutable/)}});
 test('archive never silently approves, cancels or recreates',()=>{let r=req();r.changes={moderationStatus:'archived'};assert.throws(()=>validateAmendment(before,r),/reviewed/);r.kind='postponement';assert.equal(validateAmendment(before,r).moderationStatus,'archived');r.kind='duplicate';assert.throws(()=>validateAmendment(before,r),/retained/);r.keepId='b'.repeat(40);assert.equal(validateAmendment(before,r).moderationStatus,'archived')});
 test('timestamp roundtrip, root bilingual equivalence and no mutable shared objects',()=>{let x={occurrences:[{id:'x',startDate:'2026-10-25T09:00:00.000Z',endDate:'2026-10-25T09:00:00.000Z',status:'scheduled'}]};let y=sdkChanges(x);assert.equal(digest(x.occurrences),digest(y.occurrences));assert.equal(typeof x.occurrences[0].startDate,'string');let r=req();r.changes.title='different';assert.throws(()=>validateAmendment(before,r),/Root/)});
+test('matching root and UK fields cannot introduce an untranslated event body',()=>{
+ const english='KLANGherbst presents Philipp Hochmair reciting Joseph von Eichendorff, accompanied by the Sonare Linz string quartet.';
+ for(const field of ['summary','details']){
+  const r=req();r.changes[field]=english;
+  r.changes.localizations={...before.localizations,uk:{...copy,[field]:english}};
+  assert.throws(()=>validateAmendment(before,r),new RegExp('Ukrainian '+field+' contains no Cyrillic'));
+ }
+ const r=req();r.changes.details='На концерті KLANGherbst Філіп Гохмайр декламує твір Йозефа фон Айхендорфа в супроводі струнного квартету Sonare Linz.';
+ r.changes.localizations={...before.localizations,uk:{...copy,details:r.changes.details}};
+ assert.equal(validateAmendment(before,r).details,r.changes.details);
+});
+test('language guard does not prevent archiving unchanged legacy English copy',()=>{
+ const details='A legacy event description in English that must still be removable without inventing a new translation or changing its original evidence.';
+ const legacy={...before,details,localizations:{...before.localizations,uk:{...copy,details}}};
+ const r=req();r.kind='postponement';r.changes={moderationStatus:'archived'};
+ assert.equal(validateAmendment(legacy,r).moderationStatus,'archived');
+});
 import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';import {tmpdir} from 'node:os';import {join} from 'node:path';import {amendPublishedEvent,plain} from './eventsAmendPublished.mjs';
 test('dry-run never writes; apply is conditional and verifies same ID; changed baseline stops reuse',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'uac-event-amend-'));let data=structuredClone(before),writes=0,revision={revision:1};
