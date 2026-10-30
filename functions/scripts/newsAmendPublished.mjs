@@ -70,6 +70,41 @@ export async function validateArchivedEndCorrection(proof, oldRaw, newRaw, revie
     reportPath: resolve(proof.reportPath), reportSHA256: hash(reportBytes), endQuote: proof.endQuote,
     currentSourceTextSHA256: hash(current.text ?? ""), currentSourceHasText: Boolean(current.text?.trim())};
 }
+
+// Qualify an obsolete present-tense warning without claiming that it ended.
+// Hash-bound audit + live empty-source read; existing identity/cover stay fixed.
+export async function validateStatusQualification(proof, oldRaw, newRaw, review, baselineReview, organizationId, now,
+    {readArticle = readNewsArticle} = {}) {
+  if (proof?.kind !== "unverified_oebb_status" || !isAbsolute(proof.reportPath ?? "") ||
+      !/^[a-f0-9]{64}$/.test(proof.reportSHA256 ?? "")) throw new Error("Unsupported status qualification proof.");
+  const bytes = await readFile(proof.reportPath);
+  if (hash(bytes) !== proof.reportSHA256) throw new Error("Status qualification audit hash mismatch.");
+  const report = JSON.parse(bytes);
+  const publishedSourceURL = canonicalizeURL(oldRaw.sourceURL ?? oldRaw.sources?.find((s) => s.isPrimary)?.url);
+  const cid = deterministicContentId("news", organizationId, publishedSourceURL);
+  const entry = report.unresolvedPublishedIncidents?.find((x) => x.contentId === cid);
+  if (new URL(publishedSourceURL).hostname !== "www.unsereoebb.at" || entry?.active !== null ||
+      entry.decision !== "unverified_current_status" || !Number.isFinite(Date.parse(report.checkedAt)) ||
+      Date.parse(report.checkedAt) > now.getTime() || canonicalizeURL(review.primaryURL) !== publishedSourceURL ||
+      review.sourceEventDate !== baselineReview.sourceEventDate || review.sourceEventAt !== baselineReview.sourceEventAt) {
+    throw new Error("Audit/identity/historical source date does not authorize status qualification.");
+  }
+  const day = baselineReview.sourceEventDate.split("-").reverse().join(".");
+  if (![newRaw.title, newRaw.deTitle, newRaw.body, newRaw.deBody].every((x) => x.includes(day)) ||
+      !newRaw.title.includes("стан не підтверджено") || !newRaw.deTitle.includes("Status nicht bestätigt") ||
+      !newRaw.body.includes("Поточний стан не підтверджено") ||
+      !newRaw.deBody.includes("Der aktuelle Status ist nicht bestätigt") ||
+      /(?:обмеження завершилося|рух відновлено|Die Einschränkung ist beendet|Zugverkehr wurde wieder aufgenommen)/i.test(newRaw.body + "\n" + newRaw.deBody)) {
+    throw new Error("Status qualification must date both versions and state uncertainty without claiming restoration.");
+  }
+  const current = await readArticle(publishedSourceURL);
+  if (canonicalizeURL(current.requestedArticleURL) !== publishedSourceURL || current.accessRestricted !== false ||
+      typeof current.text !== "string" || current.text.trim()) throw new Error("Current source has content or is unreadable; review it before qualifying status.");
+  return {kind: proof.kind, contentId: cid, publishedSourceURL, evidenceURL: publishedSourceURL,
+    sourceEventDate: baselineReview.sourceEventDate, checkedAt: now.toISOString(),
+    reportPath: resolve(proof.reportPath), reportSHA256: hash(bytes), currentSourceHasText: false,
+    currentSourceTextSHA256: hash(current.text), conclusion: "Current status unconfirmed; no end or reopening inferred."};
+}
 function decode(v) {
   if (v.mapValue) return Object.fromEntries(Object.entries(v.mapValue.fields ?? {}).map(([k, x]) => [k, decode(x)]));
   if (v.arrayValue) return (v.arrayValue.values ?? []).map(decode);
@@ -145,8 +180,10 @@ export async function amendPublishedNews(config, {apply = false, fetchImpl = fet
   }
   // Match the publisher's deterministic PNG/WebP-to-JPEG conversion. The
   // amendment updates bilingual text only; no image is uploaded or replaced.
+  if (config.archivedEndCorrection && config.statusQualification) throw new Error("Choose exactly one correction evidence route.");
   const archivedCorrection = config.archivedEndCorrection ? await validateArchivedEndCorrection(config.archivedEndCorrection,
-    oldRaw, newRaw, review, config.organizationId, now, {readArticle}) : null;
+    oldRaw, newRaw, review, config.organizationId, now, {readArticle}) : config.statusQualification ?
+    await validateStatusQualification(config.statusQualification, oldRaw, newRaw, review, baselineReview, config.organizationId, now, {readArticle}) : null;
   const editorial = await reviewNewsForPublication(config.manifestPath, config.reviewPath, now, {allowRetainedCover: true, archivedCorrection});
   const token = await getAccessToken();
   const id = deterministicContentId("news", config.organizationId, editorial.canonicalURL);

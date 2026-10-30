@@ -4,7 +4,7 @@ import {createHash} from "node:crypto";
 import {mkdtemp, writeFile, rm} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
-import {buildNewsAmendment, amendPublishedNews, validateArchivedEndCorrection} from "./newsAmendPublished.mjs";
+import {buildNewsAmendment, amendPublishedNews, validateArchivedEndCorrection, validateStatusQualification} from "./newsAmendPublished.mjs";
 import {validateNewsEditorialReview} from "./newsEditorialGate.mjs";
 import {buildContentDocument, normalizeAndValidateManifestItem} from "./verifiedContentPublisherCore.mjs";
 
@@ -111,4 +111,22 @@ test("ordinary editorial gate cannot use review fields to backdate a new publica
   const m = JSON.parse(await readFile(f.config.manifestPath)); const r = JSON.parse(await readFile(f.config.reviewPath));
   const later = new Date("2026-10-19T12:00:00Z"); m.publishedAt = later.toISOString();r.primaryCheckedAt = later.toISOString();r.archivedCorrection = {anything: true};
   assert.throws(() => validateNewsEditorialReview(m, r, later, {allowRetainedCover: true}), /not today's/);
+});
+
+test("uncertain status correction dates both languages and never turns removal into an end", async (t) => {
+  const f = await fixture(t); const reportPath = join(f.config.planPath, "..", "uncertain.json");
+  const report = {checkedAt: now.toISOString(), unresolvedPublishedIncidents: [{contentId: record().id,
+    active: null, decision: "unverified_current_status"}]};
+  const bytes = JSON.stringify(report); await writeFile(reportPath, bytes);
+  const proof = {kind: "unverified_oebb_status", reportPath, reportSHA256: createHash("sha256").update(bytes).digest("hex")};
+  const review = {primaryURL: url, sourceEventDate: "2026-10-16"};
+  const qualified = {...next, title: "16.10.2026: стан не підтверджено", deTitle: "16.10.2026: Status nicht bestätigt",
+    body: "Подія 16.10.2026. Поточний стан не підтверджено.", deBody: "Ereignis vom 16.10.2026. Der aktuelle Status ist nicht bestätigt."};
+  const deps = {readArticle: async () => ({requestedArticleURL: url, accessRestricted: false, text: ""})};
+  const args = [proof, old, qualified, review, review, "uac-niederoesterreich-info", now];
+  const result = await validateStatusQualification(...args, deps);
+  assert.equal(result.currentSourceHasText, false); assert.equal(result.kind, "unverified_oebb_status");
+  await assert.rejects(validateStatusQualification(proof, old, {...qualified, deBody: "Die Einschränkung ist beendet"}, ...args.slice(3), deps), /without claiming/);
+  await assert.rejects(validateStatusQualification(...args, {readArticle: async () => ({requestedArticleURL: url, accessRestricted: false, text: "New active notice"})}), /has content/);
+  await assert.rejects(validateStatusQualification({...proof, reportSHA256: "0".repeat(64)}, ...args.slice(1), deps), /hash mismatch/);
 });
