@@ -1,3 +1,5 @@
+> Сборка 154 снята нами с рассмотрения после воспроизведённого сбоя на Mac. Следующий кандидат — 1.3 (155); актуальные проверки: [MacCompatibility20261030.json](Verification/MacCompatibility20261030.json). Исторический результат отправки 154 ниже сохранён.
+
 # App Store 1.3 (154)
 
 Baseline: public 1.2 (112), verified 2026-10-29. Candidate is VALID / APP_STORE_ELIGIBLE and attached to submitted version 1.3. Release mode: AFTER_APPROVAL, explicitly requested by the operator. Official App Store Connect readback confirmed WAITING_FOR_REVIEW on 2026-10-29 at 20:59:32 UTC (21:59 Vienna). Apple has received the submission; review has not yet been observed to start. Public 1.2 (112) remains available until approval/distribution. See `Docs/Verification/AppStoreRelease1320261029.json` for final readback.

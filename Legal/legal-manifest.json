@@ -62,7 +62,11 @@
       }
     }
   },
-  "unresolvedReleaseBlocks": [],
+  "unresolvedReleaseBlocks": [
+    "physical-device",
+    "mac-store-availability",
+    "mac-store-binary-runtime"
+  ],
   "releaseRecommendations": [
     "qualified Austrian legal review before launch and after material legal changes"
   ],

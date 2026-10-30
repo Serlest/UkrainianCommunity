@@ -1,0 +1,207 @@
+{
+  "status": "testflight155_delivered_public_release_held_for_remaining_acceptance",
+  "candidate": "1.3 (155)",
+  "scope": "Existing iPhone/iPad app on Apple silicon Mac; no native Intel macOS or Catalyst target added",
+  "reportedIssue": "Administrator account: app exits during ordinary profile navigation on Mac; iPhone works per operator",
+  "evidence": {
+    "affectedBinary": "1.3 (154), macOS 27.2",
+    "crashReports": "build/mac-motion-crash-20261030/crash-summary.json",
+    "observedBuild154CrashDuringReadOnlyNavigation": true,
+    "directCoreMotionFaults": 2,
+    "otherReports": "Three objc_release/dispatch source disposal crashes; same cause suspected, not independently established"
+  },
+  "changes": [
+    "Do not construct CMMotionManager on iOS Apps on Mac, Catalyst or Simulator",
+    "Construct motion manager only when actual supported hardware motion is requested",
+    "Only stop motion updates when active; inactive scenes allocate no manager",
+    "Enable Designed for iPad/iPhone Mac destination in Debug and Release",
+    "Restrict simulator-only audit harness entry points to simulator Debug builds"
+  ],
+  "checks": {
+    "simulatorSeasonalTests": {
+      "passed": 62,
+      "swiftTesting": 55,
+      "xctest": 7,
+      "result": "build/mac-motion-crash-20261030/SeasonalFinal155.xcresult",
+      "source": "3bcb02f5fff4209fc53da2c80aad462d907cd285"
+    },
+    "iOSReleaseCompilation": "passed before final Debug-only harness gate",
+    "macDebugCompilation": "passed",
+    "macRuntimeTests": {
+      "passed": 19,
+      "configuration": "Debug on physical Apple silicon Mac; not Simulator",
+      "result": "build/mac-motion-crash-20261030/MacScopedMotionProbe.xcresult",
+      "scope": "Only SeasonalDeviceRegressionTests compiled and run via temporary local scheme; ordinary iOS CI suite unchanged",
+      "excludedCompilationInputs": "build/mac-motion-crash-20261030/mac-probe-excluded-files.json",
+      "fullMacTestBundle": "Cannot compile existing simulator fixture references; original failure retained in MacSeasonalRegression.xcresult"
+    },
+    "macProductionSessionNavigation": {
+      "configuration": "Debug, normal production-backed session restored without fixtures; Serlest Gmail administrator",
+      "passedReadOnlyRoutes": 13,
+      "boundary": "Entry/back navigation and one visual profile screenshot viewed; not all edits, roles, or loading outcomes",
+      "source": "3bcb02f5fff4209fc53da2c80aad462d907cd285",
+      "release": {
+        "passedReadOnlyRoutes": 13,
+        "configuration": "Release with testability enabled; ordinary launch, no XCTest/fixture environment",
+        "role": "Serlest Gmail administrator",
+        "outcome": "No crash during entry/return through all 13 listed profile routes",
+        "boundary": "Not an exhaustive per-role mutation or visual audit; store-signed build validation remains pending"
+      },
+      "routes": [
+        "profile.organizationRequests",
+        "profile.moderation",
+        "profile.feedbackInbox",
+        "profile.userManagement",
+        "profile.admin.systemLogs",
+        "profile.organizationManagement",
+        "profile.registrations",
+        "profile.savedContent",
+        "profile.followedOrganizations",
+        "profile.recentViews",
+        "profile.activityHistory",
+        "profile.feedback.history",
+        "profile.settings.open"
+      ],
+      "dataReadback": "Real user list reached 40 of73 in local Debug; no user identifiers or emails retained in this report"
+    },
+    "iphoneInstalledBinary": {
+      "version": "1.3 (155)",
+      "installation": "Updated in place via official devicectl without deleting/resetting the app; restored session not yet verified",
+      "launch": "blocked by device lock; no bypass attempted",
+      "evidence": "build/mac-motion-crash-20261030/iphone155-launch.log"
+    },
+    "github": {
+      "source": "3bcb02f5fff4209fc53da2c80aad462d907cd285",
+      "run": 40971877288,
+      "state": "completed_success",
+      "supersededRun40971336219": "canceled to run the final source instead",
+      "evidence": "build/mac-motion-crash-20261030/ci-final-status.json"
+    },
+    "appStoreMacAvailability": "awaiting authenticated web readback",
+    "testFlight155": {
+      "checkedAt": "2026-10-29T23:51:42.433Z",
+      "buildID": "fe42bf51-5c75-437e-b6c3-fd7d40e541de",
+      "build": "155",
+      "processingState": "VALID",
+      "audience": "APP_STORE_ELIGIBLE",
+      "computedMinimumMacOS": "14.0",
+      "internalBuildState": "IN_BETA_TESTING",
+      "externalBuildState": "READY_FOR_BETA_SUBMISSION",
+      "whatToTestLocales": [
+        "uk",
+        "de-DE",
+        "en-US"
+      ],
+      "attachedBuild": "155",
+      "versionState": "DEVELOPER_REJECTED",
+      "submitted": false,
+      "macInstallation": {
+        "version": "1.3 (155)",
+        "path": "/Applications/UAC.app",
+        "installedVia": "Official TestFlight Update button",
+        "fileVersionReadback": "155",
+        "actualRunningBinaryMatchesInstalledUUID": true,
+        "runtime": "pending: installed process remains at _dyld_start before application UI; no store navigation pass claimed",
+        "diagnostics": "build/mac-motion-crash-20261030/mac155-store-sample.txt",
+        "systemLaunchLog": "build/mac-motion-crash-20261030/mac155-target-launch.log",
+        "normalRetry": "One delayed process closed via Activity Monitor after normal quit did not finish; one fresh TestFlight launch repeated the pre-UI delay",
+        "operatorInput": "Manual Open in TestFlight requested; no signing, Gatekeeper, SIP or authentication bypass performed",
+        "signatureBoundary": "Generic codesign/spctl checks on the Apple iOS-on-Mac wrapper did not accept its resource envelope/format; this remains recorded, not treated as a runtime pass. Retained distribution IPA strict verification separately passed.",
+        "systemLogBoundary": "Profile lookup denials were observed after direct inner-bundle launch attempts; they are not established as the cause of the official TestFlight launch delay."
+      }
+    },
+    "publicReview": "1.3 (155) PREPARE_FOR_SUBMISSION, not resubmitted; old154 voluntarily withdrawn. AFTER_APPROVAL retained for eventual authorized submission.",
+    "iOSReleaseArchive": {
+      "status": "passed",
+      "version": "1.3 (155)",
+      "path": "build/UkrainianCommunity-155.xcarchive"
+    },
+    "macReleaseCompilation": "passed",
+    "privacy": {
+      "manifests": 34,
+      "changedVs154": 0,
+      "report": "build/mac-motion-crash-20261030/privacy155-comparison.json"
+    },
+    "macReleaseRuntimeTests": {
+      "passed": 19,
+      "configuration": "Release, ENABLE_TESTABILITY=YES, physical Mac",
+      "result": "build/mac-motion-crash-20261030/MacReleaseMotionProbe.xcresult",
+      "scope": "Same selected suite and transient source exclusions as Debug; no assertions removed; normal iOS CI remains complete"
+    },
+    "macBetaAvailability": {
+      "internalGroup": true,
+      "externalGroup": true,
+      "evidence": "build/mac-motion-crash-20261030/beta-groups.json"
+    },
+    "distribution": {
+      "status": "passed",
+      "evidence": "build/mac-motion-crash-20261030/distribution155-verification.json"
+    },
+    "reviewMetadata": {
+      "checkedAt": "2026-10-29T23:54:12.765Z",
+      "version": "1.3",
+      "build": "155",
+      "releaseType": "AFTER_APPROVAL",
+      "versionState": "PREPARE_FOR_SUBMISSION",
+      "localizedMacNoteSaved": [
+        "uk",
+        "de-DE"
+      ],
+      "screenshots": {
+        "total": 16,
+        "sets": [
+          {
+            "locale": "de-DE",
+            "family": "ipad",
+            "count": 4,
+            "allComplete": true,
+            "orderAndChecksumsMatch": true
+          },
+          {
+            "locale": "de-DE",
+            "family": "iphone",
+            "count": 4,
+            "allComplete": true,
+            "orderAndChecksumsMatch": true
+          },
+          {
+            "locale": "uk",
+            "family": "iphone",
+            "count": 4,
+            "allComplete": true,
+            "orderAndChecksumsMatch": true
+          },
+          {
+            "locale": "uk",
+            "family": "ipad",
+            "count": 4,
+            "allComplete": true,
+            "orderAndChecksumsMatch": true
+          }
+        ]
+      },
+      "review": {
+        "normalReviewAccountConfigured": true,
+        "contactComplete": true,
+        "hasMac155Instructions": true
+      }
+    },
+    "publicReleaseGuard": {
+      "expectedBlocked": true,
+      "evidence": "build/mac-motion-crash-20261030/release-hold-check.log",
+      "pending": [
+        "physical-device",
+        "mac-store-availability",
+        "mac-store-binary-runtime"
+      ]
+    }
+  },
+  "preservation": {
+    "preexistingProjectReorder": "preserved unstaged",
+    "preexistingLocalizationCatalog": "Restored exact original bytes; SHA256 bb56175012119a73fddd48100c4dc0c9116c6237f9432a1e9d0b8a186c25793a",
+    "accountsAndRoles": "unchanged",
+    "productionContent": "unchanged",
+    "themePublishing": "none"
+  },
+  "acceptanceBoundary": "This is a compatibility fix and delivery task, not a claim that every mutation and role has been exhaustively retested on Mac."
+}

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "candidate": {
     "version": "1.3",
-    "build": "154"
+    "build": "155"
   },
   "baseline": {
     "version": "1.2",
@@ -18,7 +18,8 @@
       "evidence": [
         "2026-10-29 authenticated Safari readback and publication: 15 linked types; Other Usage Data for Analytics; Device ID for App Functionality and Analytics; no tracking",
         "build/appstore-release-20261029/privacy-archive154.json",
-        "Docs/AppStorePrivacyInventory.md"
+        "Docs/AppStorePrivacyInventory.md",
+        "Build155: same 34 privacy manifests, unchanged hashes versus154; build/mac-motion-crash-20261030/privacy155-comparison.json"
       ]
     },
     {
@@ -36,9 +37,9 @@
       "status": "passed",
       "requirement": "Required hosted Quality checks for the archived application source must complete successfully.",
       "evidence": [
-        "GitHub Quality checks 40944876133 for packaging commit 443a516150388d40185d5036cb98f7fec32a5e0e completed success",
-        "https://github.com/Serlest/UkrainianCommunity/actions/runs/40944876133",
-        "Application-source run 40941377477 also completed success; Firebase-affected job skipped on packaging-only revision as designed, not counted as a test pass"
+        "Quality checks 40971877288 completed success for exact source 3bcb02f5fff4209fc53da2c80aad462d907cd285",
+        "https://github.com/Serlest/UkrainianCommunity/actions/runs/40971877288",
+        "Debug build, ordinary unit tests, isolated timeout-sensitive tests and final gate passed. Hosted Release compilation and Firebase-affected checks skipped per classifier; local iOS Release and Mac Release builds separately passed."
       ]
     },
     {
@@ -46,22 +47,21 @@
       "status": "passed",
       "requirement": "Verify signed archive, public-eligible upload, Apple processing, version, encryption and production distribution entitlements.",
       "evidence": [
-        "build/appstore-release-20261029/export154.log",
-        "build/appstore-release-20261029/build154-status.json: VALID / APP_STORE_ELIGIBLE",
-        "build/appstore-release-20261029/distribution-verification.json: production APNs, get-task-allow false",
-        "Build 154 attached to App Store 1.3; Ukrainian/German beta What to Test saved"
+        "Build155 strict distribution signature verified; production APNs, no debug access, exempt encryption",
+        "Upload/export succeeded; Apple VALID, APP_STORE_ELIGIBLE, internal IN_BETA_TESTING; beta notes saved in uk, de-DE, en-US",
+        "Official TestFlight installed155 on Mac, file version read back; installed-runtime acceptance remains a separate pending gate",
+        "build/mac-motion-crash-20261030/build155-prepared.json",
+        "build/mac-motion-crash-20261030/distribution155-verification.json"
       ]
     },
     {
       "id": "physical-device",
-      "status": "passed",
+      "status": "pending",
       "requirement": "Inspect the installed candidate on iPhone and keep prior scoped security/push evidence distinct from this capture session.",
       "evidence": [
-        "1.3 (154) Release installed on Serlest Mobile; guarded core-tab capture passed, 127.069 seconds, 8 destinations and 24 variants",
-        "build/appstore-release-20261029/PhoneCapture154Guarded.xcresult",
-        "Docs/Verification/AuditPhysicalProgress20261025.json",
-        "Docs/Verification/PhysicalAcceptance11to19Progress20261027.json",
-        "The earlier reports retain excluded scenarios and performance limits; this is not a fresh repetition of every credential mutation on 154"
+        "Build155 installed on Serlest Mobile; ordinary launch blocked by device lock, no bypass attempted",
+        "Fresh155 startup/news/profile acceptance pending unlock; prior154 guarded screenshots remain separate historical evidence",
+        "build/mac-motion-crash-20261030/iphone155-launch.log"
       ]
     },
     {
@@ -88,10 +88,10 @@
       "status": "passed",
       "requirement": "Verify fresh localized assets, descriptions, review account, selected build and release mode before submission.",
       "evidence": [
-        "build/appstore-release-20261029/screenshots-verified.json: 16/16 COMPLETE, native dimensions, file order and source MD5 read back from Apple",
-        "build/appstore-release-20261029/review-metadata-status.json: exact build 154, both locales, complete review/contact fields, AFTER_APPROVAL",
-        "build/appstore-release-20261029/review-login-check.json: dedicated existing ordinary review account sign-in succeeds, no MFA",
-        "Docs/AppStore-1.3-154.md"
+        "Fresh API readback: build155 selected, version PREPARE_FOR_SUBMISSION, AFTER_APPROVAL retained",
+        "16 screenshots remain COMPLETE, correct order and original source MD5; Ukrainian and German Mac compatibility notes saved",
+        "Normal existing reviewer account and contact fields retained, protected credentials never saved in repo; instructions updated for155",
+        "build/mac-motion-crash-20261030/metadata155-verified.json"
       ]
     },
     {
@@ -101,7 +101,38 @@
       "evidence": [
         "Direct user request on 2026-10-29: build, update screenshots, release new App Store version and notify Telegram after actual Apple review submission"
       ]
+    },
+    {
+      "id": "mac-runtime-compatibility",
+      "status": "passed",
+      "requirement": "Reproduce the Mac crash, avoid unavailable hardware initialization, and verify scoped Mac runtime and administrator navigation without altering permissions.",
+      "evidence": [
+        "Build154 crash reproduced; five retained local reports, including two direct CoreMotion faults",
+        "19 selected regressions passed on physical Mac in both Debug and Release; simulator-only full bundle limitation remains recorded",
+        "13 administrator profile entry/return routes passed in both normal Debug and Release launches; no mutations or role changes",
+        "Docs/Verification/MacCompatibility20261030.json"
+      ]
+    },
+    {
+      "id": "mac-store-availability",
+      "status": "pending",
+      "requirement": "Read and, if needed, enable Make this app available for Apple silicon Mac in authenticated App Store Connect; do not assert the irreversible fully-verified compatibility badge from scoped tests.",
+      "evidence": [
+        "Project supports Mac destination in Debug and Release; TestFlight internal/external Mac group flags already true",
+        "Public App Store setting awaits operator web sign-in in Safari; API appAvailabilityV2 does not expose this flag"
+      ]
+    },
+    {
+      "id": "mac-store-binary-runtime",
+      "status": "pending",
+      "requirement": "Confirm ordinary launch and profile navigation in the actual Apple-installed build155, independently from local Debug/Release proofs.",
+      "evidence": [
+        "TestFlight installed155 and process binary UUID matched the installed file",
+        "Process remained at _dyld_start before application UI in automatic launch and one clean retry; cause not established",
+        "Manual operator launch requested. No signature/security bypass, re-signing or deletion of the installed Apple app performed",
+        "Docs/Verification/MacCompatibility20261030.json"
+      ]
     }
   ],
-  "note": "Historical gates for 1.2 (107) are retained. This manifest separates fresh candidate evidence, source continuity and prior scoped physical verification; it does not assert exhaustive acceptance or permanent 120 FPS."
+  "note": "Build154 was voluntarily withdrawn after a confirmed Mac crash. Historical154 gates retained in Docs/ReleaseGates-1.3-154.json. Current155 gates distinguish verified source/runtime evidence, TestFlight delivery, fresh phone acceptance and public Mac availability; pending gates must not be treated as passed."
 }
