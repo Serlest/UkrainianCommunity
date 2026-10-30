@@ -73,6 +73,7 @@ export function validateNewsEditorialReview(rawItem, review, now = new Date(), {
       throw new Error("ASFINAG single-source news requires official mode and a verified active notice.");
     }
     substantiveText(review.noticeEvidence, "noticeEvidence", 40);
+    if (item.sourceNoticeId && (review.sourceNoticeId !== item.sourceNoticeId || !review.noticeEvidence.includes(item.sourceNoticeId))) throw new Error("ASFINAG notice identity must match the actual reviewed entry.");
     substantiveText(review.readerAction, "readerAction", 20);
     recent(exactTime(review.primaryCheckedAt, "primaryCheckedAt"), now,
       maxPublicationStampAge, "ASFINAG active notice check");
@@ -207,6 +208,7 @@ export async function reviewNewsForPublication(manifestPath, reviewPath, now = n
     primaryURL: archivedCorrection?.evidenceURL ?? item.canonicalURL,
     ...(archivedCorrection ? {archivedCorrection} : {}),
     sourcePolicy: item.sourcePolicy ?? "trusted_primary",
+    ...(item.sourceNoticeId ? {sourceNoticeId: item.sourceNoticeId} : {}),
   };
 }
 

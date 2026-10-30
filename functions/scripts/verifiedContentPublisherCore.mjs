@@ -42,13 +42,13 @@ const semanticallyMutableFields = new Set([
   "likeCount", "likeState", "viewCount", "commentCount", "registeredCount", "registrationState",
 ]);
 
-export function deterministicContentId(kind, organizationId, canonicalURL) {
+export function deterministicContentId(kind, organizationId, canonicalURL, sourceNoticeId = null) {
   const normalizedCanonicalURL = canonicalizeURL(
     requiredString(canonicalURL, "canonicalURL", 2048)
   );
   if (!normalizedCanonicalURL) throw new Error("canonicalURL is required.");
   return createHash("sha1")
-    .update(`${kind}:${organizationId}:${normalizedCanonicalURL}`)
+    .update(`${kind}:${organizationId}:${normalizedCanonicalURL}${sourceNoticeId == null ? "" : `:notice:${requiredString(sourceNoticeId, "sourceNoticeId", 2000)}`}`)
     .digest("hex");
 }
 
@@ -173,6 +173,8 @@ export function normalizeAndValidateManifestItem(rawItem, targetValue) {
   const imagePath = requiredString(item.imagePath, "imagePath", 4096);
   const imageAlternativeText = requiredString(item.imageAlternativeText ?? item.title, "imageAlternativeText", 500);
 
+  if (item.sourceNoticeId != null && !asfinagNotice) throw new Error("sourceNoticeId requires an official ASFINAG live notice.");
+  const sourceNoticeId = item.sourceNoticeId == null ? null : requiredString(item.sourceNoticeId, "sourceNoticeId", 2000);
   const shared = {
     kind,
     canonicalURL,
@@ -183,7 +185,7 @@ export function normalizeAndValidateManifestItem(rawItem, targetValue) {
     additionalCategories,
     tags,
     sources,
-    ...(asfinagNotice ? {sourcePolicy: "asfinag_official_notice"} : {}),
+    ...(asfinagNotice ? {sourcePolicy: "asfinag_official_notice", ...(sourceNoticeId ? {sourceNoticeId} : {})} : {}),
   };
 
   return kind === "news"
@@ -227,7 +229,7 @@ export function buildEventOccurrences(rawOccurrences, contentId) {
 }
 
 export function buildContentDocument(item, organization, organizationId, imageURL, now = new Date()) {
-  const id = deterministicContentId(item.kind, organizationId, item.canonicalURL);
+  const id = deterministicContentId(item.kind, organizationId, item.canonicalURL, item.sourceNoticeId);
   const common = {
     id,
     schemaVersion: 2,
@@ -262,6 +264,7 @@ export function buildContentDocument(item, organization, organizationId, imageUR
       city: item.city,
       sourceName: item.sourceName,
       sourceURL: item.canonicalURL,
+      ...(item.sourceNoticeId ? {sourceNoticeId: item.sourceNoticeId} : {}),
       publishedAt: item.publishedAt,
       localizations: {
         uk: {title: item.title, subtitle: item.subtitle, body: item.body},
@@ -351,14 +354,14 @@ export function buildManifestDuplicateSummary(item) {
       regionScope: item.regionScope,
     }),
   });
-  return {...summary, primaryCanonicalURL: canonicalizeURL(item.canonicalURL)};
+  return {...summary, primaryCanonicalURL: canonicalizeURL(item.canonicalURL), sourceNoticeId: item.sourceNoticeId ?? null};
 }
 
 export function contentIdentityLockClaims(item) {
   const summary = buildManifestDuplicateSummary(item);
   const claims = [];
   if (item.kind === "news") {
-    claims.push(identityLockClaim("newsPrimaryURL", summary.primaryCanonicalURL));
+    claims.push(identityLockClaim("newsPrimaryURL", summary.sourceNoticeId ? JSON.stringify([summary.primaryCanonicalURL, summary.sourceNoticeId]) : summary.primaryCanonicalURL));
     claims.push(identityLockClaim("newsSemanticContent", JSON.stringify([
       normalizeDedupeText(item.title),
       normalizeDedupeText(item.body),
@@ -404,6 +407,7 @@ export function classifyLegacyDuplicate({item, expectedDocument, existingRecords
     const samePrimarySource = Boolean(
       manifestSummary.primaryCanonicalURL
       && manifestSummary.primaryCanonicalURL === record.summary.primaryCanonicalURL
+      && (manifestSummary.sourceNoticeId ?? null) === (record.summary.sourceNoticeId ?? null)
     );
     const sameOccurrenceStarts = item.kind === "event" && arraysEqual(
       manifestSummary.occurrenceStartDates,
@@ -509,6 +513,7 @@ function draftDocumentsSemanticallyMatch(kind, manifest, existingRecord, expecte
     if (!(
       manifest.primaryCanonicalURL
       && manifest.primaryCanonicalURL === existing.primaryCanonicalURL
+      && (manifest.sourceNoticeId ?? null) === (existing.sourceNoticeId ?? null)
     )) return false;
   } else if (!valuesOverlap(manifest.eventCompositeKeys, existing.eventCompositeKeys)) {
     return false;
@@ -742,6 +747,7 @@ function flattenManifestItem(rawItem) {
     ...payload,
     kind: rawItem.kind ?? payload.kind,
     sourcePolicy: rawItem.sourcePolicy ?? payload.sourcePolicy,
+    sourceNoticeId: rawItem.sourceNoticeId ?? payload.sourceNoticeId,
     canonicalURL: rawItem.canonicalURL ?? payload.canonicalURL,
     imagePath: rawItem.imagePath ?? payload.imagePath,
     imageAlternativeText: rawItem.imageAlternativeText ?? payload.imageAlternativeText,

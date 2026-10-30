@@ -43,6 +43,24 @@ const organization = {
   logoURL: "https://firebasestorage.googleapis.com/logo.png",
 };
 
+test("ASFINAG shared endpoint uses stable notice identities without changing legacy IDs or source URLs", () => {
+  const url = "https://routenplaner.asfinag.at/hamm/gate";
+  const raw = {...newsManifest(), canonicalURL: url, category: "transport", sourcePolicy: "asfinag_official_notice",
+    sources: [{url, title: "ASFINAG", isPrimary: true, verificationRole: "officialPrimary"}]};
+  const a = normalizeAndValidateManifestItem({...raw, sourceNoticeId: "incident-one"}, "wien");
+  const b = normalizeAndValidateManifestItem({...raw, sourceNoticeId: "incident-two"}, "wien");
+  const docA = buildContentDocument(a, organization, organizationId, "https://example.at/cover.jpg");
+  const docB = buildContentDocument(b, organization, organizationId, "https://example.at/cover.jpg");
+  assert.notEqual(docA.id, docB.id); assert.equal(docA.sourceURL, url); assert.equal(docA.sourceNoticeId, "incident-one");
+  assert.equal(docA.id, deterministicContentId("news", organizationId, url, "incident-one"));
+  assert.equal(deterministicContentId("news", organizationId, url), createHash("sha1").update(`news:${organizationId}:${url}`).digest("hex"));
+  assert.notEqual(contentIdentityLockClaims(a)[0].id, contentIdentityLockClaims(b)[0].id);
+  const rec = buildExistingDuplicateRecord({id: docA.id, collection: "news", defaultKind: "news", fields: docA});
+  assert.equal(classifyLegacyDuplicate({item: b, expectedDocument: docB, existingRecords: [rec]}).status, "new");
+  assert.notEqual(classifyLegacyDuplicate({item: a, expectedDocument: docA, existingRecords: [rec]}).status, "new");
+  assert.throws(() => normalizeAndValidateManifestItem({...newsManifest(), sourceNoticeId: "invented"}, "wien"), /requires an official ASFINAG/);
+});
+
 describe("verified content publisher core", () => {
   test("uses the required deterministic sha1 identity", () => {
     const canonicalURL = "https://example.at/events/community-day";

@@ -59,6 +59,10 @@ test("ASFINAG active notices accept one official source and the checked live-lis
   const result = validateNewsEditorialReview(item, checked, now);
   assert.equal(result.item.sources.length, 1);
   assert.equal(result.item.sourcePolicy, "asfinag_official_notice");
+  const noticeItem = {...item, sourceNoticeId: "actual-notice-123"};
+  const noticeReview = {...checked, sourceNoticeId: "actual-notice-123", noticeEvidence: checked.noticeEvidence + " actual-notice-123"};
+  assert.equal(validateNewsEditorialReview(noticeItem, noticeReview, now).item.sourceNoticeId, "actual-notice-123");
+  assert.throws(() => validateNewsEditorialReview(noticeItem, checked, now), /notice identity/);
   assert.throws(() => validateNewsEditorialReview(item, {...checked, activeNoticeConfirmed: false}, now), /verified active notice/);
   assert.throws(() => validateNewsEditorialReview(item, {...checked, primaryCheckedAt: "2026-10-12T10:45:00Z"}, now), /freshness window/);
   assert.throws(() => validateNewsEditorialReview(item, {...checked, evidenceMode: "editorial"}, now), /official mode/);

@@ -123,9 +123,9 @@ export function buildNewsAmendment(before, oldRaw, newRaw, organizationId, now =
   const old = normalizeAndValidateManifestItem(oldRaw, target);
   const next = normalizeAndValidateManifestItem(newRaw, target);
   if (old.kind !== "news" || next.kind !== "news") throw new Error("Amend news only.");
-  const immutable = ["canonicalURL", "regionScope", "federalState", "category", "additionalCategories", "tags", "city", "sourceName", "imagePath", "imageCredit", "imageAlternativeText", "externalAction"];
+  const immutable = ["canonicalURL", "sourceNoticeId", "regionScope", "federalState", "category", "additionalCategories", "tags", "city", "sourceName", "imagePath", "imageCredit", "imageAlternativeText", "externalAction"];
   for (const k of immutable) if (JSON.stringify(old[k]) !== JSON.stringify(next[k])) throw new Error(`Amendment cannot change ${k}.`);
-  const id = deterministicContentId("news", organizationId, old.canonicalURL);
+  const id = deterministicContentId("news", organizationId, old.canonicalURL, old.sourceNoticeId);
   if (before.id !== id || before.organizationId !== organizationId || before.authorId !== EXPECTED_OWNER_ID || before.moderationStatus !== "approved") {
     throw new Error("Existing approved UAC organization news identity/owner required.");
   }
@@ -186,7 +186,7 @@ export async function amendPublishedNews(config, {apply = false, fetchImpl = fet
     await validateStatusQualification(config.statusQualification, oldRaw, newRaw, review, baselineReview, config.organizationId, now, {readArticle}) : null;
   const editorial = await reviewNewsForPublication(config.manifestPath, config.reviewPath, now, {allowRetainedCover: true, archivedCorrection});
   const token = await getAccessToken();
-  const id = deterministicContentId("news", config.organizationId, editorial.canonicalURL);
+  const id = deterministicContentId("news", config.organizationId, editorial.canonicalURL, editorial.sourceNoticeId);
   const url = `https://firestore.googleapis.com/v1/projects/ukrainiancommunity-dbd5f/databases/(default)/documents/news/${id}`;
   const headers = {Authorization: `Bearer ${token}`, "Content-Type": "application/json"};
   const response = await fetchImpl(url, {headers});

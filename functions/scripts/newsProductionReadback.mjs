@@ -36,6 +36,7 @@ export function verifyNewsProductionDocument(document, item, organizationId, con
     deSubtitle: document.localizations?.de?.subtitle === item.deSubtitle,
     deBody: document.localizations?.de?.body === item.deBody,
     source: document.sourceURL === item.canonicalURL,
+    ...(item.sourceNoticeId ? {sourceNoticeId: document.sourceNoticeId === item.sourceNoticeId} : {}),
     publishedAt: Date.parse(document.publishedAt) === item.publishedAt.getTime(),
     imageCredit: document.mediaMetadata?.credit === item.imageCredit,
     imageAlternativeText: document.mediaMetadata?.alternativeText === item.imageAlternativeText,
@@ -63,7 +64,7 @@ export async function readbackPublishedNews(manifestPath, organizationId, depend
   const target = rawItem.regionScope === "austria" ? "austria" : rawItem.federalState;
   const item = normalizeAndValidateManifestItem(rawItem, target);
   if (item.kind !== "news") throw new Error("News read-back accepts news only.");
-  const contentId = deterministicContentId("news", organizationId, item.canonicalURL);
+  const contentId = deterministicContentId("news", organizationId, item.canonicalURL, item.sourceNoticeId);
   const projectId = dependencies.projectId ?? process.env.UAC_FIREBASE_PROJECT_ID ?? defaultProjectId;
   const accessToken = await (dependencies.getAccessToken ?? contentAutomationAccessToken)();
   const fetchImpl = dependencies.fetchImpl ?? fetch;

@@ -98,7 +98,7 @@ async function main() {
   const plan = [];
   for (let index = 0; index < items.length; index += 1) {
     const item = items[index];
-    const id = deterministicContentId(item.kind, options.organizationId, item.canonicalURL);
+    const id = deterministicContentId(item.kind, options.organizationId, item.canonicalURL, item.sourceNoticeId);
     const collection = item.kind === "event" ? "events" : "news";
     const storagePath = canonicalCoverStoragePath(item.kind, id);
     const expected = buildContentDocument(item, organization, options.organizationId, undefined);
@@ -320,7 +320,7 @@ function usage(message) {
 }
 
 function duplicateContentIds(items, organizationId) {
-  const ids = items.map((item) => deterministicContentId(item.kind, organizationId, item.canonicalURL));
+  const ids = items.map((item) => deterministicContentId(item.kind, organizationId, item.canonicalURL, item.sourceNoticeId));
   return [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];
 }
 
@@ -630,6 +630,7 @@ export function buildExistingDuplicateRecord({id, collection, defaultKind, field
     summary: {
       ...summary,
       primaryCanonicalURL: strictPrimaryCanonicalURL(recordValue(fields), verificationSources),
+      sourceNoticeId: recordValue(fields).sourceNoticeId ?? recordValue(fields.payload).sourceNoticeId ?? null,
     },
   };
 }
