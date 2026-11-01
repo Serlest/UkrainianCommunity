@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-11-01T18:25:57.074936+00:00",
+  "checkedAt": "2026-11-01T18:28:24.309968+00:00",
   "status": "implemented_local_tests_passed_release_and_hosted_ci_pending_not_delivered",
   "stages": {
     "1": "contract_integrated",
@@ -75,6 +75,11 @@
       "level": "release configuration",
       "result": "offline validator passed; deployed-analytics release-upload gate not run because there is no distribution",
       "log": "build/banner-video-foundation-20261101/release-configuration.log"
+    },
+    {
+      "level": "repository localization validator",
+      "result": "3657 entries and Swift references passed; 3 validator tests passed",
+      "log": "build/banner-video-foundation-20261101/localization-validation.log"
     }
   ],
   "visualEvidence": "Synthetic fixtures only; real creative content and physical-device performance not accepted",
@@ -120,7 +125,10 @@
     "log": "build/banner-video-foundation-20261101/ios-release-final-build.log"
   },
   "hostedCI": {
-    "status": "pending_exact_source_commit_after_push"
+    "sourceCommit": "9b749163f9fd8594d6fb2329da5db1be789e1079",
+    "run": 41336629858,
+    "status": "failed_localization_source_language_fixed_followup_pending",
+    "reason": "New catalog sourceLanguage uk; repository requires de. Changed metadata to de; all 27 keys retain de/uk/en translations; validator unchanged."
   },
   "localization": {
     "catalog": "BannerVideo.xcstrings",
@@ -132,5 +140,13 @@
     ],
     "missingTranslations": 0,
     "originalMainCatalogUnchangedFromPreTaskBackup": true
-  }
+  },
+  "knownWarnings": [
+    {
+      "file": "UkrainianCommunity/Views/Profile/DirectoryEditorAccessStore.swift:50",
+      "scope": "pre-existing unchanged code",
+      "message": "T Decodable conformance may be isolated when passed to concurrent callable API",
+      "status": "not fixed in banner scope"
+    }
+  ]
 }
