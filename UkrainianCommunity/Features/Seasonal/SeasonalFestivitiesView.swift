@@ -3,13 +3,15 @@ import UIKit
 /// Sparse native-compositor events share the root overlay. No timers, display links or scene renderer.
 @MainActor final class SeasonalFestivitiesView:UIView {
     private var effect:SeasonalCelebration?,animated=false,preview=false,intensity=0.6
+    private var viceFlights=false
     private var renderedSize=CGSize.zero
     private(set) var effectLayers:[CALayer]=[]
     private static let santaFrames=(0..<4).compactMap { UIImage(named:"SeasonalSantaCycle"+String($0))?.cgImage }
     override init(frame:CGRect) { super.init(frame:frame);isUserInteractionEnabled=false;backgroundColor = .clear;isAccessibilityElement=false }
     required init?(coder:NSCoder) { fatalError("init(coder:) has not been implemented") }
-    func configure(_ effect:SeasonalCelebration?,animated:Bool,intensity:Double,preview:Bool) {
-        guard self.effect != effect || self.animated != animated || self.intensity != intensity || self.preview != preview else { return }
+    func configure(_ effect:SeasonalCelebration?,animated:Bool,intensity:Double,preview:Bool,viceFlights:Bool=false) {
+        guard self.effect != effect || self.animated != animated || self.intensity != intensity || self.preview != preview || self.viceFlights != viceFlights else { return }
+        self.viceFlights=viceFlights
         self.effect=effect;self.animated=animated;self.intensity=intensity;self.preview=preview
         stop();renderedSize = .zero;setNeedsLayout()
     }
@@ -21,7 +23,8 @@ import UIKit
         switch effect {
         case .santaFlight:flySanta()
         case .fireworks:fireworks()
-        case nil:break
+        case nil:
+            if viceFlights { effectLayers=SeasonalViceFlights.install(in:layer,size:bounds.size,preview:preview,intensity:intensity) }
         }
     }
     private func flySanta() {

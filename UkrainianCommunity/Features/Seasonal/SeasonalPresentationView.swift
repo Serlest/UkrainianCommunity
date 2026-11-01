@@ -75,7 +75,7 @@ struct SeasonalDecorationLayer: View {
                     SeasonalStaticDecorations(element: web, top: top, dark: scheme == .dark, preview: preview, includeLeaves: !theme.isComposedScene)
                         .opacity(includesChrome ? 1:0)
                 }
-                SeasonalAmbientOrnaments(elements:theme.visibleElements,celebration:theme.celebration,animated:animated,intensity:theme.intensity,preview:preview,includesChrome:includesChrome,showsNavigation:showsNavigation)
+                SeasonalAmbientOrnaments(elements:theme.visibleElements,celebration:theme.celebration,viceFlights:SeasonalViceFlights.isAvailable(in:theme),animated:animated,intensity:theme.intensity,preview:preview,includesChrome:includesChrome,showsNavigation:showsNavigation)
                 if let hanger=theme.visibleElements.first(where:{$0.zone == .hanging && ($0.artwork == .keychain || $0.artwork == .glassBauble)}) {
                     SeasonalPhotoHangers(element:hanger,animated:animated && includesChrome,reactsToTilt:theme.reactsToTilt,intensity:theme.intensity,preview:preview)
                         .frame(width:geometry.size.width,height:geometry.size.height).opacity(includesChrome ? 1:0)

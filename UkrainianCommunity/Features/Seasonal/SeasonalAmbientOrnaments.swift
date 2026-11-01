@@ -15,13 +15,14 @@ import UIKit
 struct SeasonalAmbientOrnaments:UIViewRepresentable {
     let elements:[SeasonalElement]
     var celebration:SeasonalCelebration?
+    var viceFlights=false
     let animated:Bool
     let intensity:Double
     let preview:Bool
     var includesChrome=true
     var showsNavigation=true
     func makeUIView(context:Context) -> SeasonalAmbientView { SeasonalAmbientView() }
-    func updateUIView(_ view:SeasonalAmbientView,context:Context) { view.configure(elements:elements,animated:animated,intensity:intensity,preview:preview);view.setCelebration(celebration);view.setVisibility(chrome:includesChrome,navigation:showsNavigation) }
+    func updateUIView(_ view:SeasonalAmbientView,context:Context) { view.configure(elements:elements,animated:animated,intensity:intensity,preview:preview);view.setCelebration(celebration,viceFlights:viceFlights);view.setVisibility(chrome:includesChrome,navigation:showsNavigation) }
     static func dismantleUIView(_ view:SeasonalAmbientView,coordinator:()) { view.stop() }
 }
 
@@ -32,8 +33,9 @@ struct SeasonalAmbientOrnaments:UIViewRepresentable {
     private var elements:[SeasonalElement]=[],ornaments:[Ornament]=[]
     private let festivities=SeasonalFestivitiesView()
     private var celebration:SeasonalCelebration?
-    func setCelebration(_ value:SeasonalCelebration?) {
-        celebration=value;festivities.configure(value,animated:animated,intensity:intensity,preview:preview)
+    private var viceFlights=false
+    func setCelebration(_ value:SeasonalCelebration?,viceFlights:Bool=false) {
+        celebration=value;self.viceFlights=viceFlights;festivities.configure(value,animated:animated,intensity:intensity,preview:preview,viceFlights:viceFlights)
         if festivities.superview == nil { addSubview(festivities) };festivities.setNeedsLayout();setNeedsLayout()
     }
     private var lights:[CALayer]=[],emitters:[CAEmitterLayer]=[]
@@ -277,7 +279,7 @@ struct SeasonalAmbientOrnaments:UIViewRepresentable {
     override func didMoveToWindow() {
         super.didMoveToWindow()
         if window == nil { stop();configured=false;tabBar=nil }
-        else { if !configured { configure(elements:elements,animated:animated,intensity:intensity,preview:preview);setCelebration(celebration) };DispatchQueue.main.async { [weak self] in self?.setNeedsLayout() } }
+        else { if !configured { configure(elements:elements,animated:animated,intensity:intensity,preview:preview);setCelebration(celebration,viceFlights:viceFlights) };DispatchQueue.main.async { [weak self] in self?.setNeedsLayout() } }
     }
     static let lightSnowTexture=SeasonalSnowCrystals.light[0]
     static let snowTexture=SeasonalSnowCrystals.dark[0]

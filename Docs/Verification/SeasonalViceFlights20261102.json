@@ -1,0 +1,112 @@
+{
+  "checkedAt": "2026-11-01T23:52:54.385021+00:00",
+  "scope": "Two photorealistic Vice City/NINE1NINE banner-towing aircraft in the existing root seasonal compositor",
+  "status": "implemented_release_built_simulator_matrix_verified_physical_and_delivery_pending",
+  "baseCommit": "540be5c6139425c3d5cfd17be7fee8ef1cff7325",
+  "implementation": {
+    "aircraft": "One shared generated photorealistic high-wing aircraft texture used for two separate aircraft; layered 2D, not a live 3D model",
+    "banners": [
+      "WELCOME TO / Vice City",
+      "WHY SIXTY-NINE WHEN YOU CAN / NINE1NINE / VICE CITY’S SEXIEST NIGHTCLUB"
+    ],
+    "timing": {
+      "departuresSeconds": [
+        5,
+        17
+      ],
+      "crossingSeconds": 18,
+      "cycleSeconds": 76
+    },
+    "motion": "Native compositor position/banking/propeller animations; sixteen sheared cloth strips with shared edge samples per banner",
+    "memory": "Plane and two banner textures shared; no timers/display links or SwiftUI per-frame updates introduced",
+    "compatibility": "No remote schema/enum/payload changes. Derived from visible viceHeader artwork with explicit other celebrations taking precedence. A new client binary is required.",
+    "publicDataChanged": false
+  },
+  "validation": {
+    "modelAndRendering": {
+      "device": "iPhone 16 Pro simulator / iOS 26.5",
+      "passed": 26,
+      "skipped": 0,
+      "bundle": "build/vice-flights-20261102/Final.xcresult",
+      "note": "26 model/rendering and two benchmark tests passed; the same bundle also records the separate failed iOS 26.5 rotation UI scenario below."
+    },
+    "performance": {
+      "device": "iPhone 16 Pro simulator / iOS 26.5",
+      "iterationsEach": 3,
+      "metrics": {
+        "testPerformanceWithFlights": {
+          "Memory Physical (UkrainianCommunity), kB": 54.613,
+          "CPU Instructions Retired (UkrainianCommunity), kI": 16812957.278,
+          "CPU Cycles (UkrainianCommunity), kC": 7048068.87,
+          "CPU Time (UkrainianCommunity), s": 2.477,
+          "Memory Peak Physical (UkrainianCommunity), kB": 58111.011,
+          "Absolute Memory Physical (UkrainianCommunity), kB": 57947.171,
+          "Duration (Scroll_Dragging), s": 0.178
+        },
+        "testPerformanceWithoutFlights": {
+          "Memory Physical (UkrainianCommunity), kB": 81.92,
+          "CPU Instructions Retired (UkrainianCommunity), kI": 16547263.334,
+          "CPU Cycles (UkrainianCommunity), kC": 6688016.098,
+          "CPU Time (UkrainianCommunity), s": 2.45,
+          "Memory Peak Physical (UkrainianCommunity), kB": 56139.421,
+          "Absolute Memory Physical (UkrainianCommunity), kB": 56013.811,
+          "Duration (Scroll_Dragging), s": 0.184
+        }
+      },
+      "scope": "Entire GTA scene enabled versus all seasonal effects disabled; not isolated incremental aircraft cost and not physical 120 Hz/battery evidence. No concurrent release build during these final metrics."
+    },
+    "ui": {
+      "device": "iPhone 18 Pro simulator / iOS 27.0",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "bundle": "build/vice-flights-20261102/iOS27UI.xcresult",
+      "scenarios": [
+        "light portrait",
+        "scroll while club aircraft flies",
+        "actual full-screen preview landscape with width>height assertion",
+        "close control remains hittable",
+        "dark portrait",
+        "local opt-out"
+      ],
+      "screenshots": "build/vice-flights-20261102/ios27-artwork",
+      "runtimeWarnings": []
+    },
+    "release": {
+      "result": "BUILD SUCCEEDED",
+      "signing": "unsigned generic iOS compile only",
+      "log": "build/vice-flights-20261102/release-final.log",
+      "preExistingWarning": "DirectoryEditorAccessStore.swift:50 generic Decodable isolated conformance; unchanged by this scope"
+    },
+    "diffCheck": "passed",
+    "physical": {
+      "status": "pending",
+      "device": "Serlest Mobile",
+      "officialReadback": "devicectl lockState: passcodeRequired=true; unlockedSinceBoot=true",
+      "action": "No unlock attempted, no app installed, no signout or system setting changed"
+    },
+    "knownAutomationLimitation": {
+      "runtime": "iOS 26.5",
+      "observation": "XCTest reported device orientation Landscape Left but the interface remained portrait. Both feed fixture and full-screen preview checks timed out. Retained the width>height assertion; no skips or relaxed assertions. The unchanged assertion and same app/test binary passed on iOS 27.0. Physical older-runtime rotation remains unverified.",
+      "failedEvidence": [
+        "build/vice-flights-20261102/Final.xcresult",
+        "build/vice-flights-20261102/FinalUI.xcresult"
+      ]
+    }
+  },
+  "delivery": {
+    "sourceCommit": "this commit",
+    "githubQualityChecks": "not yet verified for this change",
+    "testFlightUploaded": false,
+    "appStoreChanged": false,
+    "serverPublished": false,
+    "installedOnPhysicalDevice": false
+  },
+  "preservedDirtyWork": {
+    "projectPbxprojDiff": "12 insertions / 12 deletions, original unstaged reorder retained",
+    "localizableDiff": "667 insertions / 641 deletions, original unstaged metadata retained",
+    "localizableSha256": "bb56175012119a73fddd48100c4dc0c9116c6237f9432a1e9d0b8a186c25793a"
+  },
+  "artworkAndPrompt": "Docs/SeasonalViceFlights.md",
+  "preview": "Docs/SeasonalViceFlightsPreview.png"
+}
