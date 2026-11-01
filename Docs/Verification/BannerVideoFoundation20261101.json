@@ -1,0 +1,24 @@
+{
+  "checkedAt": "2026-11-01T16:53:46.645012+00:00",
+  "stage": "1/6",
+  "status": "policy_foundation_started_not_integrated",
+  "sourceFiles": [
+    "UkrainianCommunity/Models/Featured/FeaturedBannerVideoPolicy.swift",
+    "UkrainianCommunityTests/FeaturedBannerVideoPolicyTests.swift"
+  ],
+  "testCommand": "swift test --package-path build/banner-video-foundation-20261101/Probe",
+  "result": "6 Swift Testing tests passed",
+  "testLevel": "isolated SwiftPM package with exact copied source and tests; not full app or iOS UI",
+  "log": "build/banner-video-foundation-20261101/policy-tests.log",
+  "productionWrites": false,
+  "storageRulesChanged": false,
+  "playerImplemented": false,
+  "editorImplemented": false,
+  "newBuildCreated": false,
+  "knownIntegrationWork": [
+    "12-second carousel cap",
+    "VoiceOver combined card and independent controls",
+    "poster compatibility and versioned presentation",
+    "trusted processing and cleanup of video objects"
+  ]
+}
