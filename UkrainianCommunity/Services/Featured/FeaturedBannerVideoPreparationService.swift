@@ -6,8 +6,19 @@ import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
+/// Copies of a draft share ownership; dismissing the final owner releases its file.
+/// Published/cache files never use this temporary-file lease.
+nonisolated private final class BannerVideoTemporaryFile: Sendable {
+    let url: URL
+    init(_ url: URL) { self.url = url }
+    deinit { try? FileManager.default.removeItem(at: url) }
+}
+
 nonisolated struct BannerVideoSource: Transferable, Sendable {
     let url: URL
+    private let fileOwner: BannerVideoTemporaryFile?
+    init(url: URL) { self.url = url; fileOwner = nil }
+    private init(ownedURL: URL) { url = ownedURL; fileOwner = BannerVideoTemporaryFile(ownedURL) }
     static var transferRepresentation: some TransferRepresentation {
         FileRepresentation(importedContentType: .movie) { try copied(from: $0.file) }
         FileRepresentation(importedContentType: .gif) { try copied(from: $0.file) }
@@ -19,7 +30,7 @@ nonisolated struct BannerVideoSource: Transferable, Sendable {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let target = directory.appendingPathComponent(UUID().uuidString).appendingPathExtension(original.pathExtension)
         try FileManager.default.copyItem(at: original, to: target)
-        return Self(url: target)
+        return Self(ownedURL: target)
     }
 }
 nonisolated struct PreparedBannerVideoClip: Sendable {
@@ -28,6 +39,12 @@ nonisolated struct PreparedBannerVideoClip: Sendable {
     let posterData: Data
     let duration: Double
     let sourceDuration: Double
+    private let fileOwner: BannerVideoTemporaryFile
+    init(id: UUID, file: URL, posterData: Data, duration: Double, sourceDuration: Double) {
+        self.id = id; self.file = file; self.posterData = posterData
+        self.duration = duration; self.sourceDuration = sourceDuration
+        fileOwner = BannerVideoTemporaryFile(file)
+    }
 }
 nonisolated enum BannerVideoPreparationError: Error { case invalidSource, cannotEncode, tooLarge, gifTooComplex }
 
@@ -47,6 +64,7 @@ actor FeaturedBannerVideoPreparationService {
     static let shared = FeaturedBannerVideoPreparationService()
 
     func prepare(_ source: BannerVideoSource, start: Double = 0, requestedDuration: Double = 15) async throws -> PreparedBannerVideoClip {
+        defer { withExtendedLifetime(source) {} }
         let size = try source.url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
         guard (1...FeaturedBannerVideoPolicy.maximumSourceBytes).contains(size), start.isFinite, start >= 0,
               requestedDuration.isFinite, (1...15).contains(requestedDuration) else { throw BannerVideoPreparationError.invalidSource }
@@ -164,6 +182,8 @@ actor FeaturedBannerVideoPreparationService {
         writer.add(input); guard writer.startWriting() else { throw BannerVideoPreparationError.cannotEncode }; writer.startSession(atSourceTime: .zero)
         do {
             let frames = max(30, Int(floor(length * 30)))
+            var cachedImage: CGImage?
+            var cachedIndex: Int?
             for i in 0..<frames {
                 try Task.checkCancellation()
                 while !input.isReadyForMoreMediaData {
@@ -171,14 +191,20 @@ actor FeaturedBannerVideoPreparationService {
                     try await Task.sleep(for: .milliseconds(5)); try Task.checkCancellation()
                 }
                 let time = (start + Double(i) / 30).truncatingRemainder(dividingBy: duration), index = ends.firstIndex(where: { time < $0 }) ?? (count - 1)
-                guard let image = CGImageSourceCreateThumbnailAtIndex(source, index, [kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceThumbnailMaxPixelSize: 1280, kCGImageSourceShouldCache: false] as CFDictionary),
-                      let pool = adapter.pixelBufferPool else { throw BannerVideoPreparationError.cannotEncode }
+                if index != cachedIndex {
+                    cachedImage = CGImageSourceCreateThumbnailAtIndex(source, index, [kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceThumbnailMaxPixelSize: 1280, kCGImageSourceShouldCache: false] as CFDictionary)
+                    cachedIndex = index
+                }
+                guard let image = cachedImage, let pool = adapter.pixelBufferPool else { throw BannerVideoPreparationError.cannotEncode }
                 var buffer: CVPixelBuffer?; guard CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &buffer) == kCVReturnSuccess, let buffer else { throw BannerVideoPreparationError.cannotEncode }
                 CVPixelBufferLockBaseAddress(buffer, [])
                 let context = CGContext(data: CVPixelBufferGetBaseAddress(buffer), width: 1280, height: 720, bitsPerComponent: 8, bytesPerRow: CVPixelBufferGetBytesPerRow(buffer),
                                         space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue)
                 let scale = max(1280.0 / Double(image.width), 720.0 / Double(image.height))
                 guard let context else { CVPixelBufferUnlockBaseAddress(buffer, []); throw BannerVideoPreparationError.cannotEncode }
+                // GIF transparency must not expose reused pixel-buffer contents.
+                context.setFillColor(CGColor(gray: 0, alpha: 1))
+                context.fill(CGRect(x: 0, y: 0, width: 1280, height: 720))
                 context.draw(image, in: CGRect(x: (1280 - Double(image.width) * scale) / 2, y: (720 - Double(image.height) * scale) / 2,
                                                 width: Double(image.width) * scale, height: Double(image.height) * scale))
                 CVPixelBufferUnlockBaseAddress(buffer, [])

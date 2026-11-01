@@ -1,14 +1,14 @@
 import XCTest
 
 @MainActor final class FeaturedBannerVideoUITests: XCTestCase {
-    private func launch(language: String = "uk", dark: Bool = false, autoplay: Bool = true, editor: Bool = false, largeText: Bool = false) -> XCUIApplication {
+    private func launch(language: String = "uk", dark: Bool = false, autoplay: Bool = true, editor: Bool = false, largeText: Bool = false, silent: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         let fixture = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .appendingPathComponent("functions/src/featured/fixtures/banner-video-audio.mp4")
+            .appendingPathComponent("functions/src/featured/fixtures/" + (silent ? "banner-video-640x360.mp4" : "banner-video-audio.mp4"))
         app.launchArguments = ["-ui-testing", "-bannerVideoAutoplayEnabled", autoplay ? "YES" : "NO"]
         app.launchEnvironment = ["UACFirebaseEmulators": "1", "UITestForceOwnerSession": "1", "UITestBanner14": "1",
             "UITestBanner14Scope": editor ? "video-editor" : "video", "UITestBannerVideoFixture": "1",
-            "UITestBannerVideoFixturePath": fixture.path, "UITestBannerVideoLargeText": largeText ? "1" : "0", "UITestAppLanguage": language, "UITestAppAppearance": dark ? "dark" : "light"]
+            "UITestBannerVideoFixturePath": fixture.path, "UITestBannerVideoSilent": silent ? "1" : "0", "UITestBannerVideoLargeText": largeText ? "1" : "0", "UITestAppLanguage": language, "UITestAppAppearance": dark ? "dark" : "light"]
         app.launch(); return app
     }
     private func capture(_ app: XCUIApplication, _ name: String) {
@@ -26,6 +26,7 @@ import XCTest
         expand.tap()
         let close = app.buttons["featuredBanner.video.fullscreen.close"]
         XCTAssertTrue(close.waitForExistence(timeout: 5)); capture(app, "VideoBanner-Fullscreen-UA")
+        XCTAssertLessThan(close.frame.minX, app.frame.minX + app.frame.width * 0.15, "The expanded player must use the window, not an iPad page sheet")
         XCTAssertEqual(app.buttons["featuredBanner.video.fullscreen.sound"].label, "Увімкнути звук")
         let open = app.buttons["featuredBanner.video.fullscreen.openLink"]; XCTAssertTrue(open.isHittable); open.tap()
         XCTAssertTrue(close.waitForNonExistence(timeout: 5))
@@ -99,6 +100,23 @@ import XCTest
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(close.waitForExistence(timeout: 5)); XCTAssertTrue(close.isHittable)
         capture(app, "VideoBanner-Fullscreen-RemainsOpen-OnRotation")
+        close.tap()
+    }
+    func testSilentVideoKeepsViewingControlsWithoutAnInactiveSoundButton() throws {
+        let app = launch(silent: true)
+        defer { app.terminate() }
+        let expand = app.buttons["featuredBanner.video.expand"]
+        XCTAssertTrue(expand.waitForExistence(timeout: 15))
+        XCTAssertFalse(app.buttons["featuredBanner.video.sound"].exists)
+        capture(app, "VideoBanner-Silent-NoSoundButton-UA")
+        expand.tap()
+        let close = app.buttons["featuredBanner.video.fullscreen.close"]
+        XCTAssertTrue(close.waitForExistence(timeout: 5))
+        let pause = app.buttons["featuredBanner.video.fullscreen.pause"]
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: pause)], timeout: 10), .completed)
+        XCTAssertFalse(app.buttons["featuredBanner.video.fullscreen.sound"].exists)
+        pause.tap()
+        XCTAssertEqual(pause.label, "Відтворити")
         close.tap()
     }
 }

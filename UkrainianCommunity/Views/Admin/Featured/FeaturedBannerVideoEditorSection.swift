@@ -59,14 +59,14 @@ struct FeaturedBannerVideoEditorSection: View {
                 defer { if preparationID == token { viewModel.isPreparingVideo = false } }
                 do {
                     guard let loaded = try await item.loadTransferable(type: BannerVideoSource.self) else { throw BannerVideoPreparationError.invalidSource }
-                    guard !Task.isCancelled else { try? FileManager.default.removeItem(at: loaded.url); return }
-                    if let old = source?.url { try? FileManager.default.removeItem(at: old) }
+                    guard !Task.isCancelled else { return }
                     source = loaded; start = 0; duration = 15
                     await prepare(loaded)
                 } catch { if !Task.isCancelled { viewModel.errorMessage = BannerVideoText.error(error) } }
             }
         }
         .fileImporter(isPresented: $showFiles, allowedContentTypes: [.movie, .gif]) { result in
+            if case .failure(let error) = result, let cocoa = error as? CocoaError, cocoa.code == .userCancelled { return }
             task?.cancel(); let token = UUID(); preparationID = token; viewModel.isPreparingVideo = true
             task = Task {
                 defer { if preparationID == token { viewModel.isPreparingVideo = false } }
@@ -74,8 +74,7 @@ struct FeaturedBannerVideoEditorSection: View {
                     let url = try result.get(); let scoped = url.startAccessingSecurityScopedResource()
                     defer { if scoped { url.stopAccessingSecurityScopedResource() } }
                     let loaded = try await Task.detached { try BannerVideoSource.copied(from: url) }.value
-                    guard !Task.isCancelled else { try? FileManager.default.removeItem(at: loaded.url); return }
-                    if let old = source?.url { try? FileManager.default.removeItem(at: old) }
+                    guard !Task.isCancelled else { return }
                     source = loaded; start = 0; duration = 15
                     await prepare(loaded)
                 } catch { if !Task.isCancelled { viewModel.errorMessage = BannerVideoText.error(error) } }
@@ -87,7 +86,7 @@ struct FeaturedBannerVideoEditorSection: View {
                     .toolbar { ToolbarItem(placement: .cancellationAction) { Button(BannerVideoText.text("close")) { showPreview = false } } }
             }
         }
-        .onDisappear { task?.cancel(); player?.pause(); if let source { try? FileManager.default.removeItem(at: source.url) } }
+        .onDisappear { task?.cancel(); player?.pause() }
     }
     private func prepareCurrent() {
         guard let source else { return }; task?.cancel(); task = Task { await prepare(source) }
@@ -99,7 +98,7 @@ struct FeaturedBannerVideoEditorSection: View {
         defer { if preparationID == token { viewModel.isPreparingVideo = false } }
         do {
             let clip = try await FeaturedBannerVideoPreparationService.shared.prepare(source, start: start, requestedDuration: min(15, max(1, duration)))
-            guard !Task.isCancelled else { try? FileManager.default.removeItem(at: clip.file); return }
+            guard !Task.isCancelled else { return }
             duration = clip.duration
             viewModel.applyPreparedVideo(clip); onPoster(clip.posterData); viewModel.errorMessage = nil
         } catch { if !Task.isCancelled { viewModel.errorMessage = BannerVideoText.error(error) } }

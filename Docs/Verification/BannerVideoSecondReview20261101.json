@@ -1,0 +1,104 @@
+{
+  "checkedAt": "2026-11-01T22:09:14.858659+00:00",
+  "scope": "Second video-banner review: code, cancellation, local disk lifetime, GIF conversion, audio thread, iPhone/iPad presentation",
+  "status": "final_simulator_matrix_passed_release_and_source_ci_pending_physical_acceptance_open",
+  "priorFullCI": {
+    "commit": "4ed44acb2173b3269f090d7d7713ab0d043e9ebe",
+    "run": 41336920551,
+    "result": "success (live readback this turn)"
+  },
+  "findings": [
+    {
+      "issue": "Draft files survived editor dismissal; imported source was deleted prematurely on navigation away",
+      "fix": "Shared temporary-file ownership; preparation retains source for its entire async operation; published/cache and borrowed source files are not owned or deleted",
+      "proof": "Two native filesystem lifetime tests passed on iPhone and iPad simulators"
+    },
+    {
+      "issue": "Late download success/failure could resurrect or change a stopped/replaced player",
+      "fix": "Capture session token before awaiting; own and cancel pending load; reject stale results and stale surface readiness callbacks",
+      "proof": "Controlled delayed-response tests passed for stop/success/failure and reordered completions"
+    },
+    {
+      "issue": "Interruption paused the player without updating its visible pause state",
+      "fix": "Set paused state and retain muted explicit-resume behavior",
+      "proof": "Interruption during controlled pending load test passed"
+    },
+    {
+      "issue": "GIF decoded the same source frame repeatedly at output-frame frequency",
+      "fix": "Keep one decoded source image until its index changes; fill alpha with a deterministic black matte before drawing into recycled buffers",
+      "proof": "Actual GIF conversions passed native SDK tests and server byte inspection; no speed multiplier claimed"
+    },
+    {
+      "issue": "iPad iOS 27 emitted main-thread AVAudioSession activation warning",
+      "fix": "Dedicated serial audio queue for category/activation/deactivation; owner UUID prevents late release from deactivating a newer session; notifications delivered on main queue",
+      "proof": "Updated iPad sound UI tests passed without the prior warning"
+    },
+    {
+      "issue": "Silent video kept extra space reserved for a nonexistent speaker",
+      "fix": "Reserve 56pt for one control, 104pt for audio plus expand",
+      "proof": "Silent-video UI test passed; screenshot reviewed"
+    },
+    {
+      "issue": "Cancel in Files picker could be presented as an import error",
+      "fix": "Ignore Cocoa user cancellation before starting preparation",
+      "proof": "Code inspection; actual Files dialog cancellation remains a manual scenario"
+    },
+    {
+      "issue": "Expanded video on iPad used a central page sheet",
+      "fix": "Use true fullScreenCover with its own loading lifecycle and the same model; preserve post-dismiss link action; keep loading indicator out of dismissal frames",
+      "proof": "Full-window control-position assertion, manual autoplay-off viewing, rotation and post-dismiss navigation passed on both simulators; final screenshots reviewed"
+    },
+    {
+      "issue": "iOS 26.5 bottom toolbar emitted unsupported UIKitToolbar/UIHostingController hierarchy warning in fullscreen",
+      "fix": "Render the same controls in a SwiftUI safeAreaInset with 44pt targets and accessible labels; dark navigation-bar contrast over black video",
+      "proof": "Final two-device xcresult runtimeWarnings is empty; all 12 UI executions passed"
+    }
+  ],
+  "intermediateChecks": {
+    "iPhone": "46 Swift tests / 7 suites + 6 UI tests passed",
+    "iPad": "46 Swift tests / 7 suites + 6 UI tests passed before final fullscreen conversion"
+  },
+  "testHarnessCorrection": "Fixed 900pt spacer could not scroll the full banner off the 13-inch iPad viewport; use twice the actual viewport height. Kept the stop predicate unchanged.",
+  "artifacts": "build/banner-video-review-20261101/",
+  "finalChecks": {
+    "phone": "46 Swift tests / 7 suites and 6 UI tests passed on iPhone 16 Pro, iOS 26.5",
+    "iPad": "Same 46 Swift tests / 7 suites and 6 UI tests passed on iPad Pro 13-inch M5, iOS 27.0",
+    "uniqueTests": 52,
+    "executionsIncludingParameterizedCases": 108,
+    "failed": 0,
+    "skipped": 0,
+    "runtimeWarnings": [],
+    "resultBundle": "build/banner-video-review-20261101/FinalMatrixTests.xcresult",
+    "summary": "build/banner-video-review-20261101/test-summary.json",
+    "log": "build/banner-video-review-20261101/final-matrix-tests.log",
+    "nativeToServerContract": "4 actual native encodes accepted after final matrix: 15s/1s AAC MP4 and 1.2s/1s GIF MP4",
+    "nativeContractLog": "build/banner-video-review-20261101/native-server-contract.log",
+    "release": "running: build/banner-video-review-20261101/release-build.log",
+    "currentSourceCI": "pending after source push"
+  },
+  "visualLimits": "Reviewed synthetic-fixture layout, controls and text, not final promotional media aesthetics",
+  "performanceLimits": "Code-level reductions and simulator behavior verified; no physical FPS, CPU, memory, heat or battery measurements claimed",
+  "device": "Serlest Mobile unavailable in official devicectl inventory",
+  "stillRequired": [
+    "Real device Release playback, scroll with seasonal scenes, audio interruptions/routes, rotation and accessibility",
+    "Production owner import/upload/save/reopen/copy/remove after safe backend rollout",
+    "Exact-source CI readback for these new fixes",
+    "Native Mac window/media-picker validation and nonfixture source formats; simulator iPad evidence is not Mac evidence"
+  ],
+  "serverChanged": false,
+  "productionWrites": false,
+  "testFlightUploaded": false,
+  "appStoreChanged": false,
+  "visualEvidence": {
+    "path": "build/banner-video-review-20261101/final-matrix-visuals/",
+    "reviewed": [
+      "light UA inline controls",
+      "dark DE manual fullscreen",
+      "large DE text",
+      "editor video section",
+      "silent-video single control",
+      "true full-window player on both devices"
+    ],
+    "content": "own synthetic fixtures, no external publication"
+  }
+}

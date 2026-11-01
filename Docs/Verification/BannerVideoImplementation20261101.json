@@ -132,11 +132,13 @@
     "run": 41336920551,
     "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/41336920551",
     "mode": "explicit full workflow_dispatch",
-    "status": "in_progress",
+    "status": "success",
     "observedJobs": {
       "static": "success",
-      "firebase_affected": "in_progress",
-      "ios_affected": "in_progress"
+      "firebase_affected": "success",
+      "ios_affected": "success",
+      "firebase_required": "success",
+      "ios_required": "success"
     },
     "previousRun": {
       "id": 41336629858,
@@ -145,7 +147,8 @@
     "redundantNarrowPushRun": {
       "id": 41336797255,
       "status": "cancelled after starting full validation of the identical source"
-    }
+    },
+    "readBackAt": "2026-11-01T22:09:14.860040+00:00"
   },
   "localization": {
     "catalog": "BannerVideo.xcstrings",
@@ -166,5 +169,6 @@
       "message": "T Decodable conformance may be isolated when passed to concurrent callable API",
       "status": "not fixed in banner scope"
     }
-  ]
+  ],
+  "followupReview": "Docs/Verification/BannerVideoSecondReview20261101.json"
 }

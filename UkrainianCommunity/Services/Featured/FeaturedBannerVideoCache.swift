@@ -18,6 +18,7 @@ actor FeaturedBannerVideoCache {
         self.directory = directory ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?.appendingPathComponent("FeaturedBanners/video-v1", isDirectory: true)
     }
     func file(for video: FeaturedBannerVideoPresentation, allowsConstrainedNetwork: Bool = false) async throws -> URL {
+        try Task.checkCancellation()
         let d = video.descriptor
         guard d.byteCount > 0, d.byteCount <= FeaturedBannerVideoPolicy.maximumRenditionBytes,
               d.sha256.count == 64, d.sha256.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }),

@@ -85,6 +85,31 @@ import UniformTypeIdentifiers
         let file = try FileHandle(forWritingTo: url); try file.truncate(atOffset: UInt64(FeaturedBannerVideoPolicy.maximumSourceBytes + 1)); try file.close()
         #expect(throws: BannerVideoPreparationError.self) { try BannerVideoSource.copied(from: url) }
     }
+    @Test func importedSourceIsReleasedOnlyAfterLastCopyAndBorrowedFileIsPreserved() throws {
+        var first: BannerVideoSource? = try .copied(from: fixture())
+        let path = try #require(first?.url)
+        var second = first
+        first = nil
+        #expect(FileManager.default.fileExists(atPath: path.path))
+        withExtendedLifetime(second) {}
+        second = nil
+        #expect(!FileManager.default.fileExists(atPath: path.path))
+        var borrowed: BannerVideoSource? = .init(url: fixture())
+        withExtendedLifetime(borrowed) {}
+        borrowed = nil
+        #expect(FileManager.default.fileExists(atPath: fixture().path))
+    }
+    @Test func abandoningPreparedDraftDeletesItsOutputOnlyAfterLastCopy() throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension("mp4")
+        try Data("draft".utf8).write(to: file)
+        var first: PreparedBannerVideoClip? = .init(id: UUID(), file: file, posterData: Data(), duration: 1, sourceDuration: 1)
+        var second = first
+        first = nil
+        #expect(FileManager.default.fileExists(atPath: file.path))
+        withExtendedLifetime(second) {}
+        second = nil
+        #expect(!FileManager.default.fileExists(atPath: file.path))
+    }
     @Test func cacheRefusesCorruptionAndBoundsExistingFiles() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

@@ -25,19 +25,32 @@ import UIKit
     private var sessionToken = UUID()
     private var looper: AVPlayerLooper?
     private var assetID: String?
-    private var ownsAudioSession = false
+    private var audioRequest: UUID?
     private var itemObservation: NSKeyValueObservation?
     private var playerObservation: NSKeyValueObservation?
+    private var pendingLoad: Task<URL, any Error>?
+    private let loadFile: @Sendable (FeaturedBannerVideoPresentation, Bool) async throws -> URL
+
+    init(loadFile: @escaping @Sendable (FeaturedBannerVideoPresentation, Bool) async throws -> URL = { video, manual in
+        try await FeaturedBannerVideoCache.shared.file(for: video, allowsConstrainedNetwork: manual)
+    }) { self.loadFile = loadFile }
 
     func configure(_ video: FeaturedBannerVideoPresentation, eligible: Bool, manual: Bool) async {
         guard eligible else { stop(); return }
         if assetID == video.assetID, let player { if !paused { player.play() }; return }
         stop(); failed = false
+        let token = sessionToken
+        let loader = loadFile
+        let load = Task { try await loader(video, manual) }
+        pendingLoad = load
+        defer { if token == sessionToken { pendingLoad = nil } }
         do {
-            let file = try await FeaturedBannerVideoCache.shared.file(for: video, allowsConstrainedNetwork: manual)
+            let file = try await withTaskCancellationHandler {
+                try await load.value
+            } onCancel: { load.cancel() }
             try Task.checkCancellation()
+            guard token == sessionToken else { return }
             Self.active?.stop(); Self.active = self
-            let token = sessionToken
             let item = AVPlayerItem(url: file)
             let player = AVQueuePlayer(); player.isMuted = true; player.automaticallyWaitsToMinimizeStalling = true
             player.preventsDisplaySleepDuringVideoPlayback = false
@@ -52,30 +65,37 @@ import UIKit
                     }
                 }
             }
-            player.play()
+            if !paused { player.play() }
         } catch {
-            if !Task.isCancelled { failed = true }
+            if !Task.isCancelled, token == sessionToken { failed = true }
         }
     }
     func resetSurfaceReadiness() { rendered = false }
-    func didRender() { if !rendered { rendered = true } }
+    func didRender(_ source: AVPlayer) { if player === source, !rendered { rendered = true } }
     func toggleSound() {
         guard let player, !failed else { return }
-        if !muted { mute(); return }
-        do {
-            let audio = AVAudioSession.sharedInstance()
-            try audio.setCategory(.playback, mode: .moviePlayback, options: [.mixWithOthers])
-            try audio.setActive(true); ownsAudioSession = true
-            muted = false; player.isMuted = false
-        } catch { mute() }
+        if !muted || audioRequest != nil { mute(); return }
+        let request = UUID()
+        audioRequest = request; muted = false
+        Task { [weak self] in
+            let active = await FeaturedBannerVideoAudioSession.shared.activate(for: request)
+            guard let self, self.audioRequest == request, self.player === player else {
+                await FeaturedBannerVideoAudioSession.shared.release(request); return
+            }
+            if active { player.isMuted = false } else { self.mute() }
+        }
     }
     func mute() {
         muted = true; player?.isMuted = true
-        if ownsAudioSession { try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation); ownsAudioSession = false }
+        if let request = audioRequest {
+            audioRequest = nil
+            Task { await FeaturedBannerVideoAudioSession.shared.release(request) }
+        }
     }
     func togglePause() { paused.toggle(); if paused { player?.pause(); mute() } else { player?.play() } }
-    func interrupt() { player?.pause(); mute() }
+    func interrupt() { paused = true; player?.pause(); mute() }
     func stop() {
+        pendingLoad?.cancel(); pendingLoad = nil
         sessionToken = UUID(); if Self.active === self { Self.active = nil }
         mute(); player?.pause(); looper?.disableLooping(); player?.removeAllItems()
         looper = nil; player = nil; assetID = nil; rendered = false; paused = false
@@ -86,7 +106,7 @@ import UIKit
 struct BannerVideoSurface: UIViewRepresentable {
     let player: AVPlayer?
     var fit = false
-    let onReady: () -> Void
+    let onReady: (AVPlayer) -> Void
     final class Surface: UIView { override class var layerClass: AnyClass { AVPlayerLayer.self }; var videoLayer: AVPlayerLayer { layer as! AVPlayerLayer } }
     @MainActor final class Coordinator {
         var observer: NSKeyValueObservation?
@@ -99,8 +119,8 @@ struct BannerVideoSurface: UIViewRepresentable {
         guard context.coordinator.observedPlayer !== player else { return }
         context.coordinator.observer = nil; context.coordinator.observedPlayer = player; view.videoLayer.player = player
         let coordinator = context.coordinator
-        context.coordinator.observer = view.videoLayer.observe(\.isReadyForDisplay, options: [.initial, .new]) { layer, _ in
-            if layer.isReadyForDisplay { Task { @MainActor in if player != nil, coordinator.observedPlayer === player { onReady() } } }
+        context.coordinator.observer = view.videoLayer.observe(\.isReadyForDisplay, options: [.initial, .new]) { [weak coordinator] layer, _ in
+            if layer.isReadyForDisplay { Task { @MainActor [weak coordinator] in if let player, coordinator?.observedPlayer === player { onReady(player) } } }
         }
     }
     static func dismantleUIView(_ view: Surface, coordinator: Coordinator) { coordinator.observer = nil; coordinator.observedPlayer = nil; view.videoLayer.player = nil }
@@ -147,22 +167,31 @@ struct FeaturedBannerVideoPlayer: View {
                 }
             }.padding(8)
         }
-        .task(id: "\(video.assetID):\(video.playbackURL.hashValue):\(eligible):\(expanded)") { await model.configure(video, eligible: eligible, manual: expanded) }
+        .task(id: "\(video.assetID):\(video.playbackURL.hashValue):\(eligible)") {
+            if !expanded { await model.configure(video, eligible: eligible, manual: false) }
+        }
         .onChange(of: model.rendered) { _, value in if !value { fullScreenReady = false }; onReady(value) }
         .onChange(of: expanded) { _, value in onExpanded(value); if !value { model.mute() } }
-        .onReceive(NotificationCenter.default.publisher(for: .NSProcessInfoPowerStateDidChange)) { _ in lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled }
-        .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)) { _ in model.interrupt() }
-        .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)) { note in
+        .onReceive(NotificationCenter.default.publisher(for: .NSProcessInfoPowerStateDidChange).receive(on: DispatchQueue.main)) { _ in lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled }
+        .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification).receive(on: DispatchQueue.main)) { _ in model.interrupt() }
+        .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification).receive(on: DispatchQueue.main)) { note in
             let reason = (note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? NSNumber)?.uintValue
             if reason == AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue || reason == AVAudioSession.RouteChangeReason.newDeviceAvailable.rawValue { model.mute() }
         }
-        .onDisappear { model.stop(); onReady(false); onExpanded(false) }
-        .sheet(isPresented: $expanded, onDismiss: { model.mute(); onExpanded(false); if pendingPrimaryAction { pendingPrimaryAction = false; onPrimaryAction() } }) {
+        .onDisappear {
+            // Fullscreen covers the inline view. Its own task takes over the same
+            // model; leaving the carousel normally still releases all playback.
+            if !expanded { model.stop(); onReady(false); onExpanded(false) }
+        }
+        .fullScreenCover(isPresented: $expanded, onDismiss: { model.mute(); onExpanded(false); if pendingPrimaryAction { pendingPrimaryAction = false; onPrimaryAction() } }) {
             NavigationStack {
                 ZStack {
                     Color.black.ignoresSafeArea()
-                    BannerVideoSurface(player: model.player, fit: true, onReady: { fullScreenReady = true; model.didRender() })
-                    if model.player == nil || !fullScreenReady {
+                    BannerVideoSurface(player: model.player, fit: true, onReady: { source in
+                        guard model.player === source else { return }
+                        fullScreenReady = true; model.didRender(source)
+                    })
+                    if expanded && (model.player == nil || !fullScreenReady) {
                         if model.failed {
                             VStack(spacing: 16) {
                                 Text(BannerVideoText.text("unavailable"))
@@ -173,16 +202,35 @@ struct FeaturedBannerVideoPlayer: View {
                     }
                 }
                 .navigationTitle(title).navigationBarTitleDisplayMode(.inline)
+                .toolbarColorScheme(.dark, for: .navigationBar)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) { Button(BannerVideoText.text("close")) { expanded = false }.accessibilityIdentifier("featuredBanner.video.fullscreen.close") }
-                    ToolbarItemGroup(placement: .bottomBar) {
-                        Button { model.togglePause() } label: { Label(BannerVideoText.text(model.paused ? "play" : "pause"), systemImage: model.paused ? "play.fill" : "pause.fill") }.disabled(model.player == nil).accessibilityIdentifier("featuredBanner.video.fullscreen.pause")
-                        if video.descriptor.hasAudio { Button { model.toggleSound() } label: { Label(BannerVideoText.text(model.muted ? "unmute" : "mute"), systemImage: model.muted ? "speaker.slash.fill" : "speaker.wave.2.fill") }.disabled(model.player == nil).accessibilityIdentifier("featuredBanner.video.fullscreen.sound") }
+                }
+                .safeAreaInset(edge: .bottom) {
+                    HStack {
+                        HStack(spacing: 4) {
+                            control(model.paused ? "play.fill" : "pause.fill", label: BannerVideoText.text(model.paused ? "play" : "pause"), id: "fullscreen.pause") { model.togglePause() }
+                                .disabled(model.player == nil)
+                            if video.descriptor.hasAudio {
+                                control(model.muted ? "speaker.slash.fill" : "speaker.wave.2.fill", label: BannerVideoText.text(model.muted ? "unmute" : "mute"), id: "fullscreen.sound") { model.toggleSound() }
+                                    .disabled(model.player == nil)
+                            }
+                        }.padding(4).background(.white.opacity(0.12), in: Capsule())
                         Spacer()
-                        if hasAction { Button(BannerVideoText.text("open")) { model.stop(); pendingPrimaryAction = true; expanded = false }.accessibilityIdentifier("featuredBanner.video.fullscreen.openLink") }
-                    }
+                        if hasAction {
+                            Button { model.stop(); pendingPrimaryAction = true; expanded = false } label: {
+                                Text(BannerVideoText.text("open")).font(.headline).foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.75)
+                                    .padding(.horizontal, 16).frame(minHeight: 44)
+                                    .background(.white.opacity(0.12), in: Capsule())
+                            }.buttonStyle(.plain).accessibilityIdentifier("featuredBanner.video.fullscreen.openLink")
+                        }
+                    }.padding(.horizontal, 16).padding(.vertical, 8).background(.black)
                 }
             }
+            .task(id: "\(video.assetID):\(video.playbackURL.hashValue):\(phase)") {
+                await model.configure(video, eligible: phase == .active, manual: true)
+            }
+            .onDisappear { model.mute() }
         }
     }
     private func control(_ image: String, label: String, id: String, action: @escaping () -> Void) -> some View {

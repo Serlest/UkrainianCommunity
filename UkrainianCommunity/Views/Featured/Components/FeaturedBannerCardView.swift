@@ -199,7 +199,7 @@ struct FeaturedBannerCardView: View {
                     .accessibilityHidden(true)
             }
         }
-        .padding(.trailing, banner.video != nil && !usesStackedContent ? 104 : 0)
+        .padding(.trailing, !usesStackedContent && banner.video != nil ? (banner.video?.descriptor.hasAudio == true ? 104 : 56) : 0)
         .padding(AppTheme.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
     }

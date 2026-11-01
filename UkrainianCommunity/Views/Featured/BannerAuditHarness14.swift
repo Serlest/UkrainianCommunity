@@ -34,9 +34,10 @@ struct BannerAuditHarness14: View {
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try? data.write(to: directory.appendingPathComponent(sha).appendingPathExtension("mp4"), options: .atomic)
         let id = SHA256.hash(data: Data(("banner14-1:" + sha).utf8)).map { String(format: "%02x", $0) }.joined()
+        let hasAudio = ProcessInfo.processInfo.environment["UITestBannerVideoSilent"] != "1"
         return FeaturedBannerVideoPresentation(assetID: id,
             descriptor: .init(schemaVersion: 1, assetPath: "featuredBannerVideos/banner14-1/\(sha).mp4", sha256: sha, byteCount: data.count,
-                width: 640, height: 360, durationSeconds: 2, framesPerSecond: 30, codec: "h264", hasAudio: true, audioCodec: "aac"),
+                width: 640, height: 360, durationSeconds: 2, framesPerSecond: 30, codec: "h264", hasAudio: hasAudio, audioCodec: hasAudio ? "aac" : nil),
             playbackURL: "https://firebasestorage.googleapis.com/v0/b/fixture.test/o/featuredBannerVideos%2Fbanner14-1%2F\(sha).mp4?alt=media&token=fixture")
     }()
     static func fixtures() -> [FeaturedBanner] {
@@ -101,7 +102,7 @@ struct BannerAuditHarness14: View {
                         Text(events.map { "\($0.bannerID):\($0.kind.rawValue)" }.joined(separator:","))
                             .font(.system(size: 12)).accessibilityIdentifier("banner14.events")
                         Button(BannerCountdownStrings.text("pause")) { active.toggle() }.accessibilityIdentifier("banner14.pause")
-                        Spacer().frame(height:900)
+                        Color.clear.containerRelativeFrame(.vertical) { height, _ in max(900, height * 2) }
                     }.padding()
                 }.background(AppBackgroundView()).featuredBannerViewport($viewport)
             }

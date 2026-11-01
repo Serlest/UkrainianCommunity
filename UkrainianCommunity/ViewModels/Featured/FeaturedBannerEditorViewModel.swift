@@ -441,7 +441,6 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     }
 
     func applyPreparedVideo(_ clip: PreparedBannerVideoClip) {
-        if let old = preparedVideo?.file, old != clip.file { try? FileManager.default.removeItem(at: old) }
         preparedVideo = clip; videoUploadAttempted = false; usesVideo = true
         setSelectedImageData(clip.posterData)
     }
@@ -592,7 +591,6 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             selectedProcessedImage = nil
             existingVideo = resolvedVideo; videoSourceBannerID = bannerID
             hadVideoProtocol = hadVideoProtocol || usesVideo
-            if let file = preparedVideo?.file { try? FileManager.default.removeItem(at: file) }
             preparedVideo = nil
             initialDraftSignature = draftSignature
             successMessage = AppStrings.FeaturedEditor.saveSuccess
