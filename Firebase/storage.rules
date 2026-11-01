@@ -314,6 +314,21 @@ service firebase.storage {
       allow delete: if (isSelf(uid) && isVerifiedActiveUser()) || isOwner();
     }
 
+    // Only owner-prepared MP4 uploads; no public access before server inspection.
+    match /featuredBannerVideoUploads/{uid}/{bannerId}/{fileName} {
+      allow create: if isOwner() && request.auth.uid == uid
+        && bannerId.matches('^[A-Za-z0-9_-]{1,128}$')
+        && fileName.matches('^[A-Za-z0-9_-]{1,128}\\.mp4$')
+        && request.resource.size > 0 && request.resource.size <= 4 * 1024 * 1024
+        && request.resource.contentType == 'video/mp4';
+      allow delete: if isOwner() && request.auth.uid == uid;
+      allow read, update: if false;
+    }
+    // Immutable output is server-owned. Only a verified capability URL is delivered.
+    match /featuredBannerVideos/{bannerId}/{fileName} {
+      allow read, write: if false;
+    }
+
     match /featuredBanners/{bannerId}/{fileName} {
       allow read: if fileName.matches('^hero(-[A-Za-z0-9-]+)?\\.jpg$');
       allow create, update: if isOwner()

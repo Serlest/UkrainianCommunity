@@ -1,3 +1,4 @@
+import FirebaseCore
 import FirebaseFunctions
 import FirebaseFirestore
 import Foundation
@@ -215,6 +216,8 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         guard !banners.isEmpty else { return [] }
         var configurations: [String: FeaturedBannerCountdown] = [:]
         var appearances: [String: FeaturedBannerTextAppearance] = [:]
+        var videos: [String: FeaturedBannerVideoPresentation] = [:]
+        var videoProtocolIDs = Set<String>()
         var configuredEnds: [String: Date] = [:]
         var restoredEndIDs = Set<String>()
         for start in stride(from: 0, to: banners.count, by: 100) {
@@ -226,6 +229,11 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
             guard let response = result.data as? [String: Any], let rows = response["presentations"] as? [[String: Any]] else { throw AppError.validationFailed }
             for row in rows {
                 guard let id = row["id"] as? String, ids.contains(id) else { throw AppError.validationFailed }
+                if (row["presentationVersion"] as? Int) == 3 { videoProtocolIDs.insert(id) }
+                if let rawVideo = row["video"], let bucket = FirebaseApp.app()?.options.storageBucket,
+                   let data = try? JSONSerialization.data(withJSONObject: rawVideo),
+                   let video = try? JSONDecoder().decode(FeaturedBannerVideoPresentation.self, from: data),
+                   video.isValid(for: id, bucket: bucket) { videos[id] = video }
                 if let raw = row["countdown"] as? [String: Any] {
                     guard let countdown = Self.decodeCountdown(raw) else { throw AppError.validationFailed }
                     configurations[id] = countdown
@@ -247,6 +255,8 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         }
         return banners.map { banner in
             var copy = banner; copy.countdown = configurations[banner.id]
+            copy.video = videos[banner.id]
+            copy.videoPresentationVersion = videoProtocolIDs.contains(banner.id) ? 3 : nil
             copy.textAppearance = appearances[banner.id] ?? .standard
             if restoredEndIDs.contains(banner.id) { copy.endsAt = configuredEnds[banner.id] }
             return copy

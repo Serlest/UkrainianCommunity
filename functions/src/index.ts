@@ -307,3 +307,6 @@ export {listSystemLogs, maintainSystemLogSearchIndex} from "./systemLogs/journal
 export {notifySystemLogIssue} from "./systemLogs/journalAlerts";
 
 export {deliverLegalPublicationBatch} from "./legal/legalPublicationDelivery";
+
+export {prepareFeaturedBannerVideo} from "./featured/featuredBannerVideoPreparation";
+export {cleanupReplacedFeaturedBannerVideo,cleanupAbandonedFeaturedBannerVideos} from "./featured/featuredBannerVideoCleanup";

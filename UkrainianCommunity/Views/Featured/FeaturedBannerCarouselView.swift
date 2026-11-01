@@ -98,6 +98,8 @@ struct FeaturedBannerCarouselView: View {
     @State private var settleTask: Task<Void, Never>?
     @State private var bannerFrame: CGRect = .zero
     @State private var readyArtworkIDs: Set<String> = []
+    @State private var readyVideoIDs: Set<String> = []
+    @State private var expandedVideoID: String?
     @State private var exposureTracker = FeaturedBannerExposureTracker()
 
     init(
@@ -185,28 +187,27 @@ struct FeaturedBannerCarouselView: View {
     }
 
     private var carouselFrame: some View {
-        Group {
-            if usesStackedContent {
-                carouselContent.frame(height: FeaturedBannerHeightMeasurement.resolvedHeight(
-                    cardHeights, bannerIDs: Set(banners.map(\.id)), width: bannerFrame.width,
-                    typeSize: dynamicTypeSize, compact: verticalSizeClass == .compact))
-            } else { switch sizing {
-            case let .fixedHeight(height):
-                carouselContent
-                    .frame(height: resolvedMinimumHeight(for: height))
-            case let .aspectRatio(aspectRatio, maxHeight):
-                FeaturedBannerAspectLayout(
-                    aspectRatio: aspectRatio,
-                    minimumHeight: nil,
-                    maximumHeight: resolvedMaximumHeight(maxHeight)
-                ) {
-                    carouselContent
-                }
-            } }
-        }
+        carouselLayout { carouselContent }
         .onGeometryChange(for: CGRect.self) { proxy in
             proxy.frame(in: .global)
         } action: { bannerFrame = $0 }
+    }
+
+    /// A stable Layout type preserves the slide, player and presented sheet on rotation.
+    private var carouselLayout: FeaturedBannerAspectLayout {
+        if usesStackedContent {
+            let height = FeaturedBannerHeightMeasurement.resolvedHeight(
+                cardHeights, bannerIDs: Set(banners.map(\.id)), width: bannerFrame.width,
+                typeSize: dynamicTypeSize, compact: verticalSizeClass == .compact)
+            return FeaturedBannerAspectLayout(aspectRatio: 16.0 / 9.0, minimumHeight: height, maximumHeight: height)
+        }
+        switch sizing {
+        case let .fixedHeight(height):
+            let height = resolvedMinimumHeight(for: height)
+            return FeaturedBannerAspectLayout(aspectRatio: 16.0 / 9.0, minimumHeight: height, maximumHeight: height)
+        case let .aspectRatio(ratio, maximum):
+            return FeaturedBannerAspectLayout(aspectRatio: ratio, minimumHeight: nil, maximumHeight: resolvedMaximumHeight(maximum))
+        }
     }
 
     private var usesStackedContent: Bool {
@@ -257,27 +258,10 @@ struct FeaturedBannerCarouselView: View {
 
     @ViewBuilder
     private func bannerSlide(for banner: FeaturedBanner, size: CGSize) -> some View {
-        if isActionable(banner) {
-            Button {
-                guard selectedBannerID == banner.id, !isUserInteracting else { return }
-                if let measurement = exposureTracker.observe(
-                    bannerID: banner.id,
-                    section: section,
-                    visibleFraction: visibleFraction,
-                    isEligible: canMeasureExposure
-                ) {
-                    emit(measurement)
-                }
-                for measurement in exposureTracker.click(
-                    bannerID: banner.id,
-                    section: section,
-                    visibleFraction: visibleFraction,
-                    isEligible: canMeasureExposure
-                ) {
-                    emit(measurement)
-                }
-                onBannerTap(banner)
-            } label: {
+        if banner.video != nil {
+            bannerContent(for: banner, size: size).accessibilityIdentifier("featuredBanner.card." + banner.id)
+        } else if isActionable(banner) {
+            Button { activate(banner) } label: {
                 bannerContent(for: banner, size: size)
             }
             .buttonStyle(.plain)
@@ -287,9 +271,34 @@ struct FeaturedBannerCarouselView: View {
         }
     }
 
+    private func activate(_ banner: FeaturedBanner) {
+        guard selectedBannerID == banner.id, !isUserInteracting else { return }
+        if let measurement = exposureTracker.observe(
+            bannerID: banner.id,
+            section: section,
+            visibleFraction: visibleFraction,
+            isEligible: canMeasureExposure
+        ) {
+            emit(measurement)
+        }
+        for measurement in exposureTracker.click(
+            bannerID: banner.id,
+            section: section,
+            visibleFraction: visibleFraction,
+            isEligible: canMeasureExposure
+        ) {
+            emit(measurement)
+        }
+        onBannerTap(banner)
+    }
+
     private func bannerContent(for banner: FeaturedBanner, size: CGSize) -> some View {
         FeaturedBannerCardView(banner: banner, artworkHeight: size.height, forceStackedContent: usesStackedContent,
-                               countdownIsActive: isActive && selectedBannerID == banner.id && visibleFraction > 0) { isReady in
+                               countdownIsActive: isActive && selectedBannerID == banner.id && visibleFraction > 0,
+                               videoEligible: isActive && selectedBannerID == banner.id && visibleFraction >= 0.6 && !isUserInteracting && !hasCoveringModal,
+                               onVideoPrimaryAction: isActionable(banner) ? { activate(banner) } : nil,
+                               onVideoExpanded: { value in if value { expandedVideoID = banner.id } else if expandedVideoID == banner.id { expandedVideoID = nil } },
+                               onVideoReady: { ready in if ready { readyVideoIDs.insert(banner.id) } else { readyVideoIDs.remove(banner.id) } }) { isReady in
             if isReady {
                 readyArtworkIDs.insert(banner.id)
             } else {
@@ -313,7 +322,7 @@ struct FeaturedBannerCarouselView: View {
     }
 
     private var canMeasureExposure: Bool {
-        isActive && scenePhase == .active && !isUserInteracting && !hasCoveringModal
+        isActive && scenePhase == .active && !isUserInteracting && expandedVideoID == nil && !hasCoveringModal
             && selectedBannerID.map(readyArtworkIDs.contains) == true
             && visibleFraction >= FeaturedBannerExposureTracker.minimumVisibleFraction
     }
@@ -358,7 +367,7 @@ struct FeaturedBannerCarouselView: View {
         let bannerConfiguration = banners
             .map { "\($0.id)-\($0.displayDurationSeconds)" }
             .joined(separator: "|")
-        return "\(bannerConfiguration)-selected:\(selectedBannerID ?? "none")-interaction:\(isUserInteracting)-active:\(isActive)-scene:\(scenePhase)-ready:\(selectedBannerID.map(readyArtworkIDs.contains) ?? false)-reduceMotion:\(reduceMotion)-voiceOver:\(voiceOverEnabled)"
+        return "\(bannerConfiguration)-selected:\(selectedBannerID ?? "none")-interaction:\(isUserInteracting)-active:\(isActive)-scene:\(scenePhase)-ready:\(selectedBannerID.map(readyArtworkIDs.contains) ?? false)-reduceMotion:\(reduceMotion)-voiceOver:\(voiceOverEnabled)-expanded:\(expandedVideoID ?? "none")-videoReady:\(selectedBannerID.map(readyVideoIDs.contains) ?? false)"
     }
 
     private var interactionGesture: some Gesture {
@@ -396,11 +405,12 @@ struct FeaturedBannerCarouselView: View {
 
     private func runRotationLoop() async {
         guard !reduceMotion, !voiceOverEnabled, isActive, scenePhase == .active,
-              !isUserInteracting, banners.count > 1, let initialBanner = selectedBanner,
+              !isUserInteracting, expandedVideoID == nil, banners.count > 1, let initialBanner = selectedBanner,
               readyArtworkIDs.contains(initialBanner.id) else { return }
-        let seconds = min(max(initialBanner.displayDurationSeconds, 3), 12)
+        let seconds = FeaturedBannerVideoPolicy.displayDuration(configuredSeconds: initialBanner.displayDurationSeconds,
+            verifiedVideoDuration: readyVideoIDs.contains(initialBanner.id) ? initialBanner.video?.descriptor.durationSeconds : nil)
         do { try await Task.sleep(for: .seconds(seconds)) } catch { return }
-        guard !Task.isCancelled, isActive, scenePhase == .active, !isUserInteracting,
+        guard !Task.isCancelled, isActive, scenePhase == .active, !isUserInteracting, expandedVideoID == nil,
               selectedBannerID == initialBanner.id else { return }
         withAnimation(Self.autoAdvanceAnimation) { selectedBannerID = nextBannerID(after: initialBanner.id) }
     }

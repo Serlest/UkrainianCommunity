@@ -17,7 +17,7 @@ struct FeaturedBannerEditorImageSection: View {
                     imageContent
                 }
                 .buttonStyle(.plain).accessibilityIdentifier("bannerEditor.chooseImage")
-                .disabled(viewModel.isProcessingImage || viewModel.isSaving)
+                .disabled(viewModel.isProcessingImage || viewModel.isPreparingVideo || viewModel.isSaving)
                 .overlay {
                     if viewModel.isProcessingImage {
                         processingOverlay

@@ -9,6 +9,7 @@ struct ProfilePreferencesView: View {
     @ObservedObject var bannerMeasurementService: BannerMeasurementService
     @Binding var isAnalyticsCollectionEnabled: Bool
     let currentUser: AppUser?
+    @AppStorage("bannerVideoAutoplayEnabled") private var videoAutoplay = true
     @AppStorage("seasonalEffectsEnabled") private var seasonalEffectsEnabled = true
     @State private var accountDeletionCandidate: AppUser?
     @State private var analyticsConsentWasRejected = false
@@ -42,6 +43,10 @@ struct ProfilePreferencesView: View {
                     ProfileSettingsToggleRow(title: SeasonalText.preference, subtitle: SeasonalText.preferenceHint,
                         systemImage: "sparkles", isOn: $seasonalEffectsEnabled)
                         .accessibilityIdentifier("profile.settings.seasonalEffects")
+
+                    ProfileSettingsToggleRow(title: BannerVideoText.text("autoplay"), subtitle: BannerVideoText.text("autoplayHint"),
+                        systemImage: "play.rectangle", isOn: $videoAutoplay)
+                        .accessibilityIdentifier("profile.settings.videoAutoplay")
 
                     ProfileSettingsPickerRow(
                         title: AppStrings.Profile.appAppearance,

@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import FirebaseFunctions
 
 @MainActor
 final class FeaturedBannerEditorViewModel: ObservableObject {
@@ -25,6 +26,8 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         let endsAt: Date
         let countdown: FeaturedBannerCountdown?
         let textAppearance: FeaturedBannerTextAppearance
+        let usesVideo: Bool
+        let videoSelectionID: String?
     }
 
     enum Mode {
@@ -67,6 +70,15 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     @Published var countdownLabel = ""
     @Published var countdownGermanLabel = ""
     @Published var countdownCompletion: FeaturedBannerCountdown.Completion = .hideCountdown
+    @Published private(set) var videoSupported = false
+    @Published var usesVideo = false
+    @Published var isPreparingVideo = false
+    @Published private(set) var preparedVideo: PreparedBannerVideoClip?
+    @Published private(set) var existingVideo: FeaturedBannerVideoPresentation?
+    private var videoSourceBannerID: String?
+    private var videoUploadAttempted = false
+    private var copiedVideoUploadID = UUID().uuidString
+    private var hadVideoProtocol = false
     @Published var textAppearance: FeaturedBannerTextAppearance = .standard
     @Published var selectedImageData: Data?
     @Published var isProcessingImage = false
@@ -78,6 +90,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     @Published private(set) var actionTargetLoadError: String?
     @Published private(set) var selectedActionTargetSnapshot: FeaturedBannerActionTargetItem?
 
+    private let videoAvailability: (@Sendable () async -> Bool)?
     private let repository: FeaturedBannerRepository
     private let actionTargetLoader: FeaturedBannerActionTargetLoader
     private let imageUploadService: any FeaturedBannerImageService
@@ -101,8 +114,10 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         newsRepository: NewsRepository? = nil,
         eventRepository: EventRepository? = nil,
         organizationRepository: OrganizationRepository? = nil,
-        imageUploadService: (any FeaturedBannerImageService)? = nil
+        imageUploadService: (any FeaturedBannerImageService)? = nil,
+        videoAvailability: (@Sendable () async -> Bool)? = nil
     ) {
+        self.videoAvailability = videoAvailability
         self.repository = repository
         actionTargetLoader = FeaturedBannerActionTargetLoader(
             newsRepository: newsRepository,
@@ -203,6 +218,10 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         switch mode {
         case .create: break
         case .edit(let existing), .duplicate(let existing):
+            existingVideo = existing.video
+            usesVideo = existing.video != nil
+            videoSourceBannerID = existing.id
+            hadVideoProtocol = existing.videoPresentationVersion == 3
             hasCountdown = existing.countdown != nil
             countdownDate = existing.countdown?.targetDate ?? Date().addingTimeInterval(7 * 86400)
             countdownLabel = existing.countdown?.label ?? ""
@@ -259,13 +278,13 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             updatedAt: Date(),
             createdBy: nonEmpty(createdBy) ?? "preview",
             countdown: resolvedCountdown,
-            textAppearance: textAppearance
+            textAppearance: textAppearance, video: usesVideo && preparedVideo == nil ? existingVideo : nil
         )
     }
 
     var canSave: Bool {
         let hasChangesToPersist = !mode.isEditing || hasUnsavedChanges || isMigratingLegacyBanner
-        return hasChangesToPersist && !isSaving && !isProcessingImage && validationMessage == nil
+        return hasChangesToPersist && !isSaving && !isProcessingImage && !isPreparingVideo && validationMessage == nil
     }
 
     var hasUnsavedChanges: Bool {
@@ -274,6 +293,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     }
 
     var validationMessage: String? {
+        if usesVideo && preparedVideo == nil && existingVideo == nil { return BannerVideoText.text("chooseRequired") }
         if !textAppearance.isValid { return BannerCountdownStrings.text("appearance.invalid") }
         if selectedImageData == nil && imageURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return AppStrings.FeaturedEditor.validationImageRequired
@@ -409,6 +429,23 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         successMessage = nil
     }
 
+    func loadVideoCapabilities() async {
+        if let videoAvailability { videoSupported = await videoAvailability(); return }
+        do {
+            let callable = Functions.functions(region: "europe-west3").httpsCallable("getFeaturedBannerPresentations")
+            callable.timeoutInterval = 15
+            let result = try await callable.call(["ids": []])
+            try Task.checkCancellation()
+            videoSupported = (result.data as? [String: Any])?["videoEnabled"] as? Bool == true
+        } catch { if !Task.isCancelled { videoSupported = false } }
+    }
+
+    func applyPreparedVideo(_ clip: PreparedBannerVideoClip) {
+        if let old = preparedVideo?.file, old != clip.file { try? FileManager.default.removeItem(at: old) }
+        preparedVideo = clip; videoUploadAttempted = false; usesVideo = true
+        setSelectedImageData(clip.posterData)
+    }
+
     func setImageProcessing(_ isProcessing: Bool) {
         isProcessingImage = isProcessing
     }
@@ -458,7 +495,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     }
 
     func save(updatedBy userID: String?, isAuthorized: () -> Bool = { true }) async -> Bool {
-        guard !isSaving, isAuthorized() else { return false }
+        guard !isSaving, !isPreparingVideo, !isProcessingImage, isAuthorized() else { return false }
         errorMessage = nil
         successMessage = nil
 
@@ -494,6 +531,16 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
                 return false
             }
 
+            let resolvedVideo: FeaturedBannerVideoPresentation?
+            if usesVideo, let clip = preparedVideo {
+                let resume = videoUploadAttempted; videoUploadAttempted = true
+                resolvedVideo = try await FeaturedBannerVideoUploadService.shared.upload(file: clip.file, bannerID: bannerID,
+                    uploadID: clip.id.uuidString, principal: userID, resuming: resume)
+            } else if usesVideo, let existingVideo, let sourceID = videoSourceBannerID, sourceID != bannerID {
+                resolvedVideo = try await FeaturedBannerVideoUploadService.shared.copy(existingVideo, from: sourceID,
+                    to: bannerID, uploadID: copiedVideoUploadID, principal: userID)
+            } else { resolvedVideo = usesVideo ? existingVideo : nil }
+            guard isAuthorized(), !Task.isCancelled, draftSignature == signature else { throw AppError.permissionDenied }
             let now = Date()
             let resolvedActionTargetID: String? = {
                 switch actionType {
@@ -526,7 +573,8 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
                 createdBy: mode.isEditing ? (nonEmpty(createdBy) ?? userID) : userID,
                 updatedBy: userID,
                 countdown: resolvedCountdown,
-                textAppearance: textAppearance
+                textAppearance: textAppearance, video: resolvedVideo,
+                videoPresentationVersion: hadVideoProtocol || usesVideo ? 3 : nil
             )
             try validationService.validate(banner)
 
@@ -542,6 +590,10 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             imageURL = resolvedImageURLString
             selectedImageData = nil
             selectedProcessedImage = nil
+            existingVideo = resolvedVideo; videoSourceBannerID = bannerID
+            hadVideoProtocol = hadVideoProtocol || usesVideo
+            if let file = preparedVideo?.file { try? FileManager.default.removeItem(at: file) }
+            preparedVideo = nil
             initialDraftSignature = draftSignature
             successMessage = AppStrings.FeaturedEditor.saveSuccess
             AppContentChangeBus.postFeaturedBannersChanged()
@@ -586,7 +638,8 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             hasEndDate: hasEndDate,
             endsAt: endsAt,
             countdown: resolvedCountdown,
-            textAppearance: textAppearance
+            textAppearance: textAppearance, usesVideo: usesVideo,
+            videoSelectionID: preparedVideo?.id.uuidString ?? existingVideo?.assetID
         )
     }
 

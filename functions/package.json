@@ -22,6 +22,7 @@
     "test:announcements:integration": "npm run build && firebase emulators:exec --project demo-uac-announcements --only firestore \"node --test --test-concurrency=1 lib/announcements/*.test.js\"",
     "test:unit": "npm run build && npm run test:unit:compiled",
     "test:unit:compiled": "node --test lib/translation/*.test.js lib/announcements/*.test.js lib/analytics/*.test.js lib/auth/*.test.js lib/content/*.test.js lib/contentPlanning/*.test.js lib/counters/*.test.js lib/events/*.test.js lib/featured/*.test.js lib/legal/*.test.js lib/notifications/*.test.js lib/organizations/*.test.js lib/retention/*.test.js lib/safety/*.test.js lib/systemLogs/*.test.js lib/users/*.test.js scripts/*.test.mjs",
+    "test:banners:integration": "npm run build && firebase emulators:exec --project demo-uac-banner-video --only firestore,storage \"node --test --test-concurrency=1 lib/featured/featuredBannerVideo.integration.test.js lib/featured/featuredBannerCountdown.integration.test.js lib/featured/featuredBannerTextAppearance.integration.test.js\"",
     "test:retention": "node --test lib/retention/dataRetention.test.js",
     "test:retention:integration": "npm run build && firebase emulators:exec --project demo-ukrainian-community-retention --only firestore \"node --test --test-concurrency=1 lib/retention/*.integration.test.js\"",
     "test:notifications:integration": "npm run build && firebase emulators:exec --project demo-ukrainian-community-push-registration --only firestore \"node --test lib/notifications/pushRegistrationMutations.integration.test.js\"",

@@ -16,7 +16,8 @@ test("text colors validate independently and never enter strict legacy banner do
  const data=canonicalFeaturedBannerData(parseFeaturedBannerDraft(draft("style-validation")),"owner",Timestamp.now());
  for (const key of ["textAppearance","titleColorHex","subtitleColorHex","presentationVersion","countdown"]) assert.equal(key in data,false);
  assert.equal(parseFeaturedBannerDraft(draft("v1",{presentationVersion:1})).textAppearance,undefined);
- assert.throws(()=>parseFeaturedBannerDraft(draft("v3",{presentationVersion:3})));
+ assert.deepEqual(parseFeaturedBannerDraft(draft("v3",{presentationVersion:3})).textAppearance, {titleColorHex:"#2458A6",subtitleColorHex:"#FFD43B"});
+ assert.throws(()=>parseFeaturedBannerDraft(draft("v4",{presentationVersion:4})));
 });
 
 test("real owner save/read/reset preserves custom colors across v1 and legacy clients",{skip:!process.env.FIRESTORE_EMULATOR_HOST},async()=>{

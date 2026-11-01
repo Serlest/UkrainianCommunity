@@ -35,12 +35,15 @@ struct FeaturedBannerMutationPayload: Codable, Equatable {
     var presentationVersion = 2
     let countdown: FeaturedBannerCountdownPayload?
     let textAppearance: FeaturedBannerTextAppearance
+    let videoAssetID: String?
 
     init(banner: FeaturedBanner) throws {
         guard let imageURL = Self.nonEmpty(banner.imageURL), banner.textAppearance.isValid else {
             throw AppError.validationFailed
         }
 
+        videoAssetID = banner.video?.assetID
+        if banner.video != nil || banner.videoPresentationVersion == 3 { presentationVersion = 3 }
         id = banner.id
         internalName = Self.nonEmpty(banner.internalName)
         localizations = banner.localizations

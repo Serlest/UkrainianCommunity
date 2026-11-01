@@ -1,0 +1,136 @@
+{
+  "checkedAt": "2026-11-01T18:25:57.074936+00:00",
+  "status": "implemented_local_tests_passed_release_and_hosted_ci_pending_not_delivered",
+  "stages": {
+    "1": "contract_integrated",
+    "2": "backend_implemented_emulator_verified_not_deployed",
+    "3": "editor_implemented_partial_ui_verification",
+    "4": "native_player_implemented_simulator_verified",
+    "5": "acceptance_in_progress_physical_pending",
+    "6": "pending_source_ci_and_delivery"
+  },
+  "compatibility": {
+    "primaryBannerSchema": "unchanged",
+    "presentationVersion": 3,
+    "legacyPoster": true,
+    "legacyEditorCannotEraseVideo": true,
+    "featureFlag": "UAC_BANNER_VIDEO_ENABLED defaults off"
+  },
+  "pipeline": "Native AVFoundation/ImageIO preparation; server validates actual MP4 container/sample tables and parameters, not full bitstream decoding",
+  "limits": {
+    "sourceMiB": 50,
+    "sourceSeconds": 60,
+    "outputMiB": 4,
+    "outputSeconds": [
+      1,
+      15
+    ],
+    "outputMaximum": [
+      1280,
+      720,
+      30
+    ],
+    "gifFrames": 300,
+    "gifAggregatePixels": 32000000,
+    "cacheMiB": 24
+  },
+  "verified": [
+    {
+      "level": "node unit",
+      "result": "15 passed",
+      "log": "build/banner-video-foundation-20261101/server-tests.log"
+    },
+    {
+      "level": "Firestore + Storage emulators",
+      "result": "5 passed; actual SDK rules, owner/member/admin/anonymous, consumed-upload replay, stale cleanup, flag rollback, legacy editor, countdown/colors",
+      "log": "build/banner-video-foundation-20261101/emulator-final-tests.log"
+    },
+    {
+      "level": "App Check construction policy",
+      "result": "88 sites validated; no enforcement weakened",
+      "log": "build/banner-video-foundation-20261101/appcheck.log"
+    },
+    {
+      "level": "iOS model + actual AVFoundation SDK",
+      "result": "41 tests / 6 suites passed; unit-selected suite counts are not UI coverage",
+      "log": "build/banner-video-foundation-20261101/ios-delivery-tests.log"
+    },
+    {
+      "level": "iOS simulator UI",
+      "result": "5 passed; muted autoplay, explicit sound, manual viewing with autoplay off, viewport release, existing editor, large text, rotation including open fullscreen",
+      "log": "build/banner-video-foundation-20261101/ios-delivery-tests.log",
+      "bundle": "build/banner-video-foundation-20261101/VideoDeliveryTests.xcresult"
+    },
+    {
+      "level": "native iOS output to unchanged server byte inspector",
+      "result": "4 real encodes accepted: 15s AAC, 1s AAC, 1.2s GIF, subsecond GIF looped to 1s",
+      "log": "build/banner-video-foundation-20261101/native-server-contract.log"
+    },
+    {
+      "level": "CI integration entrypoint",
+      "result": "npm run test:banners:integration: 5 passed, 0 skipped; added to hosted Firebase functions lane",
+      "log": "build/banner-video-foundation-20261101/ci-banner-integration.log"
+    },
+    {
+      "level": "release configuration",
+      "result": "offline validator passed; deployed-analytics release-upload gate not run because there is no distribution",
+      "log": "build/banner-video-foundation-20261101/release-configuration.log"
+    }
+  ],
+  "visualEvidence": "Synthetic fixtures only; real creative content and physical-device performance not accepted",
+  "device": {
+    "name": "Serlest Mobile",
+    "model": "iPhone 16 Pro Max",
+    "observed": "unavailable via xcrun devicectl list devices",
+    "status": "pending"
+  },
+  "remaining": [
+    "Physical visual acceptance, stable post-rotation layout and real creative content; simulator UI controls passed",
+    "Release compilation and exact source-revision GitHub run",
+    "Real owner import/upload/save/reopen/duplicate/remove workflow with deployed callable and rules",
+    "iPhone Release visuals, scrolling with seasons, CPU/memory/hitches/heat, warm/cold network and cancellation",
+    "Real audio interruptions, lock/background, route changes, silent mode and VoiceOver",
+    "iPad/Mac layout and media-picker behavior; real portrait/rotated/HEVC/HDR source acceptance",
+    "Backend onDeployUpdatePolicy/readiness/traffic/triggers/readback and controlled flag rollout",
+    "Local review installation; TestFlight/App Store only when requested"
+  ],
+  "productionWrites": false,
+  "serverDeployed": false,
+  "testFlightUploaded": false,
+  "appStoreChanged": false,
+  "unrelatedWorkPreserved": [
+    "UkrainianCommunity.xcodeproj/project.pbxproj",
+    "UkrainianCommunity/Localization/Localizable.xcstrings"
+  ],
+  "initialFailuresAndResolution": [
+    "Deprecated presentation-version-3 rejection assertion updated to accept supported version 3 while retaining unsupported-version-4 rejection",
+    "AVFoundation raw media duration includes B-frame/AAC padding: server now verifies presented tkhd duration with bounded padding",
+    "Two sound controls had same accessible text: explicit fullscreen identifiers added; real manual playback observed",
+    "Editor visual-test full-page swipe skipped video section: bounded short scroll now targets the actual chooser",
+    "Added real 15-second/end-trim test required async AVMutableComposition API; corrected test compilation",
+    "Rotation of an open sheet failed before fix: stable card/media/carousel Layout identity now preserves the existing player and sheet; regression test passed",
+    "Native 15s encode had excessive inherited AAC priming/edit padding: added AVAudioMix processing on the client; all four native encodes now pass the unchanged server limits",
+    "Cancelled an earlier Release compilation after the audio source fix; final Release is a new build of corrected source"
+  ],
+  "releaseBuild": {
+    "status": "running",
+    "configuration": "Release",
+    "sdk": "iphoneos",
+    "signed": false,
+    "log": "build/banner-video-foundation-20261101/ios-release-final-build.log"
+  },
+  "hostedCI": {
+    "status": "pending_exact_source_commit_after_push"
+  },
+  "localization": {
+    "catalog": "BannerVideo.xcstrings",
+    "keys": 27,
+    "languages": [
+      "uk",
+      "de",
+      "en"
+    ],
+    "missingTranslations": 0,
+    "originalMainCatalogUnchangedFromPreTaskBackup": true
+  }
+}

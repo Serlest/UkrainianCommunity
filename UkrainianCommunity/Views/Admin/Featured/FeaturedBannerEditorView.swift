@@ -9,6 +9,7 @@ struct FeaturedBannerEditorView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var selectedPreviewImage: UIImage?
     @State private var imageProcessingTask: Task<Void, Never>?
+    @State private var saveTask: Task<Void, Never>?
     @State private var imageProcessingToken = UUID()
     @State private var isShowingActionTargetPicker = false
     @State private var actionTargetSearchText = ""
@@ -25,6 +26,7 @@ struct FeaturedBannerEditorView: View {
         eventRepository: EventRepository? = nil,
         organizationRepository: OrganizationRepository? = nil,
         measurementRepository: BannerMeasurementReportRepository = FirestoreBannerMeasurementReportRepository(),
+        videoAvailability: (@Sendable () async -> Bool)? = nil,
         onSave: @escaping @MainActor () async -> Void
     ) {
         _viewModel = StateObject(wrappedValue: FeaturedBannerEditorViewModel(
@@ -32,7 +34,7 @@ struct FeaturedBannerEditorView: View {
             mode: mode,
             newsRepository: newsRepository,
             eventRepository: eventRepository,
-            organizationRepository: organizationRepository
+            organizationRepository: organizationRepository, videoAvailability: videoAvailability
         ))
         self.measurementRepository = measurementRepository
         self.bannerRepository = repository
@@ -59,6 +61,9 @@ struct FeaturedBannerEditorView: View {
             FeaturedBannerEditorPreviewSection(viewModel: viewModel, previewImage: selectedPreviewImage)
             FeaturedBannerEditorBasicsSection(viewModel: viewModel)
             FeaturedBannerEditorTextAppearanceSection(viewModel: viewModel)
+            FeaturedBannerVideoEditorSection(viewModel: viewModel) { data in
+                selectedPreviewImage = UIImage(data: data)
+            }
             FeaturedBannerEditorImageSection(
                 viewModel: viewModel,
                 selectedPhoto: $selectedPhoto,
@@ -93,6 +98,7 @@ struct FeaturedBannerEditorView: View {
         }
         .onDisappear {
             imageProcessingTask?.cancel()
+            saveTask?.cancel()
         }
         .sheet(isPresented: $isShowingActionTargetPicker) {
             FeaturedBannerActionTargetPickerSheet(
@@ -144,12 +150,13 @@ struct FeaturedBannerEditorView: View {
     }
 
     private func save() {
-        Task {
+        saveTask?.cancel()
+        saveTask = Task {
             let principal = authState.user?.id
             let didSave = await viewModel.save(updatedBy: principal) {
                 authState.user?.id == principal && PermissionService.canManageFeaturedBanners(user: authState.user)
             }
-            guard didSave, authState.user?.id == principal else { return }
+            guard didSave, !Task.isCancelled, authState.user?.id == principal else { return }
             await onSave()
             dismiss()
         }

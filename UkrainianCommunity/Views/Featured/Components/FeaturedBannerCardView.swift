@@ -15,6 +15,10 @@ struct FeaturedBannerCardView: View {
     let forceStackedContent: Bool
     let countdownIsActive: Bool
     let onArtworkLoadStateChanged: ((Bool) -> Void)?
+    let videoEligible: Bool
+    let onVideoPrimaryAction: (() -> Void)?
+    let onVideoExpanded: (Bool) -> Void
+    let onVideoReady: (Bool) -> Void
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.locale) private var locale
@@ -24,7 +28,11 @@ struct FeaturedBannerCardView: View {
     init(banner: FeaturedBanner, previewImage: UIImage? = nil, artworkHeight: CGFloat? = nil,
          forceStackedContent: Bool = false,
          countdownIsActive: Bool = true,
+         videoEligible: Bool = false, onVideoPrimaryAction: (() -> Void)? = nil,
+         onVideoExpanded: @escaping (Bool) -> Void = { _ in }, onVideoReady: @escaping (Bool) -> Void = { _ in },
          onArtworkLoadStateChanged: ((Bool) -> Void)? = nil) {
+        self.videoEligible = videoEligible; self.onVideoPrimaryAction = onVideoPrimaryAction
+        self.onVideoExpanded = onVideoExpanded; self.onVideoReady = onVideoReady
         self.banner = banner
         self.previewImage = previewImage
         self.artworkHeight = artworkHeight
@@ -34,18 +42,18 @@ struct FeaturedBannerCardView: View {
     }
 
     var body: some View {
-        Group {
-            if usesStackedContent {
-                VStack(alignment: .trailing, spacing: 12) {
-                    if let countdown = banner.countdown { FeaturedBannerCountdownView(countdown: countdown, overArtwork: false, isRunning: countdownIsActive) }
-                    imageLayout { background }.clipShape(cardShape).accessibilityHidden(true)
-                    if hasTextContent { textContent }
-                }
-            } else { imageLayout { card } }
+        // Keep the media subtree (and its sheet/player state) in the same position
+        // when rotation or Dynamic Type switches between overlay and stacked text.
+        VStack(alignment: .trailing, spacing: usesStackedContent ? 12 : 0) {
+            if usesStackedContent, let countdown = banner.countdown {
+                FeaturedBannerCountdownView(countdown: countdown, overArtwork: false, isRunning: countdownIsActive)
+            }
+            imageLayout { card }.accessibilityHidden(usesStackedContent && banner.video == nil)
+            if usesStackedContent && hasTextContent { textContent }
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { renderedWidth = $0 }
         .modifier(BannerAccessibilityFallback(needsFallback: !hasTextContent && banner.countdown == nil))
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: banner.video == nil ? .combine : .contain)
         .accessibilityHint(isActionable ? AppStrings.Action.open : "")
     }
 
@@ -60,26 +68,37 @@ struct FeaturedBannerCardView: View {
                                    maximumHeight: artworkHeight ?? AppTheme.featuredBannerMaximumHeight)
     }
 
+    private var media: some View {
+        ZStack {
+            background.accessibilityHidden(true)
+            if let video = banner.video {
+                FeaturedBannerVideoPlayer(video: video, title: banner.localizedTitle, inlineEligible: videoEligible,
+                    hasAction: onVideoPrimaryAction != nil, onPrimaryAction: { onVideoPrimaryAction?() },
+                    onExpanded: onVideoExpanded, onReady: onVideoReady)
+            }
+        }
+    }
+
     private var card: some View {
         ZStack(alignment: .bottomLeading) {
-            background.accessibilityHidden(true)
-            if hasTextContent {
-                textContent
+            media
+            if !usesStackedContent && hasTextContent {
+                textContent.allowsHitTesting(banner.video == nil)
             }
         }
         .overlay(alignment: .topTrailing) {
             if !usesStackedContent, let countdown = banner.countdown {
                 FeaturedBannerCountdownView(countdown: countdown, isRunning: countdownIsActive)
-                    .frame(maxWidth: 230, alignment: .trailing).padding(8)
+                    .frame(maxWidth: 230, alignment: .trailing).padding(8).allowsHitTesting(false)
             }
         }
         .clipShape(cardShape)
         .overlay {
-            cardShape.strokeBorder(AppTheme.glassBorder(for: colorScheme).opacity(0.86))
+            cardShape.strokeBorder(AppTheme.glassBorder(for: colorScheme).opacity(0.86)).allowsHitTesting(false)
         }
         .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: AppTheme.glassCardShadowRadius, y: AppTheme.glassCardShadowY)
         .contentShape(cardShape)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: banner.video == nil ? .combine : .contain)
         .accessibilityHint(isActionable ? AppStrings.Action.open : "")
     }
 
@@ -171,7 +190,7 @@ struct FeaturedBannerCardView: View {
 
             Spacer(minLength: 4)
 
-            if isActionable {
+            if isActionable && banner.video == nil {
                 Image(systemName: "arrow.up.right")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(AppTheme.textOnHero)
@@ -180,6 +199,7 @@ struct FeaturedBannerCardView: View {
                     .accessibilityHidden(true)
             }
         }
+        .padding(.trailing, banner.video != nil && !usesStackedContent ? 104 : 0)
         .padding(AppTheme.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
     }

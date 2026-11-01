@@ -1,3 +1,5 @@
+import {adminStorage} from "../firebase/admin";
+import {bannerVideoAssetCollection,parseVideoAssetID,readyBannerVideoFromManifest,assertVideoEditorVersion} from "./featuredBannerVideoContract";
 import {createHash} from "node:crypto";
 import {archiveBannerMeasurementConfiguration} from "./bannerMeasurementHistory";
 import { Timestamp, type DocumentData, type Transaction } from "firebase-admin/firestore";
@@ -37,7 +39,8 @@ interface FeaturedBannerDraft {
   startsAt?: Timestamp;
   endsAt?: Timestamp;
   configuredEndsAt?: Timestamp;
-  presentationVersion?: 1 | 2;
+  presentationVersion?: 1 | 2 | 3;
+  videoAssetID?: string;
   countdown?: BannerCountdown;
   textAppearance?: BannerTextAppearance;
 }
@@ -316,8 +319,8 @@ export function parseFeaturedBannerDraft(value: unknown): FeaturedBannerDraft {
   const startsAt = optionalTimestamp(value.startsAt, "startsAt");
   let endsAt = optionalTimestamp(value.endsAt, "endsAt");
   const configuredEndsAt = endsAt;
-  if (value.presentationVersion !== undefined && value.presentationVersion !== 1 && value.presentationVersion !== 2) throw new HttpsError("invalid-argument", "Unsupported presentation version.");
-  const hasPresentation = value.presentationVersion === 1 || value.presentationVersion === 2;
+  if (value.presentationVersion !== undefined && value.presentationVersion !== 1 && value.presentationVersion !== 2 && value.presentationVersion !== 3) throw new HttpsError("invalid-argument", "Unsupported presentation version.");
+  const hasPresentation = value.presentationVersion === 1 || value.presentationVersion === 2 || value.presentationVersion === 3;
   const countdown = hasPresentation ? parseBannerCountdown(value.countdown) : undefined;
   if (countdown && startsAt && countdown.targetDate.toMillis() <= startsAt.toMillis()) throw new HttpsError("invalid-argument", "Countdown must follow display start.");
   if (countdown?.completion === "hideBanner") {
@@ -361,8 +364,9 @@ export function parseFeaturedBannerDraft(value: unknown): FeaturedBannerDraft {
     isActive: value.isActive,
     startsAt,
     endsAt,
-    ...(hasPresentation ? {presentationVersion: value.presentationVersion as 1 | 2, countdown, configuredEndsAt} : {}),
-    ...(value.presentationVersion === 2 ? {textAppearance: parseBannerTextAppearance(value.textAppearance)} : {}),
+    ...(hasPresentation ? {presentationVersion: value.presentationVersion as 1 | 2 | 3, countdown, configuredEndsAt} : {}),
+    ...(value.presentationVersion === 3 ? {videoAssetID:parseVideoAssetID(value.videoAssetID)} : {}),
+    ...(value.presentationVersion === 2 || value.presentationVersion === 3 ? {textAppearance: parseBannerTextAppearance(value.textAppearance)} : {}),
   };
 }
 
@@ -522,12 +526,19 @@ export const saveFeaturedBanner = onCall(
         throw new HttpsError("not-found", "Featured banner does not exist.");
       }
 
+      assertVideoEditorVersion(input.banner.presentationVersion,presentation.get("video"));
+      let video;
+      if(input.banner.videoAssetID){
+        if(process.env.UAC_BANNER_VIDEO_ENABLED!=="1" && presentation.get("video.assetID")!==input.banner.videoAssetID)throw new HttpsError("failed-precondition","Video banners are not enabled yet.");
+        const asset=await transaction.get(db.collection(bannerVideoAssetCollection).doc(input.banner.videoAssetID));
+        video=readyBannerVideoFromManifest(asset.data(),input.banner.id,input.banner.videoAssetID,adminStorage.bucket().name);
+      }
       await assertPublishableActionTarget(transaction, input.banner);
 
       await archiveBannerMeasurementConfiguration(transaction, snapshot, committedAt);
       const canonical = canonicalFeaturedBannerData(input.banner, actorID, committedAt, snapshot.data());
       // Old binaries enforce an exact set of banner keys. New presentation data stays private and separate.
-      const hasPresentation = input.banner.presentationVersion === 1 || input.banner.presentationVersion === 2;
+      const hasPresentation = input.banner.presentationVersion === 1 || input.banner.presentationVersion === 2 || input.banner.presentationVersion === 3;
       const countdown = hasPresentation ? input.banner.countdown : presentation.get("countdown");
       if (countdown?.completion === "hideBanner" && countdown.targetDate instanceof Timestamp) {
         canonical.endsAt = Timestamp.fromMillis(Math.min(canonical.endsAt?.toMillis() ?? Infinity, countdown.targetDate.toMillis()));
@@ -541,9 +552,11 @@ export const saveFeaturedBanner = onCall(
         : legacyEndUnchanged && presentation.exists && "configuredEndsAt" in (presentation.data() ?? {})
           ? presentation.get("configuredEndsAt") : input.banner.endsAt;
       transaction.set(presentationRef, {
+        presentationVersion:input.banner.presentationVersion??presentation.get("presentationVersion")??1,
         configuredEndsAt: configuredEndsAt ?? null,
         ...(countdown ? {countdown} : {}),
-        ...(input.banner.presentationVersion === 2
+        ...(video ? {video} : {}),
+        ...(input.banner.presentationVersion === 2 || input.banner.presentationVersion === 3
           ? {textAppearance: input.banner.textAppearance ?? {}}
           : presentation.get("textAppearance") !== undefined ? {textAppearance: presentation.get("textAppearance")} : {}),
         ...(input.operationID ? {operationID: input.operationID, fingerprint} : {}), actorID, updatedAt: committedAt,
@@ -631,17 +644,18 @@ export const getFeaturedBannerPresentations = onCall(callableOptions, async requ
   const ids = [...new Set(input.ids.map(safeDocumentID))];
   const owner = input.includeInactive === true;
   if (owner) await requireVerifiedOwner(request);
-  if (!ids.length) return {presentations: []};
+  if (!ids.length) return {videoEnabled:process.env.UAC_BANNER_VIDEO_ENABLED === "1",presentations: []};
   const snapshots = await db.getAll(...ids.map(id => db.collection("featuredBanners").doc(id)));
   const allowed = snapshots.filter(doc => doc.exists && (owner || (doc.get("isActive") === true && actionTypes.has(doc.get("actionType"))
     && Array.isArray(doc.get("visibleSections")) && doc.get("visibleSections").some((x: unknown) => visibleSections.has(x as FeaturedBannerVisibleSection)))));
-  if (!allowed.length) return {presentations: []};
+  if (!allowed.length) return {videoEnabled:process.env.UAC_BANNER_VIDEO_ENABLED === "1",presentations: []};
   const presentations = await db.getAll(...allowed.map(doc => db.collection(bannerPresentationCollection).doc(doc.id)));
-  return {presentations: presentations.flatMap(doc => {
+  return {videoEnabled:process.env.UAC_BANNER_VIDEO_ENABLED === "1",presentations: presentations.flatMap(doc => {
     const value = doc.get("countdown");
     if (!doc.exists) return [];
-    return [{id: doc.id,
+    return [{id: doc.id, presentationVersion:doc.get("presentationVersion")??1,
       ...(value?.targetDate instanceof Timestamp ? {countdown: {...value, targetDate: value.targetDate.toDate().toISOString()}} : {}),
+      ...((owner || process.env.UAC_BANNER_VIDEO_ENABLED === "1") && doc.get("video") != null ? {video:doc.get("video")} : {}),
       ...(doc.get("textAppearance") !== undefined ? {textAppearance: storedTextAppearance(doc.get("textAppearance"))} : {}),
       ...( "configuredEndsAt" in (doc.data() ?? {}) ? {configuredEndsAt: doc.get("configuredEndsAt") instanceof Timestamp ? doc.get("configuredEndsAt").toDate().toISOString() : null} : {}),
     }];

@@ -171,6 +171,11 @@ jobs:
         if: needs.changes.outputs.functions == 'true' || needs.changes.outputs.rules == 'true'
         run: npm install --global firebase-tools@15.28.1
 
+      - name: Verify banner media preparation, compatibility and cleanup
+        if: needs.changes.outputs.functions == 'true'
+        working-directory: functions
+        run: npm run test:banners:integration
+
       - name: Run retention race integration test
         if: contains(fromJSON(needs.changes.outputs.integrations), 'retention')
         working-directory: functions

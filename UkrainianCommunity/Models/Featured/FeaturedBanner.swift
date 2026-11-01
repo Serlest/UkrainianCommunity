@@ -103,6 +103,8 @@ struct FeaturedBanner: Identifiable, Equatable, Codable {
     let createdBy: String
     let updatedBy: String?
     var countdown: FeaturedBannerCountdown?
+    var video: FeaturedBannerVideoPresentation?
+    var videoPresentationVersion: Int?
     var textAppearance: FeaturedBannerTextAppearance
     let requiresDataRepair: Bool
 
@@ -200,6 +202,7 @@ struct FeaturedBanner: Identifiable, Equatable, Codable {
         updatedBy: String? = nil,
         countdown: FeaturedBannerCountdown? = nil,
         textAppearance: FeaturedBannerTextAppearance = .standard,
+        video: FeaturedBannerVideoPresentation? = nil, videoPresentationVersion: Int? = nil,
         requiresDataRepair: Bool = false
     ) {
         self.id = id
@@ -224,6 +227,8 @@ struct FeaturedBanner: Identifiable, Equatable, Codable {
         self.createdBy = createdBy
         self.updatedBy = updatedBy
         self.countdown = countdown
+        self.video = video
+        self.videoPresentationVersion = videoPresentationVersion
         self.textAppearance = textAppearance
         self.requiresDataRepair = requiresDataRepair
     }
