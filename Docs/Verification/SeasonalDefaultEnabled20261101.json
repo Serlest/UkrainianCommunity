@@ -1,0 +1,46 @@
+{
+  "checkedAt": "2026-11-01T16:29:18.944636+00:00",
+  "status": "default_enabled_reproduced_friend_cause_unresolved",
+  "appVersion": "1.3",
+  "build": "155",
+  "binary": "build/Release154DerivedData/Build/Products/Debug-iphonesimulator/UkrainianCommunity.app",
+  "runtime": "iOS26.5 simulator iPhone16Pro",
+  "newIsolatedSimulator": true,
+  "noExistingUserAccountsTouched": true,
+  "preferenceKey": "seasonalEffectsEnabled",
+  "preferencePresent": false,
+  "settingsNeverOpenedOrToggled": true,
+  "firstControlledScenario": {
+    "newsTransport": "UI test fixtures",
+    "auth": "guest fixture",
+    "firebase": "local emulator namespace",
+    "seasonalPackage": "actual published package injected as local cache",
+    "visibleHalloween": true
+  },
+  "secondScenario": {
+    "newsTransport": "UI test fixtures",
+    "auth": "guest fixture",
+    "firebase": "real production Firebase configuration, anonymous seasonal listener",
+    "cacheAbsentBeforeLaunch": true,
+    "cacheCreatedBySDK": true,
+    "downloadedThemeCount": 9,
+    "visibleHalloweenWithoutSettings": true,
+    "productionWritesRequested": false
+  },
+  "publicUnauthenticatedRESTReadHTTPStatus": 200,
+  "visibleElements": [
+    "pumpkin",
+    "web",
+    "two spiders",
+    "leaves"
+  ],
+  "limitations": [
+    "Debug simulator binary, not encrypted App Store binary or friend physical iPhone",
+    "No friend device preferences/OS accessibility/network evidence",
+    "No proven root cause on reported phone; no app source fix claimed"
+  ],
+  "artifacts": [
+    "build/seasonal-default-audit-20261101/fresh-no-preference-live-package.png"
+  ],
+  "nextEvidence": "Friend seasonalEffectsEnabled switch state before any toggle; app version screen if switch absent"
+}
