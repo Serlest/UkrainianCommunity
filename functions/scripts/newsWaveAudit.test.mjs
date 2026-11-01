@@ -228,3 +228,33 @@ test('wave audit recovers terminal closure from a matching candidate-batch and r
   assert.equal(scope.publications[0].verifiedReceipt,true);
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('wave audit recognizes Tirol closed partial candidate decisions without workflowComplete',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'news-wave-audit-tirol-'));const run='news-2026-11-01T21';
+ try{
+  for(const p of ['snapshots','source-policies','scopes',`reports/${run}`])await mkdir(join(root,p),{recursive:true});
+  await writeFile(join(root,`snapshots/${run}.json`),JSON.stringify([{sourceId:'one',sourcePolicyVersion:4,links:[{url:'https://example.at/story'}]}]));
+  await writeFile(join(root,'source-policies/v4.json'),JSON.stringify({sources:[{sourceId:'one',active:true}]}));
+  const candidates=[{url:'https://example.at/a'},{url:'https://example.at/b'}];
+  const decisions=[
+   {url:candidates[0].url,outcome:'rejected',reason:'duplicate',contentId:'historical-publication'},
+   {url:candidates[1].url,outcome:'rejected',reason:'unverified'},
+  ];
+  await writeFile(join(root,`reports/${run}/tirol.json`),JSON.stringify({
+   scope:'tirol',runId:run,status:'partial',completedAt:'2026-11-01T21:30:00Z',
+   candidates,decisions,locksReleased:true,draftsCreated:0,queueCreated:false,
+  }));
+  await writeFile(join(root,'scopes/tirol.json'),JSON.stringify({
+   lastCandidateBatch:{runId:'emergency-2026-11-01T21-30',candidateDecisionsComplete:true,candidates:1,published:0,rejected:1},
+   candidateDecisions:{[candidates[0].url]:{runId:'news-2026-11-01T19',outcome:'published',contentId:'historical-publication'},
+    [candidates[1].url]:{runId:run,outcome:'rejected',reason:'unverified'}},
+  }));
+  const result=await auditNewsWave(root,run);const scope=result.scopes.find(x=>x.scope==='tirol');
+  assert.deepEqual(scope.batch,{runId:run,candidateDecisionsComplete:true,candidates:2,published:0,rejected:2});
+  assert.equal(scope.batchSource,'closed_report');
+  assert.equal(scope.decisionLedger.decisionsReadFrom,'closed_report');
+  assert.equal(scope.decisionLedger.retainedDecisionCountMatches,false);
+  assert.equal(scope.decisionLedger.preservedEarlierPublishedDuplicates,1);
+  assert.equal(scope.decisionLedger.retainedDecisionCountReconciled,true);
+ }finally{await rm(root,{recursive:true,force:true});}
+});

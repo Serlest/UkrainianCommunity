@@ -51,9 +51,19 @@ export async function auditNewsWave(root, runId) {
     const derivedTerminalCounts = report.workflowComplete === true &&
       Array.isArray(report.decisions) && report.decisions.length > 0 &&
       report.decisions.every((entry) => entry.outcome === "published" || entry.outcome === "rejected");
+    // Tirol's closed partial reports use a parallel candidates/decisions
+    // schema. `completedAt` plus released locks and explicit no-draft/no-queue
+    // fields prove the executor reached terminal closure even when source
+    // coverage remains partial and `workflowComplete` is absent.
+    const derivedClosedCandidateDecisionList = report.completedAt && report.locksReleased === true &&
+      report.draftsCreated === 0 && report.queueCreated === false &&
+      Array.isArray(report.candidates) && report.candidates.length > 0 &&
+      isTerminalDecisionList(report.decisions) && report.candidates.length === report.decisions.length &&
+      report.candidates.every((candidate, index) => candidate.url === report.decisions[index].url);
     const derivedCandidateCounts = isTerminalDecisionList(report.decidedCandidates);
-    const derivedEntries = derivedTerminalCounts ? report.decisions : derivedCandidateCounts ? report.decidedCandidates : null;
-    const reportHasTerminalCounts = explicitTerminalCounts || derivedTerminalCounts || derivedCandidateCounts;
+    const derivedEntries = derivedTerminalCounts || derivedClosedCandidateDecisionList
+      ? report.decisions : derivedCandidateCounts ? report.decidedCandidates : null;
+    const reportHasTerminalCounts = explicitTerminalCounts || derivedTerminalCounts || derivedClosedCandidateDecisionList || derivedCandidateCounts;
     const terminalCandidates = explicitTerminalCounts ? report.decidedCandidates : derivedEntries?.length ?? 0;
     const terminalPublished = explicitTerminalCounts ? report.published : derivedEntries?.filter((entry) => entry.outcome === "published").length ?? 0;
     const terminalRejected = explicitTerminalCounts ? report.rejected : derivedEntries?.filter((entry) => entry.outcome === "rejected").length ?? 0;
@@ -95,6 +105,17 @@ export async function auditNewsWave(root, runId) {
     const reportHasCompleteDecisionList = Boolean(batch) && Array.isArray(reportEntries) &&
       reportEntries.length === batch.candidates &&
       reportEntries.every((entry) => entry.outcome === "published" || entry.outcome === "rejected");
+    // A duplicate rejection deliberately keeps the first publication's ledger
+    // entry under its original run. Count that closed-report decision as
+    // reconciled when its content ID still exists as a published entry in the
+    // mutable scope state; raw same-run counts remain visible for diagnostics.
+    const canonicalUrl = (value) => typeof value === "string" ? value.replace(/\/$/, "") : value;
+    const preservedEarlierPublishedDuplicates = reportHasCompleteDecisionList
+      ? reportEntries.filter((entry) => entry.outcome === "rejected" && entry.reason === "duplicate" &&
+        Object.entries(state.candidateDecisions ?? {}).some(([key, value]) => value.runId !== runId &&
+          value.outcome === "published" && ((entry.contentId && value.contentId === entry.contentId) ||
+            canonicalUrl(value.url ?? key) === canonicalUrl(entry.url)))).length
+      : 0;
     // Prefer the immutable per-wave decision list when it is demonstrably
     // complete. The scope ledger is keyed by URL and later waves may replace
     // an earlier terminal outcome for the same URL.
@@ -125,6 +146,8 @@ export async function auditNewsWave(root, runId) {
         reportedCandidates: batch.candidates,
         retainedDecisionsForWave: retainedDecisions.length,
         retainedDecisionCountMatches: retainedDecisions.length === batch.candidates,
+        preservedEarlierPublishedDuplicates,
+        retainedDecisionCountReconciled: retainedDecisions.length + preservedEarlierPublishedDuplicates === batch.candidates,
         decisionsReadFrom: reportHasCompleteDecisionList
           ? (artifactBatch && !reportDecisionEntries ? "closed_artifact" : "closed_report")
           : "scope_state",
