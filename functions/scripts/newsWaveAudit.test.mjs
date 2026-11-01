@@ -193,3 +193,38 @@ test('wave audit derives counts from decidedCandidates after the scope checkpoin
   assert.equal(scope.publications[0].verifiedReceipt,true);
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('wave audit recovers terminal closure from a matching candidate-batch and receipt after a later pass replaces scope state',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'news-wave-audit-closed-artifact-'));const run='news-2026-11-01T19';
+ try{
+  for(const p of ['snapshots','source-policies','scopes',`reports/${run}`,`artifacts/${run}/wien`])await mkdir(join(root,p),{recursive:true});
+  await writeFile(join(root,`snapshots/${run}.json`),JSON.stringify([{sourceId:'one',sourcePolicyVersion:4,links:[{url:'https://example.at/story'}]}]));
+  await writeFile(join(root,'source-policies/v4.json'),JSON.stringify({sources:[{sourceId:'one',active:true}]}));
+  const productionReceipt=join(root,'production-readback.json');
+  await writeFile(productionReceipt,JSON.stringify({contentId:'published-id',allVerified:true}));
+  const decisions=[
+   {url:'https://example.at/story',outcome:'published',contentId:'published-id'},
+   {url:'https://example.at/limited',outcome:'rejected',reason:'unverified'},
+  ];
+  await writeFile(join(root,`reports/${run}/wien.json`),JSON.stringify({
+   status:'partial',runId:run,decidedCandidates:2,published:1,rejected:1,
+  }));
+  await writeFile(join(root,`artifacts/${run}/wien/candidate-batch.json`),JSON.stringify({
+   scope:'wien',runId:run,candidates:decisions.map(({url})=>({url})),decisions,
+  }));
+  await writeFile(join(root,`artifacts/${run}/wien/decision-receipt.json`),JSON.stringify({
+   runId:run,candidateDecisionsComplete:true,candidates:2,published:1,rejected:1,
+  }));
+  await writeFile(join(root,'scopes/wien.json'),JSON.stringify({
+   lastCandidateBatch:{runId:'emergency-2026-11-01T20-00',candidateDecisionsComplete:true,candidates:1,published:1,rejected:0},
+   candidateDecisions:{'https://example.at/story':{runId:run,outcome:'published',contentId:'published-id',manifestPath:'/manifest.json',editorialReceiptPath:'/editorial.json',readbackReceiptPath:productionReceipt}},
+  }));
+  const result=await auditNewsWave(root,run);const scope=result.scopes.find(x=>x.scope==='wien');
+  assert.deepEqual(scope.batch,{runId:run,candidateDecisionsComplete:true,candidates:2,published:1,rejected:1});
+  assert.equal(scope.batchSource,'closed_artifact');
+  assert.equal(scope.decisionLedger.decisionsReadFrom,'closed_artifact');
+  assert.equal(scope.rejectionReasons.unverified,1);
+  assert.equal(scope.publications.length,1);
+  assert.equal(scope.publications[0].verifiedReceipt,true);
+ }finally{await rm(root,{recursive:true,force:true});}
+});

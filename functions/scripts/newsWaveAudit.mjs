@@ -61,10 +61,39 @@ export async function auditNewsWave(root, runId) {
       runId, candidateDecisionsComplete: true, candidates: terminalCandidates,
       published: terminalPublished, rejected: terminalRejected,
     } : null;
-    const batch = reportBatch ?? currentBatch;
-    const reportEntries = reportDecisionEntries;
-    const reportHasCompleteDecisionList = reportHasTerminalCounts && Array.isArray(reportEntries) &&
-      reportEntries.length === terminalCandidates &&
+    // Some executors keep the immutable terminal batch and its close receipt
+    // under artifacts/<runId>/<scope>, while their closed report only stores
+    // numeric counts. A later emergency pass can replace the mutable scope
+    // checkpoint before QA runs. Recover that closure only when the batch and
+    // receipt agree exactly; never infer closure from the artifact alone.
+    let artifactBatch = null;
+    if (!reportBatch && !currentBatch) {
+      try {
+        const closedBatch = await read(`artifacts/${runId}/${scope}/candidate-batch.json`);
+        const closeReceipt = await read(`artifacts/${runId}/${scope}/decision-receipt.json`);
+        const entries = closedBatch.decisions;
+        const outcomes = Array.isArray(entries) ? {
+          published: entries.filter((entry) => entry.outcome === "published").length,
+          rejected: entries.filter((entry) => entry.outcome === "rejected").length,
+        } : null;
+        const valid = closedBatch.scope === scope && closedBatch.runId === runId &&
+          Array.isArray(closedBatch.candidates) && Array.isArray(entries) && entries.length > 0 &&
+          closedBatch.candidates.length === entries.length &&
+          entries.every((entry) => entry.outcome === "published" || entry.outcome === "rejected") &&
+          closeReceipt.runId === runId && closeReceipt.candidateDecisionsComplete === true &&
+          closeReceipt.candidates === entries.length && closeReceipt.published === outcomes.published &&
+          closeReceipt.rejected === outcomes.rejected;
+        if (valid) artifactBatch = {
+          batch: {runId, candidateDecisionsComplete: true, candidates: entries.length,
+            published: outcomes.published, rejected: outcomes.rejected},
+          entries,
+        };
+      } catch (error) { if (error.code !== "ENOENT") throw error; }
+    }
+    const batch = reportBatch ?? currentBatch ?? artifactBatch?.batch ?? null;
+    const reportEntries = reportDecisionEntries ?? artifactBatch?.entries ?? null;
+    const reportHasCompleteDecisionList = Boolean(batch) && Array.isArray(reportEntries) &&
+      reportEntries.length === batch.candidates &&
       reportEntries.every((entry) => entry.outcome === "published" || entry.outcome === "rejected");
     // Prefer the immutable per-wave decision list when it is demonstrably
     // complete. The scope ledger is keyed by URL and later waves may replace
@@ -91,12 +120,14 @@ export async function auditNewsWave(root, runId) {
     const reasons = Object.fromEntries([...new Set(decisions.map((value) => value.reason).filter(Boolean))]
       .map((reason) => [reason, decisions.filter((value) => value.reason === reason).length]));
     scopes.push({scope, reportedStatus: report.status, batch,
-      batchSource: reportBatch ? "closed_report" : currentBatch ? "scope_state" : null,
-      decisionLedger: reportHasTerminalCounts ? {
-        reportedCandidates: terminalCandidates,
+      batchSource: reportBatch ? "closed_report" : artifactBatch ? "closed_artifact" : currentBatch ? "scope_state" : null,
+      decisionLedger: batch ? {
+        reportedCandidates: batch.candidates,
         retainedDecisionsForWave: retainedDecisions.length,
-        retainedDecisionCountMatches: retainedDecisions.length === terminalCandidates,
-        decisionsReadFrom: reportHasCompleteDecisionList ? "closed_report" : "scope_state",
+        retainedDecisionCountMatches: retainedDecisions.length === batch.candidates,
+        decisionsReadFrom: reportHasCompleteDecisionList
+          ? (artifactBatch && !reportDecisionEntries ? "closed_artifact" : "closed_report")
+          : "scope_state",
       } : undefined,
       evidenceLimits: {unverifiedCandidates: unverified, sourceErrors: report.sourceErrors ?? [],
         coverageErrors: report.coverageErrors ?? []},
