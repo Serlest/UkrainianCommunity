@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import {readFile} from "node:fs/promises";
-import {join, resolve} from "node:path";
+import {dirname, join, resolve} from "node:path";
 import {pathToFileURL} from "node:url";
 import {NEWS_SCOPES} from "./newsScopeCoordination.mjs";
 
@@ -71,36 +71,60 @@ export async function auditNewsWave(root, runId) {
       runId, candidateDecisionsComplete: true, candidates: terminalCandidates,
       published: terminalPublished, rejected: terminalRejected,
     } : null;
-    // Some executors keep the immutable terminal batch and its close receipt
-    // under artifacts/<runId>/<scope>, while their closed report only stores
-    // numeric counts. A later emergency pass can replace the mutable scope
-    // checkpoint before QA runs. Recover that closure only when the batch and
-    // receipt agree exactly; never infer closure from the artifact alone.
-    let artifactBatch = null;
-    if (!reportBatch && !currentBatch) {
+    // Executors keep immutable terminal batches in several schemas and
+    // locations. Prefer report-referenced paths, then canonical per-wave
+    // artifacts; a later pass may already have replaced the mutable checkpoint.
+    const artifactPaths = new Set([
+      join(root, `artifacts/${runId}/${scope}/candidate-batch.json`),
+      join(root, `artifacts/${runId}/${scope}/decision-batch.json`),
+      join(root, `artifacts/${runId}/${scope}/decisions.json`),
+    ]);
+    if (typeof report.batchPath === "string") artifactPaths.add(resolve(report.batchPath));
+    if (typeof report.artifacts === "string") {
+      for (const name of ["candidate-batch.json", "decision-batch.json", "decisions.json"])
+        artifactPaths.add(join(resolve(report.artifacts), name));
+    }
+    const releasePath = report.locks?.releasePath ?? report.locks?.release ?? report.locks?.releaseReceiptPath;
+    let reportLockReleased = report.locksReleased === true || report.locks?.released === true;
+    if (typeof releasePath === "string") {
       try {
-        const closedBatch = await read(`artifacts/${runId}/${scope}/candidate-batch.json`);
-        const closeReceipt = await read(`artifacts/${runId}/${scope}/decision-receipt.json`);
-        const entries = closedBatch.decisions;
-        const outcomes = Array.isArray(entries) ? {
-          published: entries.filter((entry) => entry.outcome === "published").length,
-          rejected: entries.filter((entry) => entry.outcome === "rejected").length,
-        } : null;
-        const valid = closedBatch.scope === scope && closedBatch.runId === runId &&
-          Array.isArray(closedBatch.candidates) && Array.isArray(entries) && entries.length > 0 &&
-          closedBatch.candidates.length === entries.length &&
-          entries.every((entry) => entry.outcome === "published" || entry.outcome === "rejected") &&
-          closeReceipt.runId === runId && closeReceipt.candidateDecisionsComplete === true &&
-          closeReceipt.candidates === entries.length && closeReceipt.published === outcomes.published &&
-          closeReceipt.rejected === outcomes.rejected;
-        if (valid) artifactBatch = {
-          batch: {runId, candidateDecisionsComplete: true, candidates: entries.length,
-            published: outcomes.published, rejected: outcomes.rejected},
-          entries,
-        };
+        const release = JSON.parse(await readFile(resolve(releasePath), "utf8"));
+        reportLockReleased ||= release.released === true;
       } catch (error) { if (error.code !== "ENOENT") throw error; }
     }
-    const batch = reportBatch ?? currentBatch ?? artifactBatch?.batch ?? null;
+    const reportClosed = Boolean(report.completedAt || report.reportedAt) && reportLockReleased;
+    let artifactBatch = null;
+    for (const artifactPath of artifactPaths) {
+      if (artifactBatch) break;
+      try {
+        const closedBatch = JSON.parse(await readFile(artifactPath, "utf8"));
+        const entries = closedBatch.decisions;
+        const candidateCount = Array.isArray(closedBatch.candidates) ? closedBatch.candidates.length : closedBatch.candidates;
+        const validEntries = Array.isArray(entries) && entries.length > 0 &&
+          entries.every((entry) => entry.outcome === "published" || entry.outcome === "rejected");
+        if ((closedBatch.scope ?? report.scope) !== scope || (closedBatch.runId ?? report.runId) !== runId ||
+            !validEntries || !Number.isInteger(candidateCount) || candidateCount !== entries.length) continue;
+        let receiptValid = false;
+        for (const receiptPath of [join(dirname(artifactPath), "decision-receipt.json"),
+          join(dirname(artifactPath), "receipt.json")]) {
+          try {
+            const closeReceipt = JSON.parse(await readFile(receiptPath, "utf8"));
+            const published = entries.filter((entry) => entry.outcome === "published").length;
+            const rejected = entries.filter((entry) => entry.outcome === "rejected").length;
+            if (closeReceipt.runId === runId && closeReceipt.candidateDecisionsComplete === true &&
+                closeReceipt.candidates === entries.length && closeReceipt.published === published &&
+                closeReceipt.rejected === rejected) receiptValid = true;
+          } catch (error) { if (error.code !== "ENOENT") throw error; }
+        }
+        if (!receiptValid && !reportClosed) continue;
+        if (Number.isInteger(report.decidedCandidates) && report.decidedCandidates !== entries.length) continue;
+        const published = entries.filter((entry) => entry.outcome === "published").length;
+        const rejected = entries.filter((entry) => entry.outcome === "rejected").length;
+        artifactBatch = {batch: {runId, candidateDecisionsComplete: true, candidates: entries.length,
+          published, rejected}, entries, path: artifactPath};
+      } catch (error) { if (error.code !== "ENOENT") throw error; }
+    }
+    const batch = reportBatch ?? artifactBatch?.batch ?? currentBatch ?? null;
     const reportEntries = reportDecisionEntries ?? artifactBatch?.entries ?? null;
     const reportHasCompleteDecisionList = Boolean(batch) && Array.isArray(reportEntries) &&
       reportEntries.length === batch.candidates &&
@@ -110,11 +134,17 @@ export async function auditNewsWave(root, runId) {
     // reconciled when its content ID still exists as a published entry in the
     // mutable scope state; raw same-run counts remain visible for diagnostics.
     const canonicalUrl = (value) => typeof value === "string" ? value.replace(/\/$/, "") : value;
+    const closedAtMs = Date.parse(report.completedAt ?? report.reportedAt ?? "");
     const preservedEarlierPublishedDuplicates = reportHasCompleteDecisionList
       ? reportEntries.filter((entry) => entry.outcome === "rejected" && entry.reason === "duplicate" &&
         Object.entries(state.candidateDecisions ?? {}).some(([key, value]) => value.runId !== runId &&
           value.outcome === "published" && ((entry.contentId && value.contentId === entry.contentId) ||
             canonicalUrl(value.url ?? key) === canonicalUrl(entry.url)))).length
+      : 0;
+    const supersededByLaterRun = reportHasCompleteDecisionList && Number.isFinite(closedAtMs)
+      ? reportEntries.filter((entry) => Object.entries(state.candidateDecisions ?? {}).some(([key, value]) =>
+        value.runId !== runId && value.outcome && canonicalUrl(value.url ?? key) === canonicalUrl(entry.url) &&
+        Date.parse(value.decidedAt ?? "") > closedAtMs)).length
       : 0;
     // Prefer the immutable per-wave decision list when it is demonstrably
     // complete. The scope ledger is keyed by URL and later waves may replace
@@ -147,7 +177,8 @@ export async function auditNewsWave(root, runId) {
         retainedDecisionsForWave: retainedDecisions.length,
         retainedDecisionCountMatches: retainedDecisions.length === batch.candidates,
         preservedEarlierPublishedDuplicates,
-        retainedDecisionCountReconciled: retainedDecisions.length + preservedEarlierPublishedDuplicates === batch.candidates,
+        supersededByLaterRun,
+        retainedDecisionCountReconciled: retainedDecisions.length + preservedEarlierPublishedDuplicates + supersededByLaterRun === batch.candidates,
         decisionsReadFrom: reportHasCompleteDecisionList
           ? (artifactBatch && !reportDecisionEntries ? "closed_artifact" : "closed_report")
           : "scope_state",

@@ -258,3 +258,71 @@ test('wave audit recognizes Tirol closed partial candidate decisions without wor
   assert.equal(scope.decisionLedger.retainedDecisionCountReconciled,true);
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('wave audit follows an external report artifact directory and its decision receipt',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'news-wave-audit-external-'));const external=await mkdtemp(join(tmpdir(),'news-wave-artifacts-'));const run='news-2026-11-01T21';
+ try{
+  for(const p of ['snapshots','source-policies','scopes',`reports/${run}`])await mkdir(join(root,p),{recursive:true});
+  await writeFile(join(root,`snapshots/${run}.json`),JSON.stringify([{sourceId:'one',sourcePolicyVersion:4,links:[{url:'https://example.at/story'}]}]));
+  await writeFile(join(root,'source-policies/v4.json'),JSON.stringify({sources:[{sourceId:'one',active:true}]}));
+  const entries=[{url:'a',outcome:'rejected',reason:'unverified'},{url:'b',outcome:'rejected',reason:'duplicate'}];
+  await writeFile(join(external,'decision-batch.json'),JSON.stringify({scope:'oberoesterreich',runId:run,candidates:2,decisions:entries}));
+  await writeFile(join(external,'decision-receipt.json'),JSON.stringify({runId:run,candidateDecisionsComplete:true,candidates:2,published:0,rejected:2}));
+  await writeFile(join(root,`reports/${run}/oberoesterreich.json`),JSON.stringify({scope:'oberoesterreich',runId:run,status:'partial',reportedAt:'2026-11-01T21:35:00Z',decidedCandidates:2,locksReleased:true,artifacts:external}));
+  await writeFile(join(root,'scopes/oberoesterreich.json'),JSON.stringify({lastCandidateBatch:{runId:'emergency-2026-11-02T00-00',candidateDecisionsComplete:true,candidates:1,published:0,rejected:1},candidateDecisions:{}}));
+  const result=await auditNewsWave(root,run);const scope=result.scopes.find(x=>x.scope==='oberoesterreich');
+  assert.deepEqual(scope.batch,{runId:run,candidateDecisionsComplete:true,candidates:2,published:0,rejected:2});
+  assert.equal(scope.batchSource,'closed_artifact');
+  assert.equal(scope.decisionLedger.decisionsReadFrom,'closed_artifact');
+  assert.equal(scope.rejectionReasons.unverified,1);
+ }finally{await rm(root,{recursive:true,force:true});await rm(external,{recursive:true,force:true});}
+});
+
+test('wave audit recovers a closed report-referenced decisions file after checkpoint advance',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'news-wave-audit-batch-path-'));const run='news-2026-11-01T21';
+ try{
+  for(const p of ['snapshots','source-policies','scopes',`reports/${run}`,'artifacts/wave/salzburg'])await mkdir(join(root,p),{recursive:true});
+  await writeFile(join(root,`snapshots/${run}.json`),JSON.stringify([{sourceId:'one',sourcePolicyVersion:4,links:[{url:'https://example.at/story'}]}]));
+  await writeFile(join(root,'source-policies/v4.json'),JSON.stringify({sources:[{sourceId:'one',active:true}]}));
+  const batchPath=join(root,'artifacts/wave/salzburg/decisions.json'),releasePath=join(root,'artifacts/wave/salzburg/lock-release.json');
+  const decisions=[{url:'https://example.at/duplicate',outcome:'rejected',reason:'duplicate',contentId:'old'},
+   {url:'https://example.at/new',outcome:'rejected',reason:'unverified'}];
+  await writeFile(batchPath,JSON.stringify({scope:'salzburg',runId:run,candidates:2,decisions}));
+  await writeFile(releasePath,JSON.stringify({released:true}));
+  await writeFile(join(root,`reports/${run}/salzburg.json`),JSON.stringify({scope:'salzburg',runId:run,status:'partial',completedAt:'2026-11-01T21:40:00Z',decidedCandidates:2,batchPath,locks:{releasePath}}));
+  await writeFile(join(root,'scopes/salzburg.json'),JSON.stringify({lastCandidateBatch:{runId:run,candidateDecisionsComplete:true,candidates:2,published:0,rejected:2},candidateDecisions:{
+   'https://example.at/duplicate/':{runId:'news-2026-11-01T19',outcome:'published',contentId:'old'},
+   'https://example.at/new':{runId:run,outcome:'rejected',reason:'unverified'},
+  }}));
+  const result=await auditNewsWave(root,run);const scope=result.scopes.find(x=>x.scope==='salzburg');
+  assert.deepEqual(scope.batch,{runId:run,candidateDecisionsComplete:true,candidates:2,published:0,rejected:2});
+  assert.equal(scope.batchSource,'closed_artifact');
+  assert.equal(scope.decisionLedger.preservedEarlierPublishedDuplicates,1);
+  assert.equal(scope.decisionLedger.retainedDecisionCountReconciled,true);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+
+test('wave audit reads closed Austria batch after the report points to released lock evidence',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'news-wave-audit-austria-artifact-'));const run='news-2026-11-01T21';
+ try{
+  for(const p of ['snapshots','source-policies','scopes',`reports/${run}`,`artifacts/${run}/austria`])await mkdir(join(root,p),{recursive:true});
+  await writeFile(join(root,`snapshots/${run}.json`),JSON.stringify([{sourceId:'one',sourcePolicyVersion:4,links:[{url:'https://example.at/story'}]}]));
+  await writeFile(join(root,'source-policies/v4.json'),JSON.stringify({sources:[{sourceId:'one',active:true}]}));
+  const receipt=join(root,'production-readback.json');await writeFile(receipt,JSON.stringify({contentId:'pub',allVerified:true}));
+  const entries=[{url:'https://example.at/published',outcome:'published',contentId:'pub',productionReadback:{verified:true,contentId:'pub',receiptPath:receipt}},
+   {url:'https://example.at/a',outcome:'rejected',reason:'unverified'}];
+  await writeFile(join(root,`artifacts/${run}/austria/candidate-batch.json`),JSON.stringify({scope:'austria',runId:run,candidates:entries.map(x=>({url:x.url})),decisions:entries}));
+  const releasePath=join(root,`artifacts/${run}/austria/lock-release.json`);await writeFile(releasePath,JSON.stringify({released:true}));
+  await writeFile(join(root,`reports/${run}/austria.json`),JSON.stringify({scope:'austria',runId:run,status:'partial',completedAt:'2026-11-01T20:21:00Z',locks:{release:releasePath},publications:[{contentId:'pub'}]}));
+  await writeFile(join(root,'scopes/austria.json'),JSON.stringify({lastCandidateBatch:{runId:'news-2026-11-01T22',candidateDecisionsComplete:true,candidates:1,published:0,rejected:1},candidateDecisions:{
+   'https://example.at/a':{runId:'news-2026-11-01T21',outcome:'rejected',reason:'unverified'},
+   'https://example.at/published':{runId:'news-2026-11-01T22',outcome:'rejected',reason:'duplicate',decidedAt:'2026-11-01T21:47:00Z'},
+  }}));
+  const result=await auditNewsWave(root,run);const scope=result.scopes.find(x=>x.scope==='austria');
+  assert.deepEqual(scope.batch,{runId:run,candidateDecisionsComplete:true,candidates:2,published:1,rejected:1});
+  assert.equal(scope.batchSource,'closed_artifact');
+  assert.equal(scope.publications[0].verifiedReceipt,true);
+  assert.equal(scope.decisionLedger.supersededByLaterRun,1);
+  assert.equal(scope.decisionLedger.retainedDecisionCountReconciled,true);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
