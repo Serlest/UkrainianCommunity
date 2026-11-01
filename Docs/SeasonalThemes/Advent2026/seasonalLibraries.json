@@ -35,7 +35,7 @@
           "sway": 0.7324073910713196
         }
       ],
-      "endsAt": "2026-11-01T22:59:00Z",
+      "endsAt": "2026-11-01T23:00:00Z",
       "id": "0DFF7AD6-02B4-4868-A182-564B31E9B427",
       "intensity": 1,
       "isEnabled": true,
@@ -131,7 +131,7 @@
           "zone": "navigation"
         }
       ],
-      "endsAt": "2026-11-20T22:59:00Z",
+      "endsAt": "2026-11-19T23:00:00Z",
       "id": "FAFE32DA-AB04-48E0-83F4-A29B891F2DF1",
       "intensity": 1,
       "isEnabled": true,
@@ -147,7 +147,7 @@
         "directory",
         "profile"
       ],
-      "startsAt": "2026-11-01T23:02:00Z",
+      "startsAt": "2026-11-01T23:00:00Z",
       "timeZoneID": "Europe/Vienna"
     },
     {
@@ -323,7 +323,7 @@
           "zone": "navigation"
         }
       ],
-      "endsAt": "2027-01-01T23:01:00Z",
+      "endsAt": "2027-01-01T23:00:00Z",
       "id": "20D27F0F-1709-4080-8309-6D4EADDA6963",
       "intensity": 0.6,
       "isEnabled": true,
@@ -417,7 +417,7 @@
           "zone": "navigation"
         }
       ],
-      "endsAt": "2026-11-01T23:01:00Z",
+      "endsAt": "2026-11-01T23:00:00Z",
       "id": "uac.preset.halloween",
       "intensity": 0.9311110973358154,
       "isEnabled": true,

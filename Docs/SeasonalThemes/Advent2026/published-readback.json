@@ -1,20 +1,20 @@
 {
-  "checkedAt": "2026-11-01T12:46:19.105Z",
+  "checkedAt": "2026-11-01T12:47:18.533Z",
   "atomicCommit": true,
   "readbacks": [
     {
       "collection": "seasonalLibraries",
-      "updateTime": "2026-11-01T12:46:18.716255Z",
-      "revision": "821608b1-53e0-4b7c-a81a-f09a0a65e954",
-      "sha256": "a72b4c48aca987f16e5329401db99b261929d3739dea7777de37f8b82bf2ed2d",
+      "updateTime": "2026-11-01T12:47:18.491935Z",
+      "revision": "861af77c-af0e-4bb6-9873-d84c0cabfa16",
+      "sha256": "1f903261f8b181c86f8f2545cbaff73a01da60a1f1b467dbc00cf6eab42b64b0",
       "themes": 9,
       "verified": true
     },
     {
       "collection": "seasonalPresentations",
-      "updateTime": "2026-11-01T12:46:18.716255Z",
-      "revision": "5caf0167-11ba-45df-a3c1-f1cdfdb84075",
-      "sha256": "a72b4c48aca987f16e5329401db99b261929d3739dea7777de37f8b82bf2ed2d",
+      "updateTime": "2026-11-01T12:47:18.491935Z",
+      "revision": "572de9dc-cf7e-488b-a2ea-83442b1860eb",
+      "sha256": "1f903261f8b181c86f8f2545cbaff73a01da60a1f1b467dbc00cf6eab42b64b0",
       "themes": 9,
       "verified": true
     }
