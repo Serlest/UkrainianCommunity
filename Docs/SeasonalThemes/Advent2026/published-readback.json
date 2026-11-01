@@ -1,0 +1,22 @@
+{
+  "checkedAt": "2026-11-01T12:46:19.105Z",
+  "atomicCommit": true,
+  "readbacks": [
+    {
+      "collection": "seasonalLibraries",
+      "updateTime": "2026-11-01T12:46:18.716255Z",
+      "revision": "821608b1-53e0-4b7c-a81a-f09a0a65e954",
+      "sha256": "a72b4c48aca987f16e5329401db99b261929d3739dea7777de37f8b82bf2ed2d",
+      "themes": 9,
+      "verified": true
+    },
+    {
+      "collection": "seasonalPresentations",
+      "updateTime": "2026-11-01T12:46:18.716255Z",
+      "revision": "5caf0167-11ba-45df-a3c1-f1cdfdb84075",
+      "sha256": "a72b4c48aca987f16e5329401db99b261929d3739dea7777de37f8b82bf2ed2d",
+      "themes": 9,
+      "verified": true
+    }
+  ]
+}
