@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-11-01T22:09:14.858659+00:00",
+  "checkedAt": "2026-11-01T22:13:52.587913+00:00",
   "scope": "Second video-banner review: code, cancellation, local disk lifetime, GIF conversion, audio thread, iPhone/iPad presentation",
-  "status": "final_simulator_matrix_passed_release_and_source_ci_pending_physical_acceptance_open",
+  "status": "local_matrix_and_release_passed_current_hosted_ci_queued_physical_and_rollout_open",
   "priorFullCI": {
     "commit": "4ed44acb2173b3269f090d7d7713ab0d043e9ebe",
     "run": 41336920551,
@@ -73,8 +73,22 @@
     "log": "build/banner-video-review-20261101/final-matrix-tests.log",
     "nativeToServerContract": "4 actual native encodes accepted after final matrix: 15s/1s AAC MP4 and 1.2s/1s GIF MP4",
     "nativeContractLog": "build/banner-video-review-20261101/native-server-contract.log",
-    "release": "running: build/banner-video-review-20261101/release-build.log",
-    "currentSourceCI": "pending after source push"
+    "release": {
+      "status": "passed",
+      "configuration": "Release",
+      "sdk": "iphoneos",
+      "signed": false,
+      "log": "build/banner-video-review-20261101/release-build.log"
+    },
+    "currentSourceCI": {
+      "sourceCommit": "9ba87c4943df29bf3e53761813c0f282937464ea",
+      "run": 41355692664,
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/41355692664",
+      "status": "queued",
+      "static": "passed",
+      "ios": "queued",
+      "firebase": "unchanged; affected job skipped, required status passed; previous full source run passed"
+    }
   },
   "visualLimits": "Reviewed synthetic-fixture layout, controls and text, not final promotional media aesthetics",
   "performanceLimits": "Code-level reductions and simulator behavior verified; no physical FPS, CPU, memory, heat or battery measurements claimed",
@@ -100,5 +114,14 @@
       "true full-window player on both devices"
     ],
     "content": "own synthetic fixtures, no external publication"
-  }
+  },
+  "knownWarning": {
+    "file": "UkrainianCommunity/Views/Profile/DirectoryEditorAccessStore.swift:50",
+    "message": "T Decodable conformance may be isolated when passed to concurrent callable API",
+    "scope": "pre-existing, unchanged, outside banner changes"
+  },
+  "preservedOriginalDirtyFiles": [
+    "UkrainianCommunity.xcodeproj/project.pbxproj",
+    "UkrainianCommunity/Localization/Localizable.xcstrings"
+  ]
 }

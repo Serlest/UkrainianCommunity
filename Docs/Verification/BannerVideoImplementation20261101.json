@@ -91,7 +91,7 @@
   },
   "remaining": [
     "Physical visual acceptance, stable post-rotation layout and real creative content; simulator UI controls passed",
-    "Complete exact-source hosted CI run 41336920551; local Release compilation passed",
+    "First full CI run 41336920551 completed successfully; new review and source CI are recorded in BannerVideoSecondReview20261101.json",
     "Real owner import/upload/save/reopen/duplicate/remove workflow with deployed callable and rules",
     "iPhone Release visuals, scrolling with seasons, CPU/memory/hitches/heat, warm/cold network and cancellation",
     "Real audio interruptions, lock/background, route changes, silent mode and VoiceOver",
