@@ -1,0 +1,76 @@
+{
+  "checkedAt": "2026-11-02T01:03:40.134436+00:00",
+  "status": "delivered_to_internal_testflight",
+  "version": "1.3.1",
+  "build": "156",
+  "sourceRevision": "e6d1c8a1c31dd0085448da291ec888f2a67893f6",
+  "featureRevision": "a86e0fc3cbcce72fbda03392eda84c375edce799",
+  "scope": "Two detailed Vice City / NINE1NINE banner-towing aircraft with staggered compositor flights, propellers, towlines and continuous cloth waves.",
+  "ci": {
+    "sourceRun": {
+      "id": 41364290703,
+      "result": "success"
+    },
+    "archiveRevisionRun": {
+      "id": 41364730016,
+      "result": "success",
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/41364730016"
+    }
+  },
+  "preflight": {
+    "deployedAnalyticsContracts": "passed; no missing deployed contracts",
+    "archive": "ARCHIVE SUCCEEDED",
+    "codesignVerification": "passed",
+    "aircraftAssetPresent": true,
+    "usesNonExemptEncryption": false
+  },
+  "upload": {
+    "result": "Upload succeeded / Uploaded package is processing / EXPORT SUCCEEDED",
+    "signing": "Existing Xcode account fallback after API key cloud-signing permission denial",
+    "archiveInfo": {
+      "CFBundleIdentifier": "at.serlest.UkrainianCommunity",
+      "CFBundleShortVersionString": "1.3.1",
+      "CFBundleVersion": "156",
+      "ITSAppUsesNonExemptEncryption": false,
+      "MinimumOSVersion": "17.0"
+    },
+    "digests": {
+      "sourceRevision": "e6d1c8a1c31dd0085448da291ec888f2a67893f6",
+      "sha256": {
+        "build/testflight-vice-20261102/UAC-156.xcarchive/Products/Applications/UkrainianCommunity.app/Info.plist": "543ce5475c38862f335ef4e8dff31bdbfd26b0c5f53592b23b107345fe2140c2",
+        "build/testflight-vice-20261102/UAC-156.xcarchive/Products/Applications/UkrainianCommunity.app/UkrainianCommunity": "3fe67576c61f3f9551d92fd6270a9e90752ecc0c5b997fe3b220df6ef35e85f5",
+        "build/testflight-vice-20261102/UAC-156.xcarchive/Products/Applications/UkrainianCommunity.app/Assets.car": "ba87fa123c3ace0ca77347c46b2091e575d705339169affdc08410d060034578"
+      }
+    }
+  },
+  "appStoreConnect": {
+    "buildID": "744f84d8-ee26-48db-9e96-44ce8fd4e835",
+    "processingState": "VALID",
+    "internalBuildState": "IN_BETA_TESTING",
+    "externalBuildState": "READY_FOR_BETA_SUBMISSION",
+    "testerGroup": "Beta Tester",
+    "assignmentReadBack": true,
+    "notesLocalesVerified": [
+      "en-US",
+      "uk",
+      "de-DE"
+    ],
+    "notesReadBackExact": true
+  },
+  "physicalVerification": "Not installed or verified on Serlest Mobile during this delivery; device was passcode-locked. User to review TestFlight on actual iPhone.",
+  "localEvidence": "Docs/Verification/SeasonalViceFlights20261102.json",
+  "manualChecks": [
+    "Active GTA VI theme; observe for 90 seconds to cover both aircraft and the quiet interval.",
+    "Scrolling during a pass and transitions across main tabs.",
+    "Light/dark appearance and landscape/portrait.",
+    "Seasonal-effects opt-out and background/foreground return. Low Power and accessibility motion settings intentionally suppress flights."
+  ],
+  "publicAppStoreRelease": "No App Store version, submission, screenshots or public release changed.",
+  "serverScenes": "No seasonal library, presentation, schedule or public activation changed.",
+  "preservedDirtyWork": [
+    "Original project.pbxproj reorder retained separately from the committed version bump.",
+    "Original Localizable.xcstrings retained byte-for-byte."
+  ],
+  "localizableSha256": "bb56175012119a73fddd48100c4dc0c9116c6237f9432a1e9d0b8a186c25793a",
+  "artifacts": "build/testflight-vice-20261102/"
+}
