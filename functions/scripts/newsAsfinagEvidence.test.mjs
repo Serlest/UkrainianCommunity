@@ -77,6 +77,19 @@ test("unknown category or invalid time is partial and remains visible, not rejec
   assert.equal(result.notices[1].active, null);
 });
 
+test("known route instruction and rerouting categories remain reviewable without false unknown-type errors", () => {
+  const result = inspectAsfinagData(collection([
+    feature({messageID: "route_instruction", messageType: "GeneralInstructionOrMessageToRoadUsers",
+      description_de: "Routenempfehlung, alle Richtung Wien weichen ab Graz über die A9 aus"}),
+    feature({messageID: "rerouting", messageType: "ReroutingManagement",
+      description_de: "Totalsperre aufgrund von Unfall; alle Richtung Wien werden über U89 umgeleitet"}),
+  ]), now);
+  assert.equal(result.status, "complete");
+  assert.deepEqual(result.coverageErrors, []);
+  assert.deepEqual(result.reviewMessageIds, ["route_instruction", "rerouting"]);
+  assert.deepEqual(result.notices.map((row) => row.triage), ["review_restriction", "review_restriction"]);
+});
+
 test("title-only construction may be excluded but is never described as full primary evidence", () => {
   const result = inspectAsfinagData(collection([feature({description_de: null,
     name_de: "Rampensperre aufgrund von Instandhaltungsarbeiten"})]), now);

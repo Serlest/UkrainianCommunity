@@ -7,7 +7,8 @@ export const ASFINAG_PAGE = "https://routenplaner.asfinag.at/?activeTab=traffic-
 export const ASFINAG_CONFIG = "https://routenplaner.asfinag.at/webapp/config/webapp.config.json";
 const WFS = "https://geo.verkehrsauskunft.at/vao-rendermediator/api/wfs";
 const TYPES = new Set(["Roadworks", "RoadOrCarriagewayOrLaneManagement", "ConditionalAccessRestriction",
-  "AbnormalTraffic", "Conditions", "Obstruction", "Accident"]);
+  "AbnormalTraffic", "Conditions", "Obstruction", "Accident",
+  "GeneralInstructionOrMessageToRoadUsers", "ReroutingManagement"]);
 const fmt = new Intl.DateTimeFormat("sv-SE", {timeZone: "Europe/Vienna", year: "numeric", month: "2-digit",
   day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"});
 
