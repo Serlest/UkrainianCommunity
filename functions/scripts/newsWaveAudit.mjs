@@ -92,7 +92,14 @@ export async function auditNewsWave(root, runId) {
         reportLockReleased ||= release.released === true;
       } catch (error) { if (error.code !== "ENOENT") throw error; }
     }
-    const reportClosed = Boolean(report.completedAt || report.reportedAt || report.closedAt) && reportLockReleased;
+    // A completed zero-publication pass may correctly acquire no news lock.
+    // Its immutable report plus a matching terminal batch still proves closure;
+    // requiring a release receipt in that case hides older closed batches once
+    // `lastCandidateBatch` advances to a later run.
+    const noLockRequired = report.locks?.acquired === false ||
+      (typeof report.locks === "string" && /^(?:none\b|no\s+(?:news\s+)?locks?\s+acquired\b)/i.test(report.locks.trim()));
+    const reportClosed = Boolean(report.completedAt || report.reportedAt || report.closedAt) &&
+      (reportLockReleased || noLockRequired);
     let artifactBatch = null;
     for (const artifactPath of artifactPaths) {
       if (artifactBatch) break;
@@ -106,6 +113,7 @@ export async function auditNewsWave(root, runId) {
             !validEntries || !Number.isInteger(candidateCount) || candidateCount !== entries.length) continue;
         let receiptValid = false;
         for (const receiptPath of [join(dirname(artifactPath), "decision-receipt.json"),
+          join(dirname(artifactPath), "decisions-receipt.json"),
           join(dirname(artifactPath), "receipt.json")]) {
           try {
             const closeReceipt = JSON.parse(await readFile(receiptPath, "utf8"));
@@ -117,9 +125,14 @@ export async function auditNewsWave(root, runId) {
           } catch (error) { if (error.code !== "ENOENT") throw error; }
         }
         if (!receiptValid && !reportClosed) continue;
-        if (Number.isInteger(report.decidedCandidates) && report.decidedCandidates !== entries.length) continue;
+        const reportedCandidates = Number.isInteger(report.decidedCandidates)
+          ? report.decidedCandidates
+          : Number.isInteger(report.metrics?.candidates) ? report.metrics.candidates : undefined;
+        if (Number.isInteger(reportedCandidates) && reportedCandidates !== entries.length) continue;
         const published = entries.filter((entry) => entry.outcome === "published").length;
         const rejected = entries.filter((entry) => entry.outcome === "rejected").length;
+        if (Number.isInteger(report.metrics?.published) && report.metrics.published !== published) continue;
+        if (Number.isInteger(report.metrics?.rejected) && report.metrics.rejected !== rejected) continue;
         artifactBatch = {batch: {runId, candidateDecisionsComplete: true, candidates: entries.length,
           published, rejected}, entries, path: artifactPath};
       } catch (error) { if (error.code !== "ENOENT") throw error; }
