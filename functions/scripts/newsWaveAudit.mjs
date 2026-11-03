@@ -84,7 +84,7 @@ export async function auditNewsWave(root, runId) {
       for (const name of ["candidate-batch.json", "decision-batch.json", "decisions.json"])
         artifactPaths.add(join(resolve(report.artifacts), name));
     }
-    const releasePath = report.locks?.releasePath ?? report.locks?.release ?? report.locks?.releaseReceiptPath;
+    const releasePath = report.locks?.releasePath ?? report.locks?.release ?? report.locks?.releaseReceiptPath ?? report.locks?.releaseArtifact;
     let reportLockReleased = report.locksReleased === true || report.locks?.released === true;
     if (typeof releasePath === "string") {
       try {
@@ -92,7 +92,7 @@ export async function auditNewsWave(root, runId) {
         reportLockReleased ||= release.released === true;
       } catch (error) { if (error.code !== "ENOENT") throw error; }
     }
-    const reportClosed = Boolean(report.completedAt || report.reportedAt) && reportLockReleased;
+    const reportClosed = Boolean(report.completedAt || report.reportedAt || report.closedAt) && reportLockReleased;
     let artifactBatch = null;
     for (const artifactPath of artifactPaths) {
       if (artifactBatch) break;
@@ -129,14 +129,14 @@ export async function auditNewsWave(root, runId) {
     const reportHasCompleteDecisionList = Boolean(batch) && Array.isArray(reportEntries) &&
       reportEntries.length === batch.candidates &&
       reportEntries.every((entry) => entry.outcome === "published" || entry.outcome === "rejected");
-    // A duplicate rejection deliberately keeps the first publication's ledger
-    // entry under its original run. Count that closed-report decision as
-    // reconciled when its content ID still exists as a published entry in the
-    // mutable scope state; raw same-run counts remain visible for diagnostics.
+    // Any rejection for a URL that was already published preserves the first
+    // publication's ledger entry, regardless of the new rejection reason.
+    // Count that closed decision as reconciled when the content ID or URL still
+    // exists as a published entry in mutable scope state.
     const canonicalUrl = (value) => typeof value === "string" ? value.replace(/\/$/, "") : value;
-    const closedAtMs = Date.parse(report.completedAt ?? report.reportedAt ?? "");
-    const preservedEarlierPublishedDuplicates = reportHasCompleteDecisionList
-      ? reportEntries.filter((entry) => entry.outcome === "rejected" && entry.reason === "duplicate" &&
+    const closedAtMs = Date.parse(report.completedAt ?? report.reportedAt ?? report.closedAt ?? "");
+    const preservedEarlierPublishedDecisions = reportHasCompleteDecisionList
+      ? reportEntries.filter((entry) => entry.outcome === "rejected" &&
         Object.entries(state.candidateDecisions ?? {}).some(([key, value]) => value.runId !== runId &&
           value.outcome === "published" && ((entry.contentId && value.contentId === entry.contentId) ||
             canonicalUrl(value.url ?? key) === canonicalUrl(entry.url)))).length
@@ -176,9 +176,9 @@ export async function auditNewsWave(root, runId) {
         reportedCandidates: batch.candidates,
         retainedDecisionsForWave: retainedDecisions.length,
         retainedDecisionCountMatches: retainedDecisions.length === batch.candidates,
-        preservedEarlierPublishedDuplicates,
+        preservedEarlierPublishedDecisions,
         supersededByLaterRun,
-        retainedDecisionCountReconciled: retainedDecisions.length + preservedEarlierPublishedDuplicates + supersededByLaterRun === batch.candidates,
+        retainedDecisionCountReconciled: retainedDecisions.length + preservedEarlierPublishedDecisions + supersededByLaterRun === batch.candidates,
         decisionsReadFrom: reportHasCompleteDecisionList
           ? (artifactBatch && !reportDecisionEntries ? "closed_artifact" : "closed_report")
           : "scope_state",
@@ -188,7 +188,7 @@ export async function auditNewsWave(root, runId) {
       publications, rejectionReasons: reasons,
       reviewRejectionRationales: decisions.some((value) => value.reason === "no_practical_effect"),
       // Existing published duplicates retain their historic ID/run in the ledger.
-      ledgerNote: "Earlier published duplicates remain under their original run; inspect this wave's report for duplicate rejections.",
+      ledgerNote: "Earlier published records remain under their original run when a later decision preserves them.",
     });
   }
   return {checkedAt: new Date().toISOString(), runId, role: "read_only_wave_evidence_audit",
