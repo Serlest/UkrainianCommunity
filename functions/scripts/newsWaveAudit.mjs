@@ -171,6 +171,19 @@ export async function auditNewsWave(root, runId) {
       return {...retained, ...entry, runId,
         readbackReceiptPath: retainedReceiptPath ?? entry.readbackReceiptPath ?? entry.productionReadback?.receiptPath};
     }) : retainedDecisions;
+    const openedUrls = new Set([
+      ...(openedArticleDecisions ?? []),
+      ...(Array.isArray(report.additionalOpenedArticles) ? report.additionalOpenedArticles : []),
+    ].map((entry) => canonicalUrl(entry?.url ?? entry?.sourceURL ?? entry?.primaryURL)).filter(Boolean));
+    const noPracticalEffectWithoutRead = decisions.filter((decision) =>
+      decision.outcome === "rejected" && decision.reason === "no_practical_effect" &&
+      !openedUrls.has(canonicalUrl(decision.url)) && decision.primaryOpened !== true &&
+      decision.primaryFullTextVerified !== true &&
+      ![decision.evidencePath, decision.articleReadPath, decision.fullTextEvidencePath].some((value) => typeof value === "string" && value.length > 0))
+      .map((decision) => ({url: decision.url, reason: decision.reason,
+        finding: "no_practical_effect_without_direct_read_evidence",
+        suggestedClassification: "unverified",
+        note: "The terminal reason asserts low relevance, but the report has no matching opened-article evidence. Review the lead; do not treat it as a verified zero-impact story."}));
     const publications = [];
     for (const decision of decisions.filter((value) => value.outcome === "published")) {
       try {
@@ -198,7 +211,7 @@ export async function auditNewsWave(root, runId) {
       } : undefined,
       evidenceLimits: {unverifiedCandidates: unverified, sourceErrors: report.sourceErrors ?? [],
         coverageErrors: report.coverageErrors ?? []},
-      publications, rejectionReasons: reasons,
+      publications, rejectionReasons: reasons, editorialReviewFlags: noPracticalEffectWithoutRead,
       reviewRejectionRationales: decisions.some((value) => value.reason === "no_practical_effect"),
       // Existing published duplicates retain their historic ID/run in the ledger.
       ledgerNote: "Earlier published records remain under their original run when a later decision preserves them.",

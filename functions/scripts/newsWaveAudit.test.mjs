@@ -350,3 +350,25 @@ test('wave audit reads closed Austria batch after the report points to released 
   assert.equal(scope.decisionLedger.retainedDecisionCountReconciled,true);
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('wave audit flags no-practical-effect decisions without a matching direct article read',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'news-wave-audit-relevance-evidence-'));const run='news-2026-11-04T19';
+ try{
+  for(const p of ['snapshots','source-policies','scopes',`reports/${run}`])await mkdir(join(root,p),{recursive:true});
+  await writeFile(join(root,`snapshots/${run}.json`),JSON.stringify([{sourceId:'one',sourcePolicyVersion:4,links:[{url:'https://example.at/story'}]}]));
+  await writeFile(join(root,'source-policies/v4.json'),JSON.stringify({sources:[{sourceId:'one',active:true}]}));
+  const decisions=[
+   {url:'https://www.meinbezirk.at/unread-lead',outcome:'rejected',reason:'no_practical_effect'},
+   {url:'https://orf.at/read-article',outcome:'rejected',reason:'no_practical_effect'},
+  ];
+  await writeFile(join(root,`reports/${run}/oberoesterreich.json`),JSON.stringify({
+   status:'partial',candidateDecisionsComplete:true,decidedCandidates:2,published:0,rejected:2,
+   decisions,openedArticles:[{url:'https://orf.at/read-article',evidencePath:'/article-read.json'}],
+  }));
+  await writeFile(join(root,'scopes/oberoesterreich.json'),JSON.stringify({candidateDecisions:{}}));
+  const result=await auditNewsWave(root,run);const scope=result.scopes.find(x=>x.scope==='oberoesterreich');
+  assert.equal(scope.editorialReviewFlags.length,1);
+  assert.equal(scope.editorialReviewFlags[0].url,'https://www.meinbezirk.at/unread-lead');
+  assert.equal(scope.editorialReviewFlags[0].suggestedClassification,'unverified');
+ }finally{await rm(root,{recursive:true,force:true});}
+});
