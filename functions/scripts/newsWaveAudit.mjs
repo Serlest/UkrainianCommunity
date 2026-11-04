@@ -2,7 +2,7 @@
 import {readFile} from "node:fs/promises";
 import {dirname, join, resolve} from "node:path";
 import {pathToFileURL} from "node:url";
-import {NEWS_SCOPES} from "./newsScopeCoordination.mjs";
+import {canonicalNewsURL, NEWS_SCOPES} from "./newsScopeCoordination.mjs";
 
 // Read-only evidence index. Flags request editorial examination, never a story,
 // retry, publication quota, or a replacement for reading a rejected article.
@@ -146,7 +146,11 @@ export async function auditNewsWave(root, runId) {
     // publication's ledger entry, regardless of the new rejection reason.
     // Count that closed decision as reconciled when the content ID or URL still
     // exists as a published entry in mutable scope state.
-    const canonicalUrl = (value) => typeof value === "string" ? value.replace(/\/$/, "") : value;
+    const canonicalUrl = (value) => {
+      if (typeof value !== "string") return value;
+      try { return canonicalNewsURL(value); }
+      catch { return value.replace(/\/$/, ""); }
+    };
     const closedAtMs = Date.parse(report.completedAt ?? report.reportedAt ?? report.closedAt ?? "");
     const preservedEarlierPublishedDecisions = reportHasCompleteDecisionList
       ? reportEntries.filter((entry) => entry.outcome === "rejected" &&

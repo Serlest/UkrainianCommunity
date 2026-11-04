@@ -235,9 +235,9 @@ test('wave audit reconciles preserved publications even when a later decision is
   for(const p of ['snapshots','source-policies','scopes',`reports/${run}`])await mkdir(join(root,p),{recursive:true});
   await writeFile(join(root,`snapshots/${run}.json`),JSON.stringify([{sourceId:'one',sourcePolicyVersion:4,links:[{url:'https://example.at/story'}]}]));
   await writeFile(join(root,'source-policies/v4.json'),JSON.stringify({sources:[{sourceId:'one',active:true}]}));
-  const candidates=[{url:'https://example.at/a'},{url:'https://example.at/b'}];
+  const candidates=[{url:'https://example.at/a#ref=rss'},{url:'https://example.at/b'}];
   const decisions=[
-   {url:candidates[0].url,outcome:'rejected',reason:'stale',contentId:'historical-publication'},
+   {url:candidates[0].url,outcome:'rejected',reason:'stale'},
    {url:candidates[1].url,outcome:'rejected',reason:'unverified'},
   ];
   await writeFile(join(root,`reports/${run}/tirol.json`),JSON.stringify({
