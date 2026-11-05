@@ -24,3 +24,9 @@ test('date-only primary publication metadata remains usable without inventing a 
  const result=await readNewsArticle(url,fetchPage(schema({...primary,datePublished:'2026-10-17'})+main));
  assert.equal(result.publicationDateEvidence[0].value,'2026-10-17');assert.deepEqual(result.dateCandidates,['2026-10-17']);
 });
+test('German named-month dates in an opened primary article are included as date candidates',async()=>{
+ const articleURL='https://www.news.steiermark.at/cms/beitrag/13032548/154271055/';
+ const page='<article><h1>Pendlerbeihilfe</h1><p>Graz (5. November 2026).- Die Landesregierung hat heute entschieden.</p></article>';
+ const result=await readNewsArticle(articleURL,fetchPage(page));
+ assert.deepEqual(result.dateCandidates,['2026-11-05']);
+});

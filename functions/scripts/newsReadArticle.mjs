@@ -100,7 +100,7 @@ export async function readNewsArticle(value, fetchImpl = fetch) {
     return date ? [{field, value, date, origin: "primary_article_jsonld", requiresEditorialReview: true}] : [];
   });
   for (const evidence of publicationDateEvidence) candidates.add(evidence.date);
-  for (const match of content.matchAll(/\b\d{1,2}\.\d{1,2}\.\d{4}\b/g)) {
+  for (const match of content.matchAll(/\b\d{1,2}\.\s*(?:\d{1,2}\.\s*|(?:Jänner|Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\s+)\d{4}\b/gi)) {
     const date = calendarDateFromText(match[0]);
     if (date) candidates.add(date);
   }
