@@ -1,0 +1,21 @@
+{
+  "version": "1.3.1",
+  "build": "158",
+  "reason": "User feedback on 157: text-only news must omit image-only AI notices; events must avoid huge session lists; share only the essentials.",
+  "behavior": {
+    "summary": "Prefer existing editorial summary, at most two sentences and 320 characters; body is only a fallback. No generated facts or extra network calls.",
+    "imageDisclosure": "Only recognized standalone Ukrainian/German image-disclosure lines are removed from text-only sharing. In-app content and unrelated AI reporting are preserved.",
+    "schedule": "Four or more distinct dates become a period with an explicit individual-session hint; up to three dates retain exact details. Both years and exclusive all-day end dates are handled.",
+    "eventFacts": "Compact line block: schedule, venue/address without duplicate city, price and participation; cancellation notice preserved. Long details and organizer-name repetition omitted.",
+    "links": "Official sources and one quiet App Store footer retained."
+  },
+  "verification": {
+    "models": "ContentShareTextTests and schedule regressions passed, including user Bosruck disclosure and Roncalli 36-session scenarios.",
+    "ui": "Final news/event share/copy/return flows in Ukrainian/light and German/dark are running.",
+    "preflight": "Deployed analytics release preflight passed for build 158.",
+    "archive": "Signing archive running.",
+    "ci": "Pending focused source commit.",
+    "testflight": "Not uploaded yet."
+  },
+  "artifacts": "build/share-compact-20261105/"
+}

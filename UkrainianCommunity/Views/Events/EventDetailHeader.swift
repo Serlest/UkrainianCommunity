@@ -63,12 +63,13 @@ extension EventDetailView {
 
         func eventShareMessage(for event: Event) -> String {
             var facts = [
-                event.occurrences.map { eventScheduleText(for: event, occurrence: $0) }.joined(separator: "\n"),
-                [event.venue, event.address ?? "", event.city].filter { !$0.isEmpty }.joined(separator: ", "),
-                event.locationNote ?? "",
-                event.organizerName ?? "",
+                ContentShareText.eventSchedule(occurrences: event.occurrences,
+                    detailedSchedule: event.occurrences.map { eventScheduleText(for: event, occurrence: $0) },
+                    language: LocalizationStore.language,
+                    hasOrganizerLink: [event.organizerURL, event.externalAction?.webURL?.absoluteString, event.contactURL]
+                        .contains { ContentShareText.safeWebURL($0) != nil }),
+                ContentShareText.location(venue: event.venue, address: event.address, city: event.city),
                 ContentShareText.price(event.pricing, language: LocalizationStore.language),
-                event.pricing.note ?? "",
                 event.participationMode.localizedTitle
             ]
             if event.isCancelled {
