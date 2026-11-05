@@ -48,6 +48,29 @@ test("missing approved-primary evidence cannot be recorded as no practical effec
     receipt([verifiedLowImpact])).lastCandidateBatch.rejected, 1);
 });
 
+test("approved editorial leads need a direct read or explicit routine headline triage before no practical effect", () => {
+  const layout = buildNewsScopeLayout(legacy);
+  const sourceURL = "https://kurier.at/chronik/wien/xml/rss";
+  const registry = applyNewsEditorialSources(layout.registry, [{url: sourceURL,
+    scopes: ["wien"], mode: "scan", primaryPolicy: "editorial",
+    topics: ["regional_public_interest"]}]);
+  const editorialCandidate = {url: "https://kurier.at/chronik/wien/story/403203999",
+    sourceId: sourceURL};
+  const batch = (decision) => ({scope: "wien", runId,
+    candidates: [editorialCandidate], decisions: [{url: editorialCandidate.url,
+      outcome: "rejected", reason: "no_practical_effect", ...decision}]});
+
+  assert.throws(() => closeNewsCandidateBatch(registry, layout.scopeStates.wien,
+    batch({note: "Looks routine."})), /direct full-text read or explicit routine headline triage/);
+
+  assert.equal(closeNewsCandidateBatch(registry, layout.scopeStates.wien,
+    batch({primaryOpened: true, primaryFullTextVerified: true})).lastCandidateBatch.rejected, 1);
+
+  assert.equal(closeNewsCandidateBatch(registry, layout.scopeStates.wien,
+    batch({routineLowRelevanceTriage: "clear_routine_award_or_event",
+      ongoingPracticalImpactSignal: false})).lastCandidateBatch.rejected, 1);
+});
+
 test("a manually checked adapter source can be closed without adding it to shared scans", () => {
   const layout = buildNewsScopeLayout(legacy);
   const registry = applyNewsEditorialSources(layout.registry, [{url: "https://example.gv.at/news",

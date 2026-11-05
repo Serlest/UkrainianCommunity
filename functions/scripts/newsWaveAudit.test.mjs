@@ -360,9 +360,11 @@ test('wave audit flags no-practical-effect decisions without a matching direct a
   const decisions=[
    {url:'https://www.meinbezirk.at/unread-lead',outcome:'rejected',reason:'no_practical_effect'},
    {url:'https://orf.at/read-article',outcome:'rejected',reason:'no_practical_effect'},
+   {url:'https://orf.at/routine-award',outcome:'rejected',reason:'no_practical_effect',
+    routineLowRelevanceTriage:'clear_routine_award_or_event',ongoingPracticalImpactSignal:false},
   ];
   await writeFile(join(root,`reports/${run}/oberoesterreich.json`),JSON.stringify({
-   status:'partial',candidateDecisionsComplete:true,decidedCandidates:2,published:0,rejected:2,
+   status:'partial',candidateDecisionsComplete:true,decidedCandidates:3,published:0,rejected:3,
    decisions,openedArticles:[{url:'https://orf.at/read-article',evidencePath:'/article-read.json'}],
   }));
   await writeFile(join(root,'scopes/oberoesterreich.json'),JSON.stringify({candidateDecisions:{}}));

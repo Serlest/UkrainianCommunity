@@ -183,6 +183,8 @@ export async function auditNewsWave(root, runId) {
       decision.outcome === "rejected" && decision.reason === "no_practical_effect" &&
       !openedUrls.has(canonicalUrl(decision.url)) && decision.primaryOpened !== true &&
       decision.primaryFullTextVerified !== true &&
+      !(decision.routineLowRelevanceTriage === "clear_routine_award_or_event" &&
+        decision.ongoingPracticalImpactSignal === false) &&
       ![decision.evidencePath, decision.articleReadPath, decision.fullTextEvidencePath].some((value) => typeof value === "string" && value.length > 0))
       .map((decision) => ({url: decision.url, reason: decision.reason,
         finding: "no_practical_effect_without_direct_read_evidence",

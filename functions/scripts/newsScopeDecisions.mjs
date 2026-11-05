@@ -21,6 +21,11 @@ function rejectionNoteSaysPrimaryIsMissing(decision) {
     /\bprimary\b[^.!?]{0,40}\b(?:not found|unavailable|missing|not verified)\b/i.test(note);
 }
 
+function hasRoutineHeadlineTriage(decision) {
+  return decision.routineLowRelevanceTriage === "clear_routine_award_or_event" &&
+    decision.ongoingPracticalImpactSignal === false;
+}
+
 // This closes an editorial candidate batch, not source coverage. A source
 // failure must still make the overall run partial, with its cursor unchanged.
 export function closeNewsCandidateBatch(registry, state, input, decidedAt = new Date().toISOString()) {
@@ -59,6 +64,14 @@ export function closeNewsCandidateBatch(registry, state, input, decidedAt = new 
       if (!rejectionReasons.has(decision.reason)) throw new Error(`Invalid rejection reason for ${url}`);
       if (decision.reason === "no_practical_effect" && rejectionNoteSaysPrimaryIsMissing(decision)) {
         throw new Error(`Missing primary evidence is unverified, not no_practical_effect: ${url}`);
+      }
+      const candidate = candidateByURL.get(url);
+      const approvedEditorialLead = [...candidate.sourceIds].some((sourceId) =>
+        sources.get(sourceId)?.active && sources.get(sourceId)?.primaryPolicy === "editorial");
+      if (decision.reason === "no_practical_effect" && approvedEditorialLead &&
+          !(decision.primaryOpened === true && decision.primaryFullTextVerified === true) &&
+          !hasRoutineHeadlineTriage(decision)) {
+        throw new Error(`An approved editorial lead needs a direct full-text read or explicit routine headline triage before no_practical_effect: ${url}`);
       }
     } else if (decision.outcome === "published") {
       if (typeof decision.contentId !== "string" || !decision.contentId.trim() ||
