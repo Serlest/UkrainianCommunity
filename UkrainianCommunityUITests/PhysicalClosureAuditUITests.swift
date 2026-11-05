@@ -18,6 +18,14 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         // XCTest's stop-on-first-failure can bypass a Swift defer. Restore
         // the physical device even when an orientation assertion fails.
         if name.contains("testP14") { XCUIDevice.shared.orientation = .portrait }
+#if !targetEnvironment(simulator)
+        if name.contains("testDirectoryInformationReadAndShareProduction"),
+           ProcessInfo.processInfo.environment["UACPhysicalClosureAudit"] == "1" {
+            XCUIDevice.shared.orientation = .portrait
+            let app = XCUIApplication(); app.terminate()
+            app.launchArguments = []; app.launchEnvironment = [:]; app.launch()
+        }
+#endif
         super.tearDown()
     }
 
@@ -1258,5 +1266,53 @@ extension PhysicalClosureAuditUITests {
         XCTAssertTrue(["0", "1"].contains(reminders.value as? String ?? ""))
         captureForeground(app, "physical-p13-existing-reminders-and-test-action")
         // Read-only: retain preferences and permissions. Never mark all real notices read.
+    }
+}
+
+
+extension PhysicalClosureAuditUITests {
+    /// Explicitly opted-in, public production reads and local Copy only.
+    /// Retain the real session and preferences; never send a message or change catalog data.
+    func testDirectoryInformationReadAndShareProduction() {
+        let app = XCUIApplication(); app.launchArguments = []; app.launchEnvironment = [:]; app.launch()
+        let directory = app.tabBars.buttons.matching(NSPredicate(format: "identifier == %@ OR label IN %@",
+            "tab.directory", ["Довідник", "Ratgeber"])).firstMatch
+        XCTAssertTrue(directory.waitForExistence(timeout: 25)); directory.tap(); directory.tap()
+        let newest = app.buttons.matching(NSPredicate(format:
+            "identifier BEGINSWITH %@ AND (label CONTAINS[c] %@ OR label CONTAINS[c] %@)",
+            "directory.recent.", "Безкоштовна консультація", "Kostenlose Beratung")).firstMatch
+        XCTAssertTrue(newest.waitForExistence(timeout: 30)); reveal(newest, app)
+        captureForeground(app, "directory-physical-new-information"); newest.tap()
+        let share = app.buttons["detail.header.share"].firstMatch
+        XCTAssertTrue(share.waitForExistence(timeout: 20))
+        captureForeground(app, "directory-physical-new-section-reader")
+        share.tap()
+        let copy = app.cells.matching(NSPredicate(format: "label IN %@",
+            ["Kopieren", "Copy", "Копіювати", "Скопіювати"])).firstMatch
+        XCTAssertTrue(copy.waitForExistence(timeout: 12))
+        captureForeground(app, "directory-physical-native-share")
+        let icon = copy.images["activityImageView"].firstMatch
+        if icon.exists { icon.tap() } else { copy.tap() }
+        XCTAssertTrue(copy.waitForNonExistence(timeout: 8))
+        let source = app.links["directory.reader.source"].firstMatch
+        reveal(source, app); XCTAssertGreaterThanOrEqual(source.frame.height, 44)
+        captureForeground(app, "directory-physical-new-section-source")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        for (categoryID, topicID, sectionID) in [("safety", "emergency", Optional<String>.none),
+                                               ("insurance", "health-cover", Optional("self"))] {
+            let category = app.buttons["directory.category." + categoryID].firstMatch
+            reveal(category, app); category.tap()
+            let topic = app.buttons["directory.topic." + topicID].firstMatch
+            XCTAssertTrue(topic.waitForExistence(timeout: 12)); reveal(topic, app); topic.tap()
+            captureForeground(app, "directory-physical-topic-" + categoryID)
+            let item = sectionID.map { app.buttons["directory.section.open." + $0].firstMatch }
+                ?? app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "directory.section.open.")).firstMatch
+            reveal(item, app); item.tap()
+            XCTAssertTrue(share.waitForExistence(timeout: 12))
+            captureForeground(app, "directory-physical-reader-" + categoryID)
+            reveal(source, app); XCTAssertTrue(source.isHittable)
+            captureForeground(app, "directory-physical-reader-bottom-" + categoryID)
+            for _ in 0..<3 { app.navigationBars.buttons.element(boundBy: 0).tap() }
+        }
     }
 }

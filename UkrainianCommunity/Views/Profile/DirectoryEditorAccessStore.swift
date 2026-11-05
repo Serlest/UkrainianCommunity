@@ -1,5 +1,6 @@
 import Combine
 import FirebaseFunctions
+import FirebaseSharedSwift
 import Foundation
 
 struct DirectoryEditorGrant: Codable, Equatable, Identifiable {
@@ -45,9 +46,13 @@ struct DirectoryEditorAccessAPI {
     var profiles: (([String]) async throws -> [AppUser])? = nil
 
     private static func call<T: Decodable>(_ request: DirectoryAccessRequest, as: T.Type) async throws -> T {
-        var callable: Callable<DirectoryAccessRequest, T> = Functions.functions(region: "europe-west3").httpsCallable("manageDirectoryEditorAccess")
+        let callable = Functions.functions(region: "europe-west3").httpsCallable("manageDirectoryEditorAccess")
         callable.timeoutInterval = 30
-        return try await callable.call(request)
+        let payload = try FirebaseDataEncoder().encode(request)
+        let result = try await callable.call(payload)
+        // Decode here on the API's MainActor; a Codable conformance can itself
+        // be isolated and must not be passed to the SDK's concurrent decoder.
+        return try FirebaseDataDecoder().decode(T.self, from: result.data)
     }
     static let live = Self(
         enabledIDs: { [] }, user: UserManagementReads.live.user,

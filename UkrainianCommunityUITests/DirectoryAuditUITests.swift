@@ -116,6 +116,100 @@ final class DirectoryAuditUITests: XCTestCase {
         }
     }
 
+    func testIndividualInformationReaderAndShareInBothLanguages() {
+        for german in [false, true] {
+            let app = launch(role: "member", german: german)
+            let category = app.buttons["directory.category.first-steps"].firstMatch
+            reveal(category, app); category.tap()
+            let topic = app.buttons["directory.topic.arrival"].firstMatch
+            reveal(topic, app); topic.tap()
+            let topicShare = app.buttons["directory.topic.share"].firstMatch
+            XCTAssertTrue(topicShare.waitForExistence(timeout: 8)); topicShare.tap()
+            let topicCopy = app.cells.matching(NSPredicate(format: "label IN %@", ["Kopieren", "Copy", "Копіювати", "Скопіювати"])).firstMatch
+            XCTAssertTrue(topicCopy.waitForExistence(timeout: 8)); tapCopyIcon(topicCopy)
+            XCTAssertTrue(topicCopy.waitForNonExistence(timeout: 5))
+            let section = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "directory.section.open.")).firstMatch
+            reveal(section, app); section.tap()
+            let share = app.buttons["detail.header.share"].firstMatch
+            XCTAssertTrue(share.waitForExistence(timeout: 8))
+            capture(app, "directory-reader-\(german ? "de-dark" : "uk-light")")
+            share.tap()
+            let copy = app.cells.matching(NSPredicate(format: "label IN %@", ["Kopieren", "Copy", "Копіювати", "Скопіювати"])).firstMatch
+            XCTAssertTrue(copy.waitForExistence(timeout: 8))
+            capture(app, "directory-reader-share-\(german)")
+            tapCopyIcon(copy)
+            XCTAssertTrue(copy.waitForNonExistence(timeout: 5))
+            XCTAssertTrue(share.isHittable)
+            app.navigationBars.buttons.element(boundBy: 0).tap()
+            XCTAssertTrue(section.waitForExistence(timeout: 5))
+            app.terminate()
+        }
+    }
+
+    func testEmergencyInformationReaderAtLargeText() {
+        let app = launch(role: "guest", german: true, large: true)
+        let category = app.buttons["directory.category.safety"].firstMatch
+        reveal(category, app); category.tap()
+        let topic = app.buttons["directory.topic.emergency"].firstMatch
+        reveal(topic, app); topic.tap()
+        let section = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "directory.section.open.")).firstMatch
+        reveal(section, app); section.tap()
+        XCTAssertTrue(app.buttons["detail.header.share"].waitForExistence(timeout: 8))
+        capture(app, "directory-emergency-reader-large-text")
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let rotated = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in app.frame.width > app.frame.height }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [rotated], timeout: 8), .completed)
+        capture(app, "directory-emergency-reader-landscape")
+        XCUIDevice.shared.orientation = .portrait
+    }
+
+    func testReaderEntryAcrossEveryDirectoryCategory() {
+        let app = launch(role: "member")
+        let categories = ["safety", "first-steps", "registration", "housing", "residence", "documents",
+            "citizenship", "health", "mental-health", "insurance", "work", "qualifications", "education",
+            "family", "transport", "finances", "social-support", "legal", "communication", "digital",
+            "community", "leisure", "accessibility", "care", "seniors"]
+        for id in categories {
+            let category = app.buttons["directory.category." + id].firstMatch
+            reveal(category, app); category.tap()
+            let topic = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "directory.topic.")).firstMatch
+            let section = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "directory.section.open.")).firstMatch
+            // One-topic categories intentionally open their article directly.
+            let directArticle = section.waitForExistence(timeout: 2)
+            if !directArticle { reveal(topic, app); topic.tap() }
+            reveal(section, app)
+            capture(app, "directory-topic-" + id)
+            section.tap()
+            XCTAssertTrue(app.buttons["detail.header.share"].waitForExistence(timeout: 8), id)
+            capture(app, "directory-reader-" + id)
+            for _ in 0..<(directArticle ? 2 : 3) { app.navigationBars.buttons.element(boundBy: 0).tap() }
+            XCTAssertTrue(app.buttons["directory.category." + id].waitForExistence(timeout: 8))
+        }
+    }
+
+    func testLongestInformationReaderRetainsFullTextAndSource() {
+        let app = launch(role: "member", german: true)
+        let category = app.buttons["directory.category.insurance"].firstMatch
+        reveal(category, app); category.tap()
+        let topic = app.buttons["directory.topic.health-cover"].firstMatch
+        reveal(topic, app); topic.tap()
+        let section = app.buttons["directory.section.open.self"].firstMatch
+        reveal(section, app); section.tap()
+        XCTAssertTrue(app.buttons["detail.header.share"].waitForExistence(timeout: 8))
+        capture(app, "directory-longest-reader-top")
+        let source = app.links["directory.reader.source"].firstMatch
+        reveal(source, app)
+        capture(app, "directory-longest-reader-bottom")
+        XCTAssertTrue(source.isHittable)
+        XCTAssertGreaterThanOrEqual(source.frame.height, 44)
+    }
+
+    private func tapCopyIcon(_ cell: XCUIElement) {
+        // iOS 27's action-group cell extends below its icon; its centre can miss the action on iPad.
+        let icon = cell.images["activityImageView"].firstMatch
+        if icon.exists { icon.tap() } else { cell.tap() }
+    }
+
     private func launch(role: String = "owner", german: Bool = false, large: Bool = false, alternateTheme: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", large ? "UICTContentSizeCategoryAccessibilityM" : "UICTContentSizeCategoryL"]
@@ -124,8 +218,14 @@ final class DirectoryAuditUITests: XCTestCase {
         else if role == "guest" { app.launchEnvironment["UITestForceGuestSession"] = "1" }
         else { app.launchEnvironment["UITestProfileRole"] = role == "directoryEditor" ? "member" : role }
         if role == "directoryEditor" { app.launchEnvironment["UITestDirectoryEditor"] = "1" }
-        app.launch(); let tab = app.tabBars.buttons.element(boundBy: 3)
-        XCTAssertTrue(tab.waitForExistence(timeout: 20)); tab.tap(); return app
+        app.launch()
+        let tab = app.tabBars.buttons.element(boundBy: 3)
+        if tab.waitForExistence(timeout: 5) { tab.tap() }
+        else {
+            let tabletTab = app.buttons["tab.directory"].firstMatch
+            XCTAssertTrue(tabletTab.waitForExistence(timeout: 20)); tabletTab.tap()
+        }
+        return app
     }
     private func openCategoryEditor(_ app: XCUIApplication) {
         let manage = app.buttons["directory.manage"].firstMatch

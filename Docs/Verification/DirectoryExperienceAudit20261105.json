@@ -1,0 +1,170 @@
+{
+  "date": "2026-11-05",
+  "baseCommit": "141fcff9",
+  "status": "audit_complete_with_editorial_followups",
+  "scope": {
+    "categories": 25,
+    "topics": 145,
+    "informationItemsIncludingRegional": 963,
+    "allItemsStructuralAudit": true,
+    "everyItemIndividuallyPhotographed": false,
+    "everyLegalClaimRevalidated": false
+  },
+  "changes": [
+    "Compact readable information cards open focused readers",
+    "Topic summary sharing and individual information sharing with sources and UAC footer",
+    "Individual instructions retain complete conditions and exceptions",
+    "Long titles wrap and paragraph reading preserves text selection",
+    "Recent section entries open the specific item directly, including regional context",
+    "Latest additions refresh after five minutes on a tab/foreground return, preserving previous data on errors",
+    "Directory articles and focused readers suppress seasonal overlays that obscured text",
+    "CMS source URLs containing user credentials are rejected by display mapping",
+    "Native UIKit sharing is anchored to its share control; iPad uses a real popover and presentation state clears on completion/cancellation",
+    "Information readers use stable category/topic/section/region routes and resolve current visible catalog data, rather than captured snapshots",
+    "Use the existing 760-point readable-content width for information readers on larger displays",
+    "Directory editor-access responses decode on MainActor; pre-existing isolated-Decodable warning removed, nullable SDK payload covered by test"
+  ],
+  "contentPublication": {
+    "checkedAt": "2026-11-05T16:21:57.068Z",
+    "categories": 25,
+    "topics": 145,
+    "newSection": "qualifications/training/bildungsberatung",
+    "revision": 2,
+    "matchingFeedEntries": 1,
+    "recentTotal": 11,
+    "changedCategories": [
+      "qualifications"
+    ]
+  },
+  "officialSource": "https://www.bmfwf.gv.at/erwachsenenbildung/bb.html",
+  "serverVerification": {
+    "unitTests": {
+      "passed": 10,
+      "failed": 0
+    },
+    "deployment": "publishDirectoryAutomation only",
+    "state": "ACTIVE",
+    "runtimePolicy": "onDeployUpdatePolicy preserved",
+    "ready": true,
+    "replacementRevisionTrafficPercent": 100,
+    "invocation": "Private IAM preserved; authenticated dry-run and apply succeeded",
+    "deployedCompiledSourceMatchesLocal": true,
+    "allRuntimeSettingsMatchBaseline": true,
+    "generatedRuntimeSettingRestored": "FUNCTION_SIGNATURE_TYPE",
+    "finalDeployedCompiledHandlersMatchLocal": true
+  },
+  "sourceAccess": {
+    "checkedAt": "2026-11-05T16:41:42.872Z",
+    "scope": "HTTP reachability only, no semantic or legal-currency claim; failures may be temporary or access restrictions. No content was changed by this probe.",
+    "total": 505,
+    "counts": {
+      "reachable": 470,
+      "access_limited": 25,
+      "request_failed": 1,
+      "response_error": 2,
+      "missing": 7
+    },
+    "automaticLinkReplacements": 0
+  },
+  "verification": {
+    "earlierRoleAndReaderTests": {
+      "passed": 58,
+      "failed": 0,
+      "skipped": 0,
+      "roles": 11
+    },
+    "releaseBuild": {
+      "result": "BUILD SUCCEEDED",
+      "warnings": 0,
+      "log": "build/directory-reader-20261105/release-device-build.log"
+    },
+    "physicalDevice": {
+      "result": "Passed",
+      "tests": 1,
+      "failures": 0,
+      "skipped": 0,
+      "device": "Serlest Mobile — iPhone 16 Pro Max",
+      "application": "1.3.1 (158), local corrected Release installation",
+      "screenshots": 10,
+      "acceptedChecks": [
+        "Real production new education item appears in latest additions",
+        "New section opens directly in focused reader",
+        "Native sharing and local Copy complete without sending any message",
+        "Emergency instructions and contact list are readable",
+        "Longest insurance item and bottom source remain reachable",
+        "Normal launch restored in portrait without account switching or preference reset"
+      ],
+      "resultBundle": "build/directory-reader-20261105/PhysicalDirectoryTests.xcresult",
+      "limits": "Representative production routes, not a physical screenshot of each of the 963 items. Share-picker contact suggestions in private screenshots must not be published."
+    },
+    "liveSDK": {
+      "result": "passed",
+      "serverMarker": true,
+      "serverSnapshot": true,
+      "categories": 25,
+      "topics": 145,
+      "regionalSections": 288,
+      "offlineRoundTrip": true,
+      "log": "build/directory-reader-20261105/tablet-accepted-tests.log",
+      "note": "Read-only opt-in test succeeded; Simulator App Check diagnostics were emitted, no enforcement was changed."
+    },
+    "finalPhoneSimulator": {
+      "result": "Passed",
+      "totalTestCount": 101,
+      "passedTests": 101,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    "finalTabletSimulator": {
+      "result": "Passed",
+      "totalTestCount": 70,
+      "passedTests": 70,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    "categoryMatrix": {
+      "categories": 25,
+      "topicAndReaderScreenshots": 50,
+      "passed": true,
+      "resultBundle": "build/directory-reader-20261105/DeliveryTests.xcresult"
+    },
+    "viewedPhysicalImages": [
+      "directory-physical-new-section-reader",
+      "directory-physical-native-share",
+      "directory-physical-reader-safety",
+      "directory-physical-reader-bottom-insurance",
+      "directory-physical-topic-safety"
+    ],
+    "ci": {
+      "scope": "Hosted Quality checks are a separate required gate before a later TestFlight upload",
+      "sourceReceipt": "Docs/Verification/DirectoryExperienceSourceReceipt20261105.json"
+    },
+    "repositoryStructure": "passed"
+  },
+  "remaining": {
+    "officialLinks": "7 HTTP404 URLs require reviewed replacements; 25 access restrictions, 1 request failure and 2 other error responses are not automatically treated as deleted pages",
+    "contentReview": "Known RIS/BMI cutoff conflict and other existing editorial followups retained; no full legal review claimed"
+  },
+  "delivery": {
+    "interface": "Corrected local Release is installed on the physical iPhone; no TestFlight/App Store upload requested or performed",
+    "newInformation": "One verified new information item is live without a client build",
+    "preservedUnrelatedDirtyFiles": [
+      "UkrainianCommunity.xcodeproj/project.pbxproj",
+      "UkrainianCommunity/Localization/Localizable.xcstrings"
+    ],
+    "account": "No logout, account switch, credential mutation or preference reset performed"
+  },
+  "evidenceRoot": "build/directory-reader-20261105/",
+  "inventory": "Docs/Verification/DirectoryInformationInventory20261105.json",
+  "sourceReport": "Docs/Verification/DirectorySourceAccess20261105.json",
+  "finalProductionReadback": {
+    "checkedAt": "2026-11-05T17:53:08.051Z",
+    "categories": 25,
+    "topics": 145,
+    "itemsIncludingRegional": 963,
+    "changedSinceVerifiedPublication": [],
+    "matchingNewFeedEntries": 1,
+    "recentTotal": 11
+  },
+  "sourceOfNewInformation": "https://www.bmfwf.gv.at/erwachsenenbildung/bb.html"
+}

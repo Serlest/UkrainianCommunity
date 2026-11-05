@@ -15,7 +15,9 @@ struct DirectoryRegionalSectionsView: View {
             if let selectedFederalState {
                 ForEach(DirectoryRegionalContent.sections(categoryID: categoryID, topicID: topicID,
                                                            state: selectedFederalState)) { section in
-                    DirectoryGuideSectionCard(section: section, language: language)
+                    DirectoryGuideSectionCard(section: section, language: language,
+                                              route: .section(categoryID: categoryID, topicID: topicID,
+                                                              sectionID: section.id, federalState: selectedFederalState.rawValue))
                 }
             } else {
                 Text(DirectoryText(ukrainian: "Оберіть землю, щоб побачити її офіційні служби та правила.",

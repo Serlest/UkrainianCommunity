@@ -4,6 +4,7 @@ private let directoryScrollTopID = "directoryScrollTop"
 private let directoryCategoriesID = "directoryCategories"
 
 struct DirectoryHomeView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var authState: AuthState
     @EnvironmentObject private var contentStore: DirectoryContentStore
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
@@ -100,9 +101,9 @@ struct DirectoryHomeView: View {
             await featuredBannerViewModel.loadIfNeeded(for: .directory, federalState: selectedFederalState)
             await featuredBannerViewModel.refreshIfStale(for: .directory, federalState: selectedFederalState)
         }
-        .task(id: isActive) {
-            guard isActive else { return }
-            await recentAdditions.loadIfNeeded()
+        .task(id: "\(isActive):\(isAuthBootstrapReady):\(scenePhase)") {
+            guard isActive, isAuthBootstrapReady, scenePhase == .active else { return }
+            await recentAdditions.refreshIfStale()
         }
         .observesKeyboardDismissTaps()
     }
@@ -209,6 +210,9 @@ struct DirectoryHomeView: View {
 
     @ViewBuilder private func destination(for route: DirectoryRoute) -> some View {
         switch route {
+        case let .section(categoryID, topicID, sectionID, federalState):
+            DirectorySectionDestination(categoryID: categoryID, topicID: topicID,
+                                        sectionID: sectionID, federalState: federalState)
         case .recentList:
             ScrollView {
                 DirectoryRecentAdditionsView(store: recentAdditions, language: language, isPreview: false)

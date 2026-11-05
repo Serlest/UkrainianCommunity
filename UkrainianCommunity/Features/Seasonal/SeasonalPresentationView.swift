@@ -2,7 +2,7 @@ import Combine
 import SwiftUI
 import UIKit
 
-enum SeasonalHeaderAnchor: Hashable { case pumpkin }
+enum SeasonalHeaderAnchor: Hashable { case pumpkin, readingSurface }
 struct SeasonalHeaderAnchors: PreferenceKey {
     static let defaultValue: [SeasonalHeaderAnchor: Anchor<CGRect>] = [:]
     static func reduce(value: inout [SeasonalHeaderAnchor: Anchor<CGRect>], nextValue: () -> [SeasonalHeaderAnchor: Anchor<CGRect>]) {
@@ -160,7 +160,7 @@ struct SeasonalRootDecoration: ViewModifier {
                 .environment(\.seasonalHeaderActive,includesChrome && (theme?.usesHeaderDock ?? false))
                 .environment(\.seasonalHeaderTheme,theme)
                 .overlayPreferenceValue(SeasonalHeaderAnchors.self) { anchors in
-                    if !headerOnly, let theme, !theme.visibleElements.isEmpty {
+                    if !headerOnly, anchors[.readingSurface] == nil, let theme, !theme.visibleElements.isEmpty {
                         SeasonalDecorationLayer(theme:theme,anchors:anchors,embedsHeaderPumpkin:true,includesChrome:includesChrome,showsNavigation:showsNavigationDecoration,hangingVisible:true)
                             .ignoresSafeArea(.container,edges:[.top,.bottom])
                     }

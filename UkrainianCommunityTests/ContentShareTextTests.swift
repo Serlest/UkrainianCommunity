@@ -7,7 +7,7 @@ final class ContentShareTextTests: XCTestCase {
     @MainActor func testActivityItemAlwaysProvidesTextWithTitleMetadata() {
         let text = ContentShareText.compose(title: "Title", introduction: "", body: "Full body",
                                            sources: ["https://example.org"], language: .ukrainian)
-        let item = ContentTextShareSheet.Item(text: text, title: "Title")
+        let item = ContentTextSharePresenter.Item(text: text, title: "Title")
         let controller = UIActivityViewController(activityItems: [item], applicationActivities: nil)
         XCTAssertEqual(item.activityViewControllerPlaceholderItem(controller) as? String, text)
         for receiver in [UIActivity.ActivityType.copyToPasteboard, .mail, .message] {

@@ -1,0 +1,3211 @@
+{
+  "checkedAt": "2026-11-05T16:41:42.872Z",
+  "scope": "HTTP reachability only, no semantic or legal-currency claim; failures may be temporary or access restrictions. No content was changed by this probe.",
+  "total": 505,
+  "counts": {
+    "reachable": 470,
+    "access_limited": 25,
+    "request_failed": 1,
+    "response_error": 2,
+    "missing": 7
+  },
+  "automaticLinkReplacements": 0,
+  "results": [
+    {
+      "url": "https://arbeiterkammer.at/beratung/konsument/bauenundwohnen/miete/Kautionsstreitigkeiten.html",
+      "status": 200,
+      "elapsedMs": 455,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://arbeiterkammer.at/beratung/konsument/konsumundeinkauf/kaufundrechte/Rechte_im_Onlinehandel.html",
+      "status": 200,
+      "elapsedMs": 413,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://bergrettung.at/tipps/notruf-absetzen/",
+      "status": 200,
+      "elapsedMs": 2369,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://diia.gov.ua/services/vityag-pro-nesudimist",
+      "status": 200,
+      "elapsedMs": 729,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://dmsu.gov.ua/faq/vidpovidi-na-chasti-pitannya-na-period-voenogo-stanu/12529.html",
+      "status": 200,
+      "elapsedMs": 334,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://dmsu.gov.ua/news/dms/20205.html",
+      "status": 200,
+      "elapsedMs": 450,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://eausweise.oesterreich.gv.at/de/themen/bauen_und_wohnen/wohnen/8/Seite.210150",
+      "status": 200,
+      "elapsedMs": 261,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://eausweise.oesterreich.gv.at/de/themen/bildung_und_ausbildung/lehre-und-berufsbildende-schulen/ausbildung_bis_18",
+      "status": 200,
+      "elapsedMs": 126,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://eausweise.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/aufenthalt/3/1/Seite.120222",
+      "status": 200,
+      "elapsedMs": 118,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://eausweise.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/aufenthalt/3/2/Seite.120401",
+      "status": 200,
+      "elapsedMs": 114,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://eausweise.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/aufenthalt/3/Seite.120217",
+      "status": 200,
+      "elapsedMs": 109,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://eausweise.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/hilfe-bei-gewalt/2/Seite.290501/frauenhelpline",
+      "status": 200,
+      "elapsedMs": 106,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://eausweise.oesterreich.gv.at/de/themen/persoenliche_dokumente_und_bestaetigungen/fuehrerschein/3/Seite.040500",
+      "status": 200,
+      "elapsedMs": 190,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://eausweise.oesterreich.gv.at/de/themen/persoenliche_dokumente_und_bestaetigungen/strafregister/Seite.300020",
+      "status": 200,
+      "elapsedMs": 95,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://edikte.justiz.gv.at/edikte/ex/edparm3.nsf/h/SVPHLdf01",
+      "status": 200,
+      "elapsedMs": 222,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://eur-lex.europa.eu/eli/reg/2022/1280/oj?locale=de",
+      "status": 202,
+      "elapsedMs": 287,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://europa.eu/youreurope/citizens/travel/entry-exit/travel-documents-minors/index_en.htm",
+      "status": 200,
+      "elapsedMs": 176,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://gesundausderkrise.at/",
+      "status": 200,
+      "elapsedMs": 467,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://hsc.gov.ua/2026/03/16/yak-otrimati-abo-obminyati-posvidchennya-vodiya-pid-chas-vijni-ta-chi-mozhna-zrobiti-tse-onlajn/",
+      "status": 200,
+      "elapsedMs": 782,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://id.e-consul.gov.ua/",
+      "status": 200,
+      "elapsedMs": 324,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://kaernten.arbeiterkammer.at/beratung/arbeitundrecht/Arbeitsvertraege/Weihnachts-_und_Urlaubsgeld.html",
+      "status": 200,
+      "elapsedMs": 451,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://maennerinfo.at/",
+      "status": 200,
+      "elapsedMs": 488,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://meine.oegk.at/cdscontent/?contentid=10007.883235&portal=oegkportal",
+      "status": 200,
+      "elapsedMs": 261,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://mfa.gov.ua/consul/forua/gromadyanstvo-ua/vyhid",
+      "status": 403,
+      "elapsedMs": 226,
+      "classification": "access_limited",
+      "references": [
+        "citizenship/dual-citizenship [topic sources]",
+        "citizenship/dual-citizenship/exit"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/consul/forua/legalization/apostille",
+      "status": 403,
+      "elapsedMs": 191,
+      "classification": "access_limited",
+      "references": [
+        "citizenship/documents [topic sources]",
+        "documents/civil-records/use-austria",
+        "documents/police-certificate [topic sources]",
+        "documents/translations [topic sources]",
+        "documents/apostille [topic sources]",
+        "documents/apostille/ukraine",
+        "documents/apostille/order",
+        "documents/apostille/exceptions"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/consul/forua/legalization/notary",
+      "status": 403,
+      "elapsedMs": 100,
+      "classification": "access_limited",
+      "references": [
+        "documents/power-of-attorney [topic sources]",
+        "documents/power-of-attorney/consul",
+        "documents/power-of-attorney/limits"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/consul/forua/oformlennya-kartki-platnika-podatkiv-rnokpp",
+      "status": 403,
+      "elapsedMs": 96,
+      "classification": "access_limited",
+      "references": [
+        "documents/tax-number [topic sources]",
+        "documents/tax-number/apply",
+        "documents/tax-number/papers",
+        "documents/tax-number/electronic"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/consul/forua/oformlennya-kartki-platnika-podatkiv-rnokpp/oformlennya-kartki-platnika-podatkiv-rnokpp-dlya-ditej-vikom-do-18-rokiv-odnim-z-batkiv",
+      "status": 403,
+      "elapsedMs": 86,
+      "classification": "access_limited",
+      "references": [
+        "documents/child-documents [topic sources]",
+        "documents/child-documents/citizenship"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/consul/forua/otrimannya-konsulskih-poslug-cholovikami-vikom-vid-18-do-60-rokiv",
+      "status": 403,
+      "elapsedMs": 100,
+      "classification": "access_limited",
+      "references": [
+        "documents/passport [topic sources]",
+        "documents/passport/prepare"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/consul/forua/pass",
+      "status": 200,
+      "elapsedMs": 877,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://mfa.gov.ua/consul/forua/pass/id",
+      "status": 403,
+      "elapsedMs": 79,
+      "classification": "access_limited",
+      "references": [
+        "documents/identity [topic sources]",
+        "documents/ukrainian-id [topic sources]",
+        "documents/ukrainian-id/replace",
+        "documents/name-change [topic sources]"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/consul/forua/pass/mail",
+      "status": 200,
+      "elapsedMs": 817,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://mfa.gov.ua/consul/forua/pass/pnp",
+      "status": 403,
+      "elapsedMs": 29,
+      "classification": "access_limited",
+      "references": [
+        "documents/lost-documents [topic sources]",
+        "documents/lost-documents/passport"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/consul/forua/pass/port",
+      "status": 403,
+      "elapsedMs": 29,
+      "classification": "access_limited",
+      "references": [
+        "documents/identity [topic sources]",
+        "documents/identity/passport",
+        "documents/identity/need",
+        "documents/passport [topic sources]",
+        "documents/passport/when",
+        "documents/passport/delivery"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/consul/forua/pass/port/do-16",
+      "status": 403,
+      "elapsedMs": 35,
+      "classification": "access_limited",
+      "references": [
+        "documents/child-documents [topic sources]",
+        "documents/child-documents/passport"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/consul/forua/reg",
+      "status": 403,
+      "elapsedMs": 35,
+      "classification": "access_limited",
+      "references": [
+        "documents/civil-records [topic sources]",
+        "documents/civil-records/foreign",
+        "documents/translations/ukraine"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/consul/forua/reg/services-martial-law",
+      "status": 403,
+      "elapsedMs": 34,
+      "classification": "access_limited",
+      "references": [
+        "documents/civil-records [topic sources]",
+        "documents/civil-records/choose",
+        "documents/civil-records/where",
+        "documents/civil-records/details",
+        "documents/lost-documents [topic sources]",
+        "documents/consulate-austria [topic sources]"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/consul/forua/reg/shlyub",
+      "status": 403,
+      "elapsedMs": 31,
+      "classification": "access_limited",
+      "references": [
+        "documents/name-change [topic sources]",
+        "documents/name-change/proof"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/embassies",
+      "status": 403,
+      "elapsedMs": 29,
+      "classification": "access_limited",
+      "references": [
+        "documents/consulate-austria [topic sources]",
+        "documents/consulates-nearby [topic sources]"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/embassies/avstriyia",
+      "status": 403,
+      "elapsedMs": 38,
+      "classification": "access_limited",
+      "references": [
+        "documents/power-of-attorney [topic sources]",
+        "documents/consulate-austria [topic sources]",
+        "documents/consulate-austria/address"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/embassies/chechiya",
+      "status": 403,
+      "elapsedMs": 45,
+      "classification": "access_limited",
+      "references": [
+        "documents/consulates-nearby/prague"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/embassies/horvatiya",
+      "status": 403,
+      "elapsedMs": 37,
+      "classification": "access_limited",
+      "references": [
+        "documents/consulates-nearby/zagreb"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/embassies/italiya",
+      "status": 403,
+      "elapsedMs": 31,
+      "classification": "access_limited",
+      "references": [
+        "documents/consulates-nearby/milan"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/embassies/nimechchina",
+      "status": 403,
+      "elapsedMs": 35,
+      "classification": "access_limited",
+      "references": [
+        "documents/consulates-nearby/munich"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/embassies/shvejcariya",
+      "status": 200,
+      "elapsedMs": 875,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://mfa.gov.ua/embassies/slovachina",
+      "status": 403,
+      "elapsedMs": 35,
+      "classification": "access_limited",
+      "references": [
+        "documents/consulates-nearby/bratislava"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/embassies/sloveniya",
+      "status": 403,
+      "elapsedMs": 41,
+      "classification": "access_limited",
+      "references": [
+        "documents/consulates-nearby/ljubljana"
+      ]
+    },
+    {
+      "url": "https://mfa.gov.ua/embassies/ugorshchina",
+      "status": 403,
+      "elapsedMs": 30,
+      "classification": "access_limited",
+      "references": [
+        "documents/consulates-nearby/budapest"
+      ]
+    },
+    {
+      "url": "https://nhm-wien.ac.at/information",
+      "classification": "request_failed",
+      "elapsedMs": 175,
+      "error": "TypeError",
+      "references": [
+        "leisure/leisure [topic sources]",
+        "leisure/leisure/museum"
+      ]
+    },
+    {
+      "url": "https://noe.arbeiterkammer.at/beratung/konsumentenschutz/wohnen/eigentum/wohnungskauf_neu.html",
+      "status": 200,
+      "elapsedMs": 464,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://noe.gv.at/noe/Jugend/Kinder-_und_Jugendhilfe.html",
+      "status": 200,
+      "elapsedMs": 547,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://oead.at/de/nach-oesterreich/einreise-und-aufenthalt/aufenthaltsbewilligung-student-kein-mobilitaetsprogramm",
+      "status": 200,
+      "elapsedMs": 749,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://oead.at/en/to-austria/accommodation",
+      "status": 200,
+      "elapsedMs": 437,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://ooe.arbeiterkammer.at/beratung/konsumentenschutz/versichern/Haushaltsversicherung.html",
+      "status": 200,
+      "elapsedMs": 383,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://ooe.arbeiterkammer.at/beratung/konsumentenschutz/versichern/Obliegenheiten-beachten-damit-Versicherung-zahlt.html",
+      "status": 200,
+      "elapsedMs": 239,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://ooe.arbeiterkammer.at/beratung/konsumentenschutz/versichern/Private_Krankenversicherung.html",
+      "status": 200,
+      "elapsedMs": 252,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://ooe.arbeiterkammer.at/beratung/konsumentenschutz/versichern/Private_Unfallversicherung.html",
+      "status": 200,
+      "elapsedMs": 298,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://ooe.arbeiterkammer.at/beratung/konsumentenschutz/versichern/Rechtsschutzversicherung-Preise-und-Leistungen.html",
+      "status": 200,
+      "elapsedMs": 228,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://ooe.arbeiterkammer.at/beratung/wohnen/mieten/Mietkaution.html",
+      "status": 200,
+      "elapsedMs": 224,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://ooe.owr.at/traun/ueber-uns/unsere-ortsstelle/",
+      "status": 200,
+      "elapsedMs": 587,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://owr.at/bundesleitung/ueber-uns/fachbereiche/einsatzdienst/",
+      "status": 200,
+      "elapsedMs": 504,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://pasport.org.ua/centers",
+      "status": 403,
+      "elapsedMs": 259,
+      "classification": "access_limited",
+      "references": [
+        "documents/passport [topic sources]",
+        "documents/passport/where",
+        "documents/ukrainian-id [topic sources]",
+        "documents/ukrainian-id/where",
+        "documents/consulates-nearby [topic sources]"
+      ]
+    },
+    {
+      "url": "https://pflege.gv.at/bs/node/69",
+      "status": 200,
+      "elapsedMs": 300,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://pflege.gv.at/de/hausbesuche-durch-diplomierte-gesundheits-und-krankenpflegepersonen",
+      "status": 200,
+      "elapsedMs": 105,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://pflege.gv.at/de/hauskrankenpflege",
+      "status": 200,
+      "elapsedMs": 99,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://pflege.gv.at/de/kurzzeitpflege-ersatzpflege-und-urlaubspflege",
+      "status": 200,
+      "elapsedMs": 102,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://pflege.gv.at/de/pflege-in-alternativen-wohnformen",
+      "status": 200,
+      "elapsedMs": 44,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://pflege.gv.at/de/pflege-und-betreuung-von-kindern-und-jugendlichen-zu-hause",
+      "status": 200,
+      "elapsedMs": 41,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://pflege.gv.at/de/pflegefreistellung-pflegeteilzeit-und-pflegekarenz",
+      "status": 200,
+      "elapsedMs": 110,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://pflege.gv.at/de/uebergangspflege",
+      "status": 200,
+      "elapsedMs": 110,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://redenwiruebergeld.fma.gv.at/phishing/",
+      "status": 403,
+      "elapsedMs": 224,
+      "classification": "access_limited",
+      "references": [
+        "finances/banking [topic sources]",
+        "finances/banking/security"
+      ]
+    },
+    {
+      "url": "https://ris.bka.gv.at/Dokumente/Bundesnormen/NOR40118719/NOR40118719.html",
+      "status": 200,
+      "elapsedMs": 138,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://salzburg-verkehr.at/",
+      "status": 200,
+      "elapsedMs": 2095,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://schuldenberatung.at/beratungsstellen/",
+      "status": 200,
+      "elapsedMs": 1854,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://sozialministeriumservice.gv.at/Angehoerige/Gleichstellung/Behindertenanwaltschaft/BEHINDERTENANWALT.LL.html",
+      "status": 200,
+      "elapsedMs": 471,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://sozialministeriumservice.gv.at/Menschen_mit_Behinderung/Ausbildung__Beruf_und_Beschaeftigung/Beguenstigte_Behinderte/Beguenstigte_Behinderte.html",
+      "status": 200,
+      "elapsedMs": 335,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://sozialministeriumservice.gv.at/Menschen_mit_Behinderung/Finanzielle_Unterstuetzung/Sonstige_finanzielle_Vorteile/Unterstuetzungsfonds/Unterstuetzungsfonds.de.html",
+      "status": 200,
+      "elapsedMs": 131,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://sozialministeriumservice.gv.at/weitere_Zielgruppen/Sonstige_Massnahmen_und_Projekte/Persoenliche_Assistenz_am_Arbeitsplatz/Persoenliche-Assistenz-am-Arbeitsplatz.de.html",
+      "status": 200,
+      "elapsedMs": 68,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://sprachportal.at/deutsch-lernen/",
+      "status": 200,
+      "elapsedMs": 581,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://studyinaustria.at/de/studium-planen/deutsch-lernen/vorstudienlehrgaenge",
+      "status": 200,
+      "elapsedMs": 384,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://studyinaustria.at/de/studium-planen/studiengebuehr",
+      "status": 200,
+      "elapsedMs": 185,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://studyinaustria.at/en/plan-your-studies/scholarships-funding",
+      "status": 200,
+      "elapsedMs": 113,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://studyinaustria.at/en/studium/oead4refugees/informacija-dlja-studentiv-ta-doslidnikiv-z-ukrajini",
+      "status": 200,
+      "elapsedMs": 192,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://transport.ec.europa.eu/questions-and-answers-new-temporary-eu-rules-ukrainian-driving-documents_en",
+      "status": 200,
+      "elapsedMs": 443,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://vbg.arbeiterkammer.at/mietanbot",
+      "status": 200,
+      "elapsedMs": 410,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://volksanwaltschaft.gv.at/fuer-probleme-mit-behoerden/beschwerdewegweiser/",
+      "status": 200,
+      "elapsedMs": 259,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://vorarlberg.at/-/grundverkehr?article_id=240289",
+      "status": 200,
+      "elapsedMs": 273,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://vorarlberg.at/-/hauskrankenpflege",
+      "status": 200,
+      "elapsedMs": 245,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://vorarlberg.at/-/kinder-und-jugendhilfe",
+      "status": 200,
+      "elapsedMs": 220,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://vorarlberg.at/-/wohnbeihilfe?article_id=83241",
+      "status": 200,
+      "elapsedMs": 213,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://vorarlberg.at/staatsb%C3%BCrgerschaft",
+      "status": 200,
+      "elapsedMs": 468,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://wien.arbeiterkammer.at/beratung/Wohnen/abrechnung/Mietzins.html",
+      "status": 200,
+      "elapsedMs": 466,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://wien.arbeiterkammer.at/beratung/Wohnen/abrechnung/Verbotene_Abloesen.html",
+      "status": 500,
+      "elapsedMs": 160,
+      "classification": "response_error",
+      "references": [
+        "housing/deposit [topic sources]",
+        "housing/deposit/transfer"
+      ]
+    },
+    {
+      "url": "https://wien.arbeiterkammer.at/beratung/Wohnen/miete/Betriebskosten-pruefen-als-Mieter-in.html",
+      "status": 200,
+      "elapsedMs": 315,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://wien.arbeiterkammer.at/beratung/Wohnen/miete/Erhaltungspflicht_des_Vermieters.html",
+      "status": 200,
+      "elapsedMs": 219,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://wohnschirm.at/",
+      "status": 200,
+      "elapsedMs": 288,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.aerztekammer.at/aerztliche-taetigkeit-in-oesterreich",
+      "status": 200,
+      "elapsedMs": 817,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.ages.at/umwelt/wasser/badegewaesser-monitoring",
+      "status": 200,
+      "elapsedMs": 154,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.alpenverein.at/gebirgsverein/service/sicheramberg/bergwandern/index.php",
+      "status": 200,
+      "elapsedMs": 579,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.ams.at/arbeitsuchende/arbeiten-in-oesterreich-und-der-eu/ukraine/ukraine-informationen-deutsch",
+      "status": 200,
+      "elapsedMs": 109,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.ams.at/arbeitsuchende/arbeitslos-was-tun/beratung-im-ams",
+      "status": 200,
+      "elapsedMs": 288,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.ams.at/arbeitsuchende/arbeitslos-was-tun/ihre-meldepflichten",
+      "status": 200,
+      "elapsedMs": 292,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.ams.at/arbeitsuchende/arbeitslos-was-tun/jobsuche-online-und-mobil/ams-jobsuche-hilfe",
+      "status": 200,
+      "elapsedMs": 238,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.ams.at/arbeitsuchende/aus-und-weiterbildung/ausbildungs--und-weiterbildungsdatenbank",
+      "status": 200,
+      "elapsedMs": 296,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.ams.at/arbeitsuchende/aus-und-weiterbildung/so-foerdern-wir-ihre-aus--und-weiterbildung-/aus--und-weiterbildungshilfen",
+      "status": 200,
+      "elapsedMs": 92,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.ams.at/arbeitsuchende/topicliste/online-bewerbung",
+      "status": 200,
+      "elapsedMs": 35,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.ams.at/regionen/osterreichweit/news/2023/04/keine-beschaeftigungsbewilligung-fuer-vertriebene",
+      "status": 200,
+      "elapsedMs": 117,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.apf.gv.at/bahn-fristen",
+      "status": 200,
+      "elapsedMs": 462,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.apf.gv.at/bahn-verspaetung-zugausfall",
+      "status": 200,
+      "elapsedMs": 474,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.apf.gv.at/bus-fahrgastrechte",
+      "status": 200,
+      "elapsedMs": 420,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.apf.gv.at/bus-verspaetung-ausfall",
+      "status": 200,
+      "elapsedMs": 293,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.arbeiterkammer.at/beratung/arbeitundrecht/Arbeitsvertraege/Arbeitsvertrag_und_Dienstzettel.html",
+      "status": 200,
+      "elapsedMs": 218,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.arbeiterkammer.at/beratung/arbeitundrecht/Arbeitsvertraege/So_viel_Lohn_steht_mir_zu.html",
+      "status": 200,
+      "elapsedMs": 189,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.arbeiterkammer.at/beratung/arbeitundrecht/Arbeitszeit/Normalarbeitszeit/Normalarbeitszeit.html",
+      "status": 200,
+      "elapsedMs": 249,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.arbeiterkammer.at/beratung/arbeitundrecht/beendigung/Arbeitgeber-Kuendigung.html",
+      "status": 200,
+      "elapsedMs": 179,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.arbeiterkammer.at/beratung/arbeitundrecht/beendigung/Einvernehmliche_Aufloesung.html",
+      "status": 200,
+      "elapsedMs": 125,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.arbeiterkammer.at/beratung/arbeitundrecht/krankheitundpflege/krankheit/Krankenstand.html",
+      "status": 200,
+      "elapsedMs": 192,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.arbeiterkammer.at/beratung/arbeitundrecht/Urlaub/So_viel_Urlaub_bekommen_Sie.html",
+      "status": 200,
+      "elapsedMs": 176,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.arbeiterkammer.at/beratung/konsument/bauenundwohnen/miete/Miete_reduzieren.html",
+      "status": 200,
+      "elapsedMs": 182,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.arbeiterkammer.at/beratung/konsument/bauenundwohnen/miete/Miete.html",
+      "status": 200,
+      "elapsedMs": 233,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.arbeiterkammer.at/beratung/konsument/bauenundwohnen/miete/Mietpreisbremse.html",
+      "status": 200,
+      "elapsedMs": 124,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.arbeiterkammer.at/beratung/konsument/bauenundwohnen/miete/Mietvertrag.html",
+      "status": 200,
+      "elapsedMs": 154,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.arbeiterkammer.at/beratung/konsument/konsumundeinkauf/kaufundrechte/Gewaehrleistung_ab_1.1.2022.html",
+      "status": 200,
+      "elapsedMs": 171,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.arbeiterkammer.at/beratung/konsument/konsumundeinkauf/kaufundrechte/Recht-auf-Reparatur.html",
+      "status": 200,
+      "elapsedMs": 154,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.arbeiterkammer.at/beratung/konsument/konsumundeinkauf/kaufundrechte/Ruecktrittsrecht.html",
+      "status": 200,
+      "elapsedMs": 182,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.arbeiterkammer.at/beratung/konsument/Versicherungen/versicherung-auswaehlen/Kfz-Versicherung.html",
+      "status": 200,
+      "elapsedMs": 188,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.askoe.at/verband-vereine/vereine",
+      "status": 200,
+      "elapsedMs": 378,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.basg.gv.at/marktbeobachtung/oeffentliche-register",
+      "status": 200,
+      "elapsedMs": 265,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bbu.gv.at/ukraine",
+      "status": 200,
+      "elapsedMs": 1456,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bbu.gv.at/ukraine-info-faq-deutsch",
+      "status": 200,
+      "elapsedMs": 1388,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bbu.gv.at/ukraine-info-faq-ukrainian",
+      "status": 200,
+      "elapsedMs": 1235,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bbu.gv.at/was-wir-tun",
+      "status": 200,
+      "elapsedMs": 1268,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.berufsanerkennung.at/de/beratung/",
+      "status": 404,
+      "elapsedMs": 269,
+      "classification": "missing",
+      "references": [
+        "qualifications/recognition [topic sources]",
+        "qualifications/recognition/advisor",
+        "qualifications/regulated-professions [topic sources]",
+        "qualifications/regulated-professions/route"
+      ]
+    },
+    {
+      "url": "https://www.berufsanerkennung.at/de/berufsanerkennung/anerkennungs-und-bewertungsgesetz/",
+      "status": 404,
+      "elapsedMs": 362,
+      "classification": "missing",
+      "references": [
+        "qualifications/recognition [topic sources]",
+        "qualifications/recognition/missing"
+      ]
+    },
+    {
+      "url": "https://www.berufsanerkennung.at/de/berufsanerkennung/finanzielle-unterstuetzung/",
+      "status": 404,
+      "elapsedMs": 220,
+      "classification": "missing",
+      "references": [
+        "qualifications/recognition [topic sources]",
+        "qualifications/recognition/cost"
+      ]
+    },
+    {
+      "url": "https://www.berufsanerkennung.at/de/berufsanerkennung/verfahren-zur-anerkennung/",
+      "status": 404,
+      "elapsedMs": 215,
+      "classification": "missing",
+      "references": [
+        "qualifications/recognition [topic sources]",
+        "qualifications/recognition/goal",
+        "qualifications/recognition/vocational",
+        "qualifications/regulated-professions [topic sources]",
+        "qualifications/regulated-professions/check",
+        "qualifications/regulated-professions/interim",
+        "qualifications/training [topic sources]"
+      ]
+    },
+    {
+      "url": "https://www.bfa.gv.at/kontakt/",
+      "status": 200,
+      "elapsedMs": 275,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bmb.gv.at/Themen/schule/beratung/ukraine.html",
+      "status": 200,
+      "elapsedMs": 839,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bmeia.gv.at/reise-services/urkunden-und-beglaubigungen/beglaubigung-apostille/",
+      "status": 200,
+      "elapsedMs": 156,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bmeia.gv.at/reise-services/urkunden-und-beglaubigungen/beglaubigung-apostille/kontakt-beglaubigung/",
+      "status": 200,
+      "elapsedMs": 128,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bmf.gv.at/public/informationen/pflichtveranlagung.html",
+      "status": 200,
+      "elapsedMs": 125,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bmf.gv.at/services/finanzonline/anmeldehilfe.html",
+      "status": 200,
+      "elapsedMs": 119,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bmf.gv.at/services/finanzonline/informationen-fuer-buerger/einstiegsinformationen.html",
+      "status": 404,
+      "elapsedMs": 1436,
+      "classification": "missing",
+      "references": [
+        "digital/online-services [topic sources]",
+        "digital/online-services/finance"
+      ]
+    },
+    {
+      "url": "https://www.bmf.gv.at/themen/steuern/arbeitnehmerveranlagung/verfahren-arbeitnehmerinnenveranlagung/verfahren-beim-finanzamt.html",
+      "status": 200,
+      "elapsedMs": 1518,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bmf.gv.at/themen/steuern/arbeitnehmerveranlagung/was-kann-ich-geltend-machen/werbungskosten/werbungskosten-ueberblick.html",
+      "status": 200,
+      "elapsedMs": 1534,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bmf.gv.at/themen/steuern/fristen-verfahren/beschwerde-zahlungserleichterung-nachsicht.html",
+      "status": 200,
+      "elapsedMs": 55,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bmf.gv.at/themen/steuern/internationales-steuerrecht/doppelbesteuerungsabkommen/dba-liste.html",
+      "status": 200,
+      "elapsedMs": 1442,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bmfwf.gv.at/erwachsenenbildung/bb.html",
+      "status": 200,
+      "elapsedMs": 189,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bmfwf.gv.at/wissenschaft/anerkennung/abschluss_beruf.html",
+      "status": 200,
+      "elapsedMs": 430,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bmfwf.gv.at/wissenschaft/anerkennung/nostrifizierung.html",
+      "status": 200,
+      "elapsedMs": 413,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bmi.gv.at/news52f3.html?id=2b2b5069366874715551633d",
+      "status": 200,
+      "elapsedMs": 108,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bmi.gv.at/ukraine/erfassung_und_aufenthalt.html",
+      "status": 200,
+      "elapsedMs": 161,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bmi.gv.at/ukraine/informationen_zum_umstieg_auf_eine_rot-_weiss_rot_karte_plus.html",
+      "status": 200,
+      "elapsedMs": 42,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bmi.gv.at/ukraine/sonstige_fragen.html",
+      "status": 200,
+      "elapsedMs": 100,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bmi.gv.at/ukraine/suche_unterkunft.html",
+      "status": 200,
+      "elapsedMs": 31,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bmimi.gv.at/themen/mobilitaet/transport/nahverkehr/verkehrsverbuende/verbundtarife/modelle.html",
+      "status": 200,
+      "elapsedMs": 1406,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bmimi.gv.at/themen/mobilitaet/transport/personen_gueter/recht/gelegenheitsverkehr.html",
+      "status": 200,
+      "elapsedMs": 1808,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bundeskanzleramt.gv.at/agenda/familie/begleitung-beratung-hilfe/kinder-und-jugendhilfe/mitteilungspflichten.html",
+      "status": 200,
+      "elapsedMs": 121,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bundeskanzleramt.gv.at/agenda/familie/begleitung-beratung-hilfe/kinder-und-jugendhilfe/traeger-kinder-jugendhilfe.html",
+      "status": 200,
+      "elapsedMs": 293,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bundeskriminalamt.at/212/internet/phishing_smishing.html",
+      "status": 200,
+      "elapsedMs": 309,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bundeskriminalamt.at/212/wie_erstatte_ich_anzeige/start.html",
+      "status": 200,
+      "elapsedMs": 193,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.burgenland.at/service/service-und-beratungsstellen/staatsbuergerschaft/",
+      "status": 200,
+      "elapsedMs": 184,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.burgenland.at/themen/wohnen/wohnbeihilfe-1/",
+      "status": 200,
+      "elapsedMs": 381,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.burgenland.at/verwaltung/bezirksverwaltungsbehoerden/",
+      "status": 200,
+      "elapsedMs": 88,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.burgenland.at/verwaltung/landesverwaltung-im-ueberblick/gruppe-3/abteilung-6-soziales-und-pflege/hauptreferat-soziales/referat-kinder-und-jugendhilfe/",
+      "status": 200,
+      "elapsedMs": 42,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.bvoe.at/oeffentliche-bibliotheken/bibliotheksadressen",
+      "status": 200,
+      "elapsedMs": 248,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.digitalaustria.gv.at/kompetenzen/digital-ueberall-angebote.html",
+      "status": 200,
+      "elapsedMs": 238,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.e-control.at/konsumenten/wie-uebersiedeln",
+      "status": 200,
+      "elapsedMs": 389,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.familienberatung.gv.at/",
+      "status": 200,
+      "elapsedMs": 399,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.familienberatung.gv.at/faq.html",
+      "status": 200,
+      "elapsedMs": 349,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.familienberatung.gv.at/was-ist-onlineberatung.html",
+      "status": 200,
+      "elapsedMs": 343,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.fma.gv.at/konto/basiskonto/",
+      "status": 403,
+      "elapsedMs": 335,
+      "classification": "access_limited",
+      "references": [
+        "finances/banking [topic sources]",
+        "finances/banking/compare",
+        "finances/banking/eligible",
+        "finances/banking/apply",
+        "finances/banking/cost",
+        "finances/banking/refusal"
+      ]
+    },
+    {
+      "url": "https://www.frauenhelpline.at/de/unsere-sprachen",
+      "status": 200,
+      "elapsedMs": 1059,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.freiwillig-engagiert.at/jetzt-engagieren",
+      "status": 200,
+      "elapsedMs": 1449,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.freiwilligenweb.at/freiwilligenorganisationen/",
+      "status": 200,
+      "elapsedMs": 285,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.freiwilligenweb.at/freiwilliges-engagement/freiwilligen-nachweis/",
+      "status": 200,
+      "elapsedMs": 216,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.freiwilligenweb.at/freiwilliges-engagement/rechtliche-rahmenbedingungen/",
+      "status": 200,
+      "elapsedMs": 697,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.freiwilligenweb.at/nuetzliches/freiwilligenzentren/",
+      "status": 200,
+      "elapsedMs": 734,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.fsw.at/p/pflege-betreuung",
+      "status": 200,
+      "elapsedMs": 421,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/gesundheitsleistungen/arztbesuch/e-card/",
+      "status": 200,
+      "elapsedMs": 314,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/gesundheitsleistungen/arztbesuch/patientenrechte.html",
+      "status": 200,
+      "elapsedMs": 264,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/gesundheitsleistungen/arztbesuch/ueberweisung-facharzt1.html",
+      "status": 200,
+      "elapsedMs": 80,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/gesundheitsleistungen/arztbesuch/wahlarzt-kosten.html",
+      "status": 200,
+      "elapsedMs": 355,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/gesundheitsleistungen/berufe/gesundheitsberufe-a-z/hebammen/hebammen.html",
+      "status": 200,
+      "elapsedMs": 307,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/gesundheitsleistungen/berufe/gesundheitsberufe-a-z/medizinisch-therapeutisch-diagnostische-gesundheitsberufe/physiotherapeut.html",
+      "status": 200,
+      "elapsedMs": 31,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/gesundheitsleistungen/berufe/gesundheitsberufe-a-z/psychologische-berufe/klinische-psychologie.html",
+      "status": 200,
+      "elapsedMs": 92,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/gesundheitsleistungen/berufe/gesundheitsberufe-a-z/psychotherapie/psychotherapeut.html",
+      "status": 200,
+      "elapsedMs": 247,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/gesundheitsleistungen/elga/e-medikation.html",
+      "status": 200,
+      "elapsedMs": 30,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/gesundheitsleistungen/elga/elga-login-teilnahme.html",
+      "status": 200,
+      "elapsedMs": 173,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/gesundheitsleistungen/gesundheitsberuferegister.html",
+      "status": 200,
+      "elapsedMs": 32,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/gesundheitsleistungen/heilbehelfe-hilfsmittel.html",
+      "status": 200,
+      "elapsedMs": 32,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/gesundheitsleistungen/krankenhausaufenthalt/selbstbehalt-krankenhaus/",
+      "status": 200,
+      "elapsedMs": 315,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/gesundheitsleistungen/medikamente/gebrauchsinformation.html",
+      "status": 200,
+      "elapsedMs": 320,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/gesundheitsleistungen/medikamente/online-apotheke.html",
+      "status": 200,
+      "elapsedMs": 290,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/gesundheitsleistungen/medikamente/rezept1.html",
+      "status": 200,
+      "elapsedMs": 82,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/krankheiten/erste-hilfe/wiederbelebung-erwachsene.html",
+      "status": 200,
+      "elapsedMs": 31,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/krankheiten/vergiftungsinformation/vergiftung-gefahren-haushalt.html",
+      "status": 200,
+      "elapsedMs": 48,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/krankheiten/vergiftungsinformation/vergiftung-kohlenmonoxid.html",
+      "status": 200,
+      "elapsedMs": 30,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/krankheiten/vergiftungsinformation/vergiftung-vorgehen-notfall.html",
+      "status": 200,
+      "elapsedMs": 177,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/leben/altern/ernaehrung-im-alter/mangelernaehrung-senioren.html",
+      "status": 200,
+      "elapsedMs": 284,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/leben/altern/wohnen-im-alter/sicherheit.html",
+      "status": 200,
+      "elapsedMs": 276,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/leben/eltern/eltern-kind-pass/eltern-kind-pass-untersuchungen.html",
+      "status": 200,
+      "elapsedMs": 279,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/leben/eltern/eltern-kind-pass/kindesuntersuchungen.html",
+      "status": 200,
+      "elapsedMs": 274,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/leben/eltern/eltern-kind-pass/untersuchungen-schwangerschaft.html",
+      "status": 200,
+      "elapsedMs": 252,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/leben/eltern/geburt/spitalsgeburt-hausgeburt.html",
+      "status": 200,
+      "elapsedMs": 279,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/leben/gesundheitsvorsorge/impfungen.html",
+      "status": 200,
+      "elapsedMs": 241,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/leben/gesundheitsvorsorge/impfungen/kinderimpfungen.html",
+      "status": 200,
+      "elapsedMs": 33,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/leben/gesundheitsvorsorge/impfungen/ueberblick/grippe.html?utm_source=chatgpt.com",
+      "status": 200,
+      "elapsedMs": 360,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/leben/gesundheitsvorsorge/vorsorgeuntersuchung/was-wird-gemacht.html",
+      "status": 200,
+      "elapsedMs": 52,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/leben/lebenswelt/schule/schulpsychologie/gewalt-mobbing-vorbeugen.html",
+      "status": 200,
+      "elapsedMs": 259,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/leben/lebenswelt/soziale-netzwerke/einsamkeit-ursachen-bewaeltigung.html",
+      "status": 200,
+      "elapsedMs": 293,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/leben/psyche-seele/krisenintervention/krisenhilfe.html",
+      "status": 200,
+      "elapsedMs": 33,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/leben/suizidpraevention/angehoerige/was-soll-ich-tun.html",
+      "status": 200,
+      "elapsedMs": 179,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/leben/suizidpraevention/anlaufstellen/notrufnummern.html",
+      "status": 200,
+      "elapsedMs": 32,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/leben/suizidpraevention/betroffene/erste-hilfe.html",
+      "status": 200,
+      "elapsedMs": 203,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/service/beratungsstellen/gesund-leben/gesunde-lebenswelten/hilfe-bei-schulangst.html",
+      "status": 200,
+      "elapsedMs": 196,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/service/beratungsstellen/gesund-leben/psyche-seele/psychotherapie-adressen.html",
+      "status": 200,
+      "elapsedMs": 209,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/service/beratungsstellen/gesundheitssystem/patientenrechte/patientenanwaltschaft.html",
+      "status": 200,
+      "elapsedMs": 212,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/service/gesundheitssuche.html",
+      "status": 200,
+      "elapsedMs": 192,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/service/gesundheitssuche/apothekensuche.html",
+      "status": 200,
+      "elapsedMs": 219,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/service/gesundheitssuche/arztsuche/",
+      "status": 200,
+      "elapsedMs": 180,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/service/gesundheitssuche/kliniksuche.html",
+      "status": 200,
+      "elapsedMs": 196,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/service/gesundheitssuche/sozialversicherungstraeger.html",
+      "status": 200,
+      "elapsedMs": 54,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/service/notruf/aerztenotdienst.html",
+      "status": 200,
+      "elapsedMs": 32,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.gv.at/service/notruf/hotline.html",
+      "status": 200,
+      "elapsedMs": 50,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gesundheit.steiermark.at/cms/ziel/175114581/DE/",
+      "status": 200,
+      "elapsedMs": 410,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gewaltinfo.at/hilfe-finden/wer-bietet-hilfe-und-unterstuetzung-an/krankenhaeuser--aerzte-und-aerztinnen.html",
+      "status": 200,
+      "elapsedMs": 582,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gewaltinfo.at/recht/mitteilungspflicht-an-die-kinder-und-jugendhilfe.html",
+      "status": 200,
+      "elapsedMs": 205,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gewaltschutzzentrum.at/burgenland/",
+      "status": 200,
+      "elapsedMs": 366,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gewaltschutzzentrum.at/kaernten/",
+      "status": 200,
+      "elapsedMs": 364,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gewaltschutzzentrum.at/niederoesterreich/",
+      "status": 200,
+      "elapsedMs": 1392,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gewaltschutzzentrum.at/oberoesterreich/",
+      "status": 200,
+      "elapsedMs": 194,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gewaltschutzzentrum.at/salzburg/",
+      "status": 200,
+      "elapsedMs": 1414,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gewaltschutzzentrum.at/steiermark/",
+      "status": 200,
+      "elapsedMs": 1399,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gewaltschutzzentrum.at/tirol/",
+      "status": 200,
+      "elapsedMs": 1391,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gewaltschutzzentrum.at/uk/%D0%B7%D0%B0%D0%B3%D0%B0%D0%BB%D1%8C%D0%BD%D1%96-%D0%BA%D0%BE%D0%BD%D1%81%D1%83%D0%BB%D1%8C%D1%82%D0%B0%D1%86%D1%96%D1%97-%D1%82%D0%B0-%D0%BF%D1%96%D0%B4%D1%82%D1%80%D0%B8%D0%BC%D0%BA%D0%B0/",
+      "status": 200,
+      "elapsedMs": 768,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gewaltschutzzentrum.at/vorarlberg/",
+      "status": 200,
+      "elapsedMs": 437,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gewaltschutzzentrum.at/wien/",
+      "status": 200,
+      "elapsedMs": 421,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gleichbehandlungsanwaltschaft.gv.at/unser-angebot/beratung-und-unterstuetzung.html",
+      "status": 200,
+      "elapsedMs": 748,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.gleichbehandlungsanwaltschaft.gv.at/unser-angebot/diskriminierung-was-kann-ich-tun.html",
+      "status": 200,
+      "elapsedMs": 85,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.hungeraufkunstundkultur.at/",
+      "status": 200,
+      "elapsedMs": 540,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.id-austria.gv.at/de/hilfe/hilfe-zur-app-ida/smartphone-anmelden-in-der-app-id-austria",
+      "status": 200,
+      "elapsedMs": 207,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.id-austria.gv.at/de/verwalten",
+      "status": 200,
+      "elapsedMs": 303,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.immobilienscout24.at/",
+      "status": 401,
+      "elapsedMs": 205,
+      "classification": "response_error",
+      "references": [
+        "housing/find-rental [topic sources]"
+      ]
+    },
+    {
+      "url": "https://www.integration.at/angebote/integrationsmassnahmen/deutsch-lernen/deutschkurse/deutschkurs-anmeldung/",
+      "status": 200,
+      "elapsedMs": 211,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.integration.at/themen/ukraine/",
+      "status": 200,
+      "elapsedMs": 1616,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.integrationsfonds.at/angebote/integrationsmassnahmen/deutsch-lernen/deutschkurse/",
+      "status": 200,
+      "elapsedMs": 260,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.integrationsfonds.at/angebote/integrationsmassnahmen/frauen/",
+      "status": 200,
+      "elapsedMs": 183,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.integrationsfonds.at/der-oeif/standorte/burgenland/",
+      "status": 200,
+      "elapsedMs": 168,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.integrationsfonds.at/der-oeif/standorte/kaernten/",
+      "status": 200,
+      "elapsedMs": 105,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.integrationsfonds.at/der-oeif/standorte/niederoesterreich/",
+      "status": 200,
+      "elapsedMs": 101,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.integrationsfonds.at/der-oeif/standorte/oberoesterreich/",
+      "status": 200,
+      "elapsedMs": 75,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.integrationsfonds.at/der-oeif/standorte/salzburg/",
+      "status": 200,
+      "elapsedMs": 37,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.integrationsfonds.at/der-oeif/standorte/steiermark/",
+      "status": 200,
+      "elapsedMs": 30,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.integrationsfonds.at/der-oeif/standorte/tirol/",
+      "status": 200,
+      "elapsedMs": 32,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.integrationsfonds.at/der-oeif/standorte/uebersicht-standorte/",
+      "status": 200,
+      "elapsedMs": 1069,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.integrationsfonds.at/der-oeif/standorte/vorarlberg/",
+      "status": 200,
+      "elapsedMs": 87,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.integrationsfonds.at/der-oeif/standorte/wien/",
+      "status": 200,
+      "elapsedMs": 90,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.integrationsfonds.at/der-oeif/termine/",
+      "status": 200,
+      "elapsedMs": 1378,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.justiz.gv.at/service/familienrecht/obsorge-und-kontaktrecht/familiengerichtshilfe.fed.de.html",
+      "status": 200,
+      "elapsedMs": 522,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.kaerntner-linien.at/",
+      "status": 200,
+      "elapsedMs": 851,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.klimaticket.at/gueltigkeitskarte/",
+      "status": 200,
+      "elapsedMs": 849,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.ktn.gv.at/Service/Formulare-und-Leistungen/BW-L58",
+      "status": 200,
+      "elapsedMs": 125,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.ktn.gv.at/Service/Formulare-und-Leistungen/GS-L69",
+      "status": 200,
+      "elapsedMs": 1718,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.ktn.gv.at/Themen-AZ/Uebersicht?subthema=180&thema=131",
+      "status": 200,
+      "elapsedMs": 1777,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.ktn.gv.at/Verwaltung/Amt-der-Kaerntner-Landesregierung/Abteilung-1/Organisation?oid=2000082",
+      "status": 200,
+      "elapsedMs": 1851,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.ktn.gv.at/Verwaltung/Amt-der-Kaerntner-Landesregierung/Abteilung-10",
+      "status": 200,
+      "elapsedMs": 501,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.land-oberoesterreich.gv.at/17097.htm",
+      "status": 200,
+      "elapsedMs": 226,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.land-oberoesterreich.gv.at/19992.htm",
+      "status": 200,
+      "elapsedMs": 139,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.land-oberoesterreich.gv.at/89565.htm",
+      "status": 200,
+      "elapsedMs": 87,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.land-oberoesterreich.gv.at/wohnbeihilfe.htm",
+      "status": 200,
+      "elapsedMs": 38,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.migration.gv.at/?id=34",
+      "status": 200,
+      "elapsedMs": 183,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.migration.gv.at/de/formen-der-zuwanderung/dauerhafte-zuwanderung/familienzusammenfuehrung/",
+      "status": 200,
+      "elapsedMs": 113,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.migration.gv.at/de/formen-der-zuwanderung/dauerhafte-zuwanderung/rotweirotkarteplus/",
+      "status": 200,
+      "elapsedMs": 80,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.migration.gv.at/de/formen-der-zuwanderung/temporaerer-aufenthalt/",
+      "status": 200,
+      "elapsedMs": 39,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.nationalparksaustria.at/de/bleib-fair.html",
+      "status": 200,
+      "elapsedMs": 1033,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.nationalparksaustria.at/de/natur-erleben.html",
+      "status": 200,
+      "elapsedMs": 857,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.noe.gv.at/noe/Kaufen-Verkaufen/Kaufen_Verkaufen.html",
+      "status": 200,
+      "elapsedMs": 425,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.noe.gv.at/noe/Persoenliche-Ausweise-Dokumente/Staatsbuergerschaft.html",
+      "status": 200,
+      "elapsedMs": 155,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.noe.gv.at/noe/Pflege/Pflegehotline.html",
+      "status": 200,
+      "elapsedMs": 499,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.noe.gv.at/noe/Wohnen-Leben/Foerd_Wohnzuschuss_Wohnbeihilfe.html",
+      "status": 200,
+      "elapsedMs": 120,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oeadstudenthousing.at/en/",
+      "status": 200,
+      "elapsedMs": 311,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oebb.at/de/fahrplan/fahrplanauskunft/scottymobil",
+      "status": 200,
+      "elapsedMs": 115,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oebb.at/de/fragen-und-antworten/tickets-kaufen/online-mobile-ticketing/tickets-buchungen",
+      "status": 200,
+      "elapsedMs": 143,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oebb.at/de/reiseplanung-services/barrierefrei-reisen/mobilitaetsservice",
+      "status": 200,
+      "elapsedMs": 80,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oebb.at/de/tickets-kundenkarten/oesterreich-europa/sparschiene",
+      "status": 200,
+      "elapsedMs": 96,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oebb.at/de/tickets-kundenkarten/oesterreich-europa/verbundtickets",
+      "status": 200,
+      "elapsedMs": 33,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oegk.at/cdscontent/?contentid=10007.867315&portal=oegkportal",
+      "status": 200,
+      "elapsedMs": 202,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oegk.at/cdscontent/?contentid=10007.867502",
+      "status": 200,
+      "elapsedMs": 171,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oegk.at/cdscontent/?contentid=10007.870136&portal=oegkportal",
+      "status": 200,
+      "elapsedMs": 200,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oegk.at/cdscontent/?contentid=10007.870435&portal=oegkportal",
+      "status": 200,
+      "elapsedMs": 222,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oegk.at/cdscontent/?contentid=10007.870502",
+      "status": 200,
+      "elapsedMs": 265,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oegk.at/cdscontent/?contentid=10007.884366&portal=oegkportal",
+      "status": 200,
+      "elapsedMs": 238,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oegk.at/cdscontent/?contentid=10007.905085",
+      "status": 200,
+      "elapsedMs": 235,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oegk.at/cdscontent/?contentid=10007.907080",
+      "status": 200,
+      "elapsedMs": 207,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oegk.at/cdscontent/?contentid=10007.913304&portal=oegkportal",
+      "status": 200,
+      "elapsedMs": 108,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/dam/jcr%3Ad0c97509-1a04-4b5a-8626-8a5f9e6b4b39/Meldezettel_2023_ausfuellbar.pdf",
+      "status": 200,
+      "elapsedMs": 144,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/digitalservices",
+      "status": 200,
+      "elapsedMs": 146,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/Gesetzliche-Neuerungen/Beschluss-des-Nationalrates/flag-ua",
+      "status": 404,
+      "elapsedMs": 130,
+      "classification": "missing",
+      "references": [
+        "social-support/family-benefits [topic sources]"
+      ]
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/hilfe/Die-elektronische-Zustellung-und-Mein-Postkorb",
+      "status": 200,
+      "elapsedMs": 111,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/hilfe/Hilfe-zu-oesterreich.gv.at/Digitale-Amtsservices-",
+      "status": 200,
+      "elapsedMs": 105,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/kontakt",
+      "status": 200,
+      "elapsedMs": 360,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/landingpages/pdf_signatur_services",
+      "status": 200,
+      "elapsedMs": 1069,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/landingpages/urkunden",
+      "status": 200,
+      "elapsedMs": 104,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/lebenslagen/Ich-m%C3%B6chte-als-ausl%C3%A4ndischer-staatsb%C3%BCrger-in-%C3%B6sterreich-bleiben/EU-B%C3%BCrger_Angeh%C3%B6rige",
+      "status": 200,
+      "elapsedMs": 52,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/lebenslagen/Ich-wohne-bald-in-einem-neuen-Zuhause/Nach-dem-Umzug",
+      "status": 200,
+      "elapsedMs": 43,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/lebenslagen/Ich-wohne-bald-in-einem-neuen-Zuhause/Vor-dem-Umzug",
+      "status": 200,
+      "elapsedMs": 998,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/lexicon/F/Seite.991113",
+      "status": 200,
+      "elapsedMs": 43,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/lexicon/G/Seite.990083",
+      "status": 200,
+      "elapsedMs": 946,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/orgsearch",
+      "status": 200,
+      "elapsedMs": 68,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/arbeit_beruf_und_pension/pension/1/1/Seite.270102",
+      "status": 200,
+      "elapsedMs": 271,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/bauen/3/Seite.2260403",
+      "status": 200,
+      "elapsedMs": 48,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/bauen/3/Seite.2260404",
+      "status": 200,
+      "elapsedMs": 138,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/bauen/3/Seite.2260405",
+      "status": 200,
+      "elapsedMs": 99,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/bauen/3/Seite.2260406",
+      "status": 200,
+      "elapsedMs": 50,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/bauen/3/Seite.2260407",
+      "status": 200,
+      "elapsedMs": 125,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/bauen/3/Seite.2260408",
+      "status": 200,
+      "elapsedMs": 107,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/bauen/3/Seite.2260409",
+      "status": 200,
+      "elapsedMs": 51,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/bauen/3/Seite.2260410",
+      "status": 200,
+      "elapsedMs": 505,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/bauen/3/Seite.2260411",
+      "status": 200,
+      "elapsedMs": 41,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/grundstueckskauf_und_grundbuch/grundbuch/Seite.600420",
+      "status": 200,
+      "elapsedMs": 121,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/grundstueckskauf_und_grundbuch/grundstueckskauf/1/Seite.200041",
+      "status": 200,
+      "elapsedMs": 94,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/grundstueckskauf_und_grundbuch/grundstueckskauf/3/Seite.200054",
+      "status": 200,
+      "elapsedMs": 55,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/wohnen/1/Seite.210470",
+      "status": 200,
+      "elapsedMs": 197,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/wohnen/3/1/Seite.210222",
+      "status": 200,
+      "elapsedMs": 47,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/wohnen/3/2/Seite.210219",
+      "status": 200,
+      "elapsedMs": 189,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/wohnen/3/Seite.210215",
+      "status": 200,
+      "elapsedMs": 51,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/wohnen/3/Seite.210281",
+      "status": 200,
+      "elapsedMs": 51,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/wohnen/8/3/Seite.210172",
+      "status": 200,
+      "elapsedMs": 537,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/wohnen/Seite.210010",
+      "status": 200,
+      "elapsedMs": 463,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/wohnen/Seite.210250",
+      "status": 200,
+      "elapsedMs": 54,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bildung_und_ausbildung/hochschulen/universitaet/Anerkennung_Lernleistungen",
+      "status": 200,
+      "elapsedMs": 49,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bildung_und_ausbildung/schulen/4/Seite.110031",
+      "status": 200,
+      "elapsedMs": 1475,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bildung_und_ausbildung/schulen/Seite.110002",
+      "status": 200,
+      "elapsedMs": 899,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bildung_und_ausbildung/schulen/Seite.110005",
+      "status": 200,
+      "elapsedMs": 49,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/bildung_und_ausbildung/schulen/sommerschule",
+      "status": 200,
+      "elapsedMs": 63,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/egovernment_moderne_verwaltung/Elektronische-Zustellung/ablauf-der-zustellung-%C3%BCber-meinpostkorb",
+      "status": 200,
+      "elapsedMs": 1193,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/familie_und_partnerschaft/familie-und-kinderfuersorge/kinderbetreuung/2/Seite.370110",
+      "status": 200,
+      "elapsedMs": 53,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/familie_und_partnerschaft/familie-und-kinderfuersorge/kinderbetreuung/2/Seite.370130",
+      "status": 200,
+      "elapsedMs": 376,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/familie_und_partnerschaft/familie-und-kinderfuersorge/kinderbetreuung/2/Seite.370140",
+      "status": 200,
+      "elapsedMs": 1555,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/familie_und_partnerschaft/familie-und-kinderfuersorge/kinderbetreuung/Seite.370300",
+      "status": 200,
+      "elapsedMs": 56,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/familie_und_partnerschaft/familienbeihilfe/Seite.450233",
+      "status": 200,
+      "elapsedMs": 59,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/familie_und_partnerschaft/finanzielle-unterstuetzungen/3/2/2",
+      "status": 200,
+      "elapsedMs": 1780,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/familie_und_partnerschaft/finanzielle-unterstuetzungen/3/2/2/Seite.080643",
+      "status": 200,
+      "elapsedMs": 613,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/familie_und_partnerschaft/finanzielle-unterstuetzungen/3/2/Seite.080613",
+      "status": 200,
+      "elapsedMs": 703,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/familie_und_partnerschaft/finanzielle-unterstuetzungen/6/Seite.080750",
+      "status": 200,
+      "elapsedMs": 50,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/familie_und_partnerschaft/geburt-eines-kindes/1/Seite.080055",
+      "status": 200,
+      "elapsedMs": 58,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/familie_und_partnerschaft/geburt-eines-kindes/3/1/Seite.080800",
+      "status": 200,
+      "elapsedMs": 779,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/familie_und_partnerschaft/geburt-eines-kindes/3/1/Seite.085100",
+      "status": 200,
+      "elapsedMs": 695,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/gesetze_und_recht/buergerservice_rechtsauskuenfte/Seite.980300",
+      "status": 200,
+      "elapsedMs": 644,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/gesetze_und_recht/erwachsenenvertretung_und_vorsorgevollmacht",
+      "status": 200,
+      "elapsedMs": 188,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/gesetze_und_recht/erwachsenenvertretung_und_vorsorgevollmacht/4",
+      "status": 200,
+      "elapsedMs": 86,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/gesetze_und_recht/gerichtsorganisation_der_justiz/zivilrecht/1/1/Seite.1010144",
+      "status": 200,
+      "elapsedMs": 807,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/gesetze_und_recht/gerichtsorganisation_der_justiz/zivilrecht/2/Seite.1010330",
+      "status": 200,
+      "elapsedMs": 103,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/gesetze_und_recht/verwaltungsgerichtsbarkeit/Seite.3130005",
+      "status": 200,
+      "elapsedMs": 1692,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/gesundheit/patientenrechte/3",
+      "status": 200,
+      "elapsedMs": 176,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/gesundheit/selbstversicherung_in_der_krankenversicherung",
+      "status": 200,
+      "elapsedMs": 47,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/hilfe_und_finanzielle_unterstuetzung_erhalten/2/Seite.1694100",
+      "status": 200,
+      "elapsedMs": 59,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/hilfe_und_finanzielle_unterstuetzung_erhalten/2/Seite.1694300",
+      "status": 200,
+      "elapsedMs": 791,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/hilfe_und_finanzielle_unterstuetzung_erhalten/3/Seite.1693900",
+      "status": 200,
+      "elapsedMs": 113,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/hilfe_und_finanzielle_unterstuetzung_erhalten/4/Seite.1693906",
+      "status": 200,
+      "elapsedMs": 101,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/hilfe_und_finanzielle_unterstuetzung_erhalten/4/Seite.1693912",
+      "status": 200,
+      "elapsedMs": 56,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/hilfe_und_finanzielle_unterstuetzung_erhalten/4/Seite.1693914",
+      "status": 200,
+      "elapsedMs": 147,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/hilfe_und_finanzielle_unterstuetzung_erhalten/melde-und-beratungsstellen-in-oesterreich/melde__und_beratungsstellen",
+      "status": 200,
+      "elapsedMs": 94,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/hilfe_und_finanzielle_unterstuetzung_erhalten/ombudsstellen_und_anwaltschaften/Seite.3240006",
+      "status": 200,
+      "elapsedMs": 159,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/hilfe_und_finanzielle_unterstuetzung_erhalten/unterstuetzungen_fuer_verbrechensopfer/1",
+      "status": 200,
+      "elapsedMs": 162,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/asyl-in-oesterreich/Seite.3210001",
+      "status": 200,
+      "elapsedMs": 46,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/asyl-in-oesterreich/Seite.3210002",
+      "status": 200,
+      "elapsedMs": 129,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/aufenthalt/1/Seite.120830",
+      "status": 200,
+      "elapsedMs": 82,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/aufenthalt/3/1/Seite.120223",
+      "status": 200,
+      "elapsedMs": 304,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/aufenthalt/3/2/1/1/Seite.120121",
+      "status": 200,
+      "elapsedMs": 282,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/aufenthalt/3/2/2/Seite.120229",
+      "status": 200,
+      "elapsedMs": 51,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/aufenthalt/3/2/Familienzusammenf%C3%BChrung-zu-international-Schutzberechtigten----Rot-Wei%C3%9F-Rot-%E2%80%93-Karte-plus--%E2%80%93-Antrag-%28%C2%A7-46a-NAG%29",
+      "status": 404,
+      "elapsedMs": 48,
+      "classification": "missing",
+      "references": [
+        "residence/international-protection [topic sources]",
+        "residence/international-protection/family"
+      ]
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/aufenthalt/3/2/Seite.120402",
+      "status": 200,
+      "elapsedMs": 162,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/aufenthalt/3/Seite.120221",
+      "status": 200,
+      "elapsedMs": 196,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/aufenthalt/3/Seite.120500",
+      "status": 200,
+      "elapsedMs": 187,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/aufenthalt/Informationen-f%C3%BCr-ukrainische-Staatsangeh%C3%B6rige",
+      "status": 200,
+      "elapsedMs": 2020,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/staatsbuergerschaft",
+      "status": 200,
+      "elapsedMs": 57,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/staatsbuergerschaft/1/Seite.260421",
+      "status": 200,
+      "elapsedMs": 54,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/staatsbuergerschaft/1/Verleihung-nach-zehn-Jahren",
+      "status": 200,
+      "elapsedMs": 95,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/staatsbuergerschaft/1/Vorzeitige-Verleihung-nach-sechs-Jahren",
+      "status": 200,
+      "elapsedMs": 1883,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/staatsbuergerschaft/Seite.260430",
+      "status": 200,
+      "elapsedMs": 97,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/staatsbuergerschaft/Staatsbuergerschaft-minderjaehriges-Kind",
+      "status": 200,
+      "elapsedMs": 1721,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/visum_fuer_oesterreich/Seite.3550020",
+      "status": 200,
+      "elapsedMs": 50,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/mobilitaet/kfz/10/kraftfahrzeuge-von-vertriebenen-aus-der-ukraine",
+      "status": 200,
+      "elapsedMs": 210,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/mobilitaet/klimaticket",
+      "status": 200,
+      "elapsedMs": 533,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/hilfe-bei-gewalt/2",
+      "status": 200,
+      "elapsedMs": 55,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/hilfe-bei-gewalt/3/Seite.290114",
+      "status": 200,
+      "elapsedMs": 75,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/hilfe-bei-gewalt/5/Seite.299420",
+      "status": 200,
+      "elapsedMs": 47,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/katastrophenfaelle/1",
+      "status": 200,
+      "elapsedMs": 50,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/katastrophenfaelle/1/Seite.29500321",
+      "status": 200,
+      "elapsedMs": 1055,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/katastrophenfaelle/1/Seite.29500322",
+      "status": 200,
+      "elapsedMs": 82,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/katastrophenfaelle/1/Seite.29500323",
+      "status": 200,
+      "elapsedMs": 46,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/katastrophenfaelle/1/Seite.29500324",
+      "status": 200,
+      "elapsedMs": 152,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/katastrophenfaelle/1/Seite.29500326",
+      "status": 200,
+      "elapsedMs": 1296,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/katastrophenfaelle/1/Seite.29500329",
+      "status": 200,
+      "elapsedMs": 183,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/notrufnummern",
+      "status": 200,
+      "elapsedMs": 958,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/sicherheit_fuer_senioren/1",
+      "status": 200,
+      "elapsedMs": 46,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/unfall/4/Seite.2892001",
+      "status": 200,
+      "elapsedMs": 52,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/verloren_gefunden/Seite.623100",
+      "status": 200,
+      "elapsedMs": 98,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/verloren_gefunden/Seite.625000",
+      "status": 200,
+      "elapsedMs": 57,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/vermisst/Seite.2970010",
+      "status": 200,
+      "elapsedMs": 47,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/persoenliche_dokumente_und_bestaetigungen/an__abmeldung_des_wohnsitzes/Seite.1180200",
+      "status": 200,
+      "elapsedMs": 76,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/persoenliche_dokumente_und_bestaetigungen/an__abmeldung_des_wohnsitzes/Seite.1180210",
+      "status": 200,
+      "elapsedMs": 50,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/persoenliche_dokumente_und_bestaetigungen/an__abmeldung_des_wohnsitzes/Seite.1180220",
+      "status": 200,
+      "elapsedMs": 51,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/persoenliche_dokumente_und_bestaetigungen/an__abmeldung_des_wohnsitzes/Seite.1180300",
+      "status": 200,
+      "elapsedMs": 57,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/persoenliche_dokumente_und_bestaetigungen/fuehrerschein/Seite.040103",
+      "status": 200,
+      "elapsedMs": 2654,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/persoenliche_dokumente_und_bestaetigungen/namensaenderung/Seite.2330500",
+      "status": 200,
+      "elapsedMs": 107,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/pflege/2/Seite.360542",
+      "status": 200,
+      "elapsedMs": 51,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/pflege/4/1/Seite.360517",
+      "status": 200,
+      "elapsedMs": 43,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/pflege/4/Seite.360512",
+      "status": 200,
+      "elapsedMs": 427,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/pflege/4/Seite.360516",
+      "status": 200,
+      "elapsedMs": 132,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/pflege/soziale_dienste/Seite.1210200",
+      "status": 200,
+      "elapsedMs": 2607,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/reisen_und_freizeit/vereine/Seite.220700",
+      "status": 200,
+      "elapsedMs": 86,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/themen/transparenz_und_partizipation_in_der_demokratie/digitale-amtswege",
+      "status": 200,
+      "elapsedMs": 1498,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/de/ueber-oesterreichgvat/neu",
+      "status": 200,
+      "elapsedMs": 1470,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/eausweise/haeufige-fragen/haeufige-fragen-eausweise-allgemein.html",
+      "status": 200,
+      "elapsedMs": 340,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.oesterreich.gv.at/id-austria/haeufige-fragen/registrierung.html",
+      "status": 200,
+      "elapsedMs": 194,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.ooevv.at/de/",
+      "status": 200,
+      "elapsedMs": 325,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.opfer-notruf.at/leistung/",
+      "status": 200,
+      "elapsedMs": 459,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.opfer-notruf.at/opferhilfe/",
+      "status": 200,
+      "elapsedMs": 406,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.parlament.gv.at/gegenstand/XXVIII/BNR/209",
+      "status": 200,
+      "elapsedMs": 272,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.pflegeinfo-ooe.at/",
+      "status": 200,
+      "elapsedMs": 378,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.pfu.gov.ua/2180486-yak-podaty-zayavu-na-pryznachennya-pensiyi-onlajn/",
+      "status": 200,
+      "elapsedMs": 557,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.pfu.gov.ua/zk/724194-fizychna-identyfikatsiya-pensioneriv-yaki-perebuvayut-za-kordonom-algorytm-dij/",
+      "status": 200,
+      "elapsedMs": 777,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.post.at/p/a/nachsenden",
+      "status": 200,
+      "elapsedMs": 426,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.post.at/p/a/postlagernd",
+      "status": 200,
+      "elapsedMs": 422,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.post.at/p/c/brief-empfangen",
+      "status": 200,
+      "elapsedMs": 519,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.post.at/p/c/hilfe-sendungsstatus",
+      "status": 200,
+      "elapsedMs": 399,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.pv.at/web/pension/ihr-weg-zur-pension/pensionsantrag-stellen",
+      "status": 200,
+      "elapsedMs": 265,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.pv.at/web/pension/ihr-weg-zur-pension/ueberpruefung-der-versicherungszeiten",
+      "status": 200,
+      "elapsedMs": 255,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.pv.at/web/pension/ihr-weg-zur-pension/zwischenstaatliche-pensionsversicherung",
+      "status": 200,
+      "elapsedMs": 148,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.rataufdraht.at/telefonberatung",
+      "status": 200,
+      "elapsedMs": 396,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.ris.bka.gv.at/Dokumente/BgblAuth/BGBLA_2026_I_84/BGBLA_2026_I_84.html",
+      "status": 200,
+      "elapsedMs": 93,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008859&Paragraf=25&FassungVom=2026-10-26",
+      "status": 200,
+      "elapsedMs": 111,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.ris.bka.gv.at/NormDokument.wxe?Abfrage=Bundesnormen&Gesetzesnummer=20011842&Paragraf=4a",
+      "status": 200,
+      "elapsedMs": 119,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.rtr.at/TKP/was_wir_tun/telekommunikation/konsumentenservice/faq/rechnung_und_vertrag.de.html",
+      "status": 200,
+      "elapsedMs": 195,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.rtr.at/TKP/was_wir_tun/telekommunikation/konsumentenservice/information/informationen_fuer_konsumenten/TKKS_PortierungMN.de.html",
+      "status": 200,
+      "elapsedMs": 198,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.rtr.at/TKP/was_wir_tun/telekommunikation/konsumentenservice/information/informationen_fuer_konsumenten/TKKS_Rechnung.de.html",
+      "status": 200,
+      "elapsedMs": 162,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.rtr.at/TKP/was_wir_tun/telekommunikation/konsumentenservice/information/informationen_fuer_konsumenten/TKKS_RoamingEU.de.html",
+      "status": 200,
+      "elapsedMs": 165,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.rtr.at/TKP/was_wir_tun/telekommunikation/konsumentenservice/information/informationen_fuer_konsumenten/TKKS_Vertraege.de.html",
+      "status": 200,
+      "elapsedMs": 187,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.rtr.at/TKP/was_wir_tun/telekommunikation/konsumentenservice/information/informationen_fuer_konsumenten/voraussetzungen-schlichtungsverfahren.de.html",
+      "status": 200,
+      "elapsedMs": 105,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.rtr.at/TKP/was_wir_tun/telekommunikation/konsumentenservice/information/informationen_fuer_konsumenten/Wertkartenregistrierung.de.html",
+      "status": 200,
+      "elapsedMs": 134,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.salzburg.gv.at/dienststellen/abteilungen/20302",
+      "status": 200,
+      "elapsedMs": 301,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.salzburg.gv.at/pflegeberatung",
+      "status": 200,
+      "elapsedMs": 537,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.salzburg.gv.at/themen/aw/grundverkehr",
+      "status": 200,
+      "elapsedMs": 439,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.salzburg.gv.at/themen/bauen-wohnen/wohnbeihilfe",
+      "status": 200,
+      "elapsedMs": 426,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.salzburg.gv.at/themen/sicherheit/staatsbuergerschaft",
+      "status": 200,
+      "elapsedMs": 267,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.schulpsychologie.at/beratungsstellen",
+      "status": 200,
+      "elapsedMs": 255,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.soziale-dienste-burgenland.at/pflege-und-sozialberatung/pflegeberatung/",
+      "status": 200,
+      "elapsedMs": 520,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.soziales.steiermark.at/cms/beitrag/10363956/5361/",
+      "status": 200,
+      "elapsedMs": 264,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.sozialministerium.gv.at/Services/Aktuelles/archiv-2026/gesund-aus-de-krise.html",
+      "status": 200,
+      "elapsedMs": 1186,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.sozialministeriumservice.gv.at/Angehoerige/Pflege_und_Betreuung/24-Stunden-Betreuung/24-Stunden-Betreuung.de.html",
+      "status": 200,
+      "elapsedMs": 309,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.sozialministeriumservice.gv.at/Angehoerige/Pflege_und_Betreuung/Pflegende_Angehoerige/Unterstuetzung_fuer_pflegende_Angehoerige.de.html",
+      "status": 200,
+      "elapsedMs": 213,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.sozialministeriumservice.gv.at/Menschen_mit_Behinderung/Ausbildung__Beruf_und_Beschaeftigung/Arbeit_und_Ausbildung/Arbeit_und_Ausbildung.de.html",
+      "status": 200,
+      "elapsedMs": 126,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.sozialministeriumservice.gv.at/Menschen_mit_Behinderung/Behindertenpass_und_Parkausweis/Behindertenpass/Behindertenpass.de.html",
+      "status": 200,
+      "elapsedMs": 123,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.sozialministeriumservice.gv.at/Menschen_mit_Behinderung/Behindertenpass_und_Parkausweis/Behindertenpass/zusatzeintragungen/zusatzeintragungen.de.html",
+      "status": 200,
+      "elapsedMs": 126,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.sozialministeriumservice.gv.at/Menschen_mit_Behinderung/Behindertenpass_und_Parkausweis/Parkausweis/Parkausweis.de.html",
+      "status": 200,
+      "elapsedMs": 83,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.sozialministeriumservice.gv.at/Menschen_mit_Behinderung/Gleichstellung/Barrierefreiheit/Gleichstellung-und-Barrierefreiheit.de.html",
+      "status": 200,
+      "elapsedMs": 160,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.sozialministeriumservice.gv.at/Menschen_mit_Behinderung/Gleichstellung/Schlichtung/Schlichtung.de.html",
+      "status": 200,
+      "elapsedMs": 177,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.sozialministeriumservice.gv.at/Ueber_uns/Sozialministeriumservice/Landesstellen/Burgenland/Sozialministeriumservice___Landesstelle_Burgenland.de.html",
+      "status": 200,
+      "elapsedMs": 135,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.sozialministeriumservice.gv.at/Ueber_uns/Sozialministeriumservice/Landesstellen/Kaernten/Sozialministeriumservice___Landesstelle_Kaernten.de.html",
+      "status": 200,
+      "elapsedMs": 58,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.sozialministeriumservice.gv.at/Ueber_uns/Sozialministeriumservice/Landesstellen/Niederoesterreich/Sozialministeriumservice___Landesstelle_Niederoesterreic.de.html",
+      "status": 200,
+      "elapsedMs": 77,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.sozialministeriumservice.gv.at/Ueber_uns/Sozialministeriumservice/Landesstellen/Oberoesterreich/Sozialministeriumservice___Landesstelle_Oberoesterreich.de.html",
+      "status": 200,
+      "elapsedMs": 99,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.sozialministeriumservice.gv.at/Ueber_uns/Sozialministeriumservice/Landesstellen/Salzburg/Sozialministeriumservice___Landesstelle_Salzburg.de.html",
+      "status": 200,
+      "elapsedMs": 73,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.sozialministeriumservice.gv.at/Ueber_uns/Sozialministeriumservice/Landesstellen/Steiermark/Sozialministeriumservice___Landesstelle_Steiermark.de.html",
+      "status": 200,
+      "elapsedMs": 55,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.sozialministeriumservice.gv.at/Ueber_uns/Sozialministeriumservice/Landesstellen/Tirol/Sozialministeriumservice___Landesstelle_Tirol.de.html",
+      "status": 200,
+      "elapsedMs": 71,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.sozialministeriumservice.gv.at/Ueber_uns/Sozialministeriumservice/Landesstellen/Vorarlberg/Sozialministeriumservice___Landesstelle_Vorarlberg.de.html",
+      "status": 200,
+      "elapsedMs": 66,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.sozialministeriumservice.gv.at/Ueber_uns/Sozialministeriumservice/Landesstellen/Wien/Sozialministeriumservice___Landesstelle_Wien.de.html",
+      "status": 200,
+      "elapsedMs": 51,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.svs.at/cdscontent/?contentid=10007.899587&portal=svsportal",
+      "status": 200,
+      "elapsedMs": 549,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.tirol.gv.at/bauen-wohnen/wohnbaufoerderung/beihilfe/wohnbeihilfe/",
+      "status": 200,
+      "elapsedMs": 113,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.tirol.gv.at/bezirke-gemeinden/",
+      "status": 200,
+      "elapsedMs": 1179,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.tirol.gv.at/gesellschaft-soziales/inklusion-und-kinder-und-jugendhilfe/kinder-und-jugendhilfe/",
+      "status": 200,
+      "elapsedMs": 78,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.tirol.gv.at/gesellschaft-soziales/staatsbuergerschaft/",
+      "status": 200,
+      "elapsedMs": 30,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.tirol.gv.at/gesundheit-vorsorge/pflege/beratungsstellen/",
+      "status": 200,
+      "elapsedMs": 93,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.usp.gv.at/gruendung/EAP/feststellung-individuelle-befaehigung.html",
+      "status": 200,
+      "elapsedMs": 115,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.usp.gv.at/gruendung/EAP/gewerbeanmeldung.html",
+      "status": 200,
+      "elapsedMs": 98,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.usp.gv.at/themen/mitarbeiter-und-gesundheit/einstellung-mitarbeiter-und-arten-der-beschaeftigung/freie-dienstnehmer.html",
+      "status": 200,
+      "elapsedMs": 85,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.usp.gv.at/themen/mitarbeiter-und-gesundheit/einstellung-mitarbeiter-und-arten-der-beschaeftigung/weitere-informationen-einstellen-von-personal/anmeldung-dienstnehmer.html",
+      "status": 200,
+      "elapsedMs": 85,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.usp.gv.at/themen/mitarbeiter-und-gesundheit/einstellung-mitarbeiter-und-arten-der-beschaeftigung/weitere-informationen-einstellen-von-personal/neue-selbststaendige.html",
+      "status": 200,
+      "elapsedMs": 33,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.usp.gv.at/themen/steuern-finanzen/steuerliche-rechte-und-pflichten/pflichten-des-unternehmers.html",
+      "status": 200,
+      "elapsedMs": 33,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.usp.gv.at/themen/steuern-finanzen/umsatzsteuer-ueberblick/weitere-informationen-zur-umsatzsteuer/weitere-steuertatbestaende-und-befreiungen/kleinunternehmen.html",
+      "status": 200,
+      "elapsedMs": 88,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.verbundlinie.at/de/",
+      "status": 200,
+      "elapsedMs": 570,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.verwaltung.steiermark.at/cms/ziel/74838178/DE/",
+      "status": 200,
+      "elapsedMs": 309,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.verwaltung.steiermark.at/cms/ziel/75773739/DE?kontakt=J",
+      "status": 200,
+      "elapsedMs": 287,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.verwaltung.steiermark.at/cms/ziel/75777334/DE/",
+      "status": 200,
+      "elapsedMs": 142,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.vmobil.at/de",
+      "status": 200,
+      "elapsedMs": 512,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.vor.at/",
+      "status": 200,
+      "elapsedMs": 167,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.vvt.at/",
+      "status": 200,
+      "elapsedMs": 608,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.wg-gesucht.de/",
+      "status": 200,
+      "elapsedMs": 137,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.wien.gv.at/amtswege/auslaendergrunderwerb-genehmigung-negativbestaetigung",
+      "status": 200,
+      "elapsedMs": 340,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.wien.gv.at/amtswege/verleihung-staatsbuergerschaft",
+      "status": 200,
+      "elapsedMs": 279,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.wien.gv.at/amtswege/wohnbeihilfe-antrag",
+      "status": 200,
+      "elapsedMs": 245,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.wien.gv.at/gesundheit/geburt-schwangerschaft",
+      "status": 200,
+      "elapsedMs": 253,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.wien.gv.at/kontakt/ma11",
+      "status": 200,
+      "elapsedMs": 329,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.wien.gv.at/kontakt/ma35-referate-staatsbuergerschaft",
+      "status": 200,
+      "elapsedMs": 181,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.wien.gv.at/wirtschaft/taxi-gewerbe",
+      "status": 200,
+      "elapsedMs": 209,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.wien.gv.at/wohnen/wohnberatung-wien",
+      "status": 200,
+      "elapsedMs": 160,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.wien.gv.at/zusammenleben/feuerwehr-sicherheitstipps-brandfall",
+      "status": 200,
+      "elapsedMs": 337,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.wien.gv.at/zusammenleben/staatsbuergerschaft-deutschkenntnisse",
+      "status": 200,
+      "elapsedMs": 275,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.wien.gv.at/zusammenleben/staatsbuergerschaft-kosten",
+      "status": 200,
+      "elapsedMs": 284,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.wien.gv.at/zusammenleben/staatsbuergerschaft-unterlagen",
+      "status": 200,
+      "elapsedMs": 192,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.wien.gv.at/zusammenleben/staatsbuergerschaftstest",
+      "status": 200,
+      "elapsedMs": 167,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.wienernetze.at/was-tun-bei-gasgeruch",
+      "status": 200,
+      "elapsedMs": 1089,
+      "classification": "reachable"
+    },
+    {
+      "url": "https://www.willhaben.at/iad/immobilien/mietwohnungen/mietwohnung-angebote/",
+      "status": 200,
+      "elapsedMs": 287,
+      "classification": "reachable"
+    }
+  ]
+}

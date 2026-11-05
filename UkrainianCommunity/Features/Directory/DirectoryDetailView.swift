@@ -9,13 +9,14 @@ nonisolated enum DirectoryRoute: Hashable {
     case create(DirectoryManagedCategory.Placement)
     case category(String)
     case topic(categoryID: String, topicID: String)
+    case section(categoryID: String, topicID: String, sectionID: String, federalState: String?)
 
     static func visiblePrefix(_ path: [DirectoryRoute], categories: [DirectoryCategory]) -> [DirectoryRoute] {
         let firstUnavailable = path.firstIndex { route in
             switch route {
             case let .category(id):
                 !categories.contains { $0.id == id }
-            case let .topic(categoryID, topicID):
+            case let .topic(categoryID, topicID), let .section(categoryID, topicID, _, _):
                 !categories.contains { category in
                     category.id == categoryID && category.topics.contains { $0.id == topicID }
                 }

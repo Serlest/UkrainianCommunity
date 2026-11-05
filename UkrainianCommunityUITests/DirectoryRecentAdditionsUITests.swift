@@ -111,4 +111,30 @@ final class DirectoryRecentAdditionsUITests: XCTestCase {
         screenshot.lifetime = .keepAlways
         add(screenshot)
     }
+    @MainActor
+    func testNewSectionOpensItsReaderDirectlyAndCanBeShared() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment = ["UITestResetUserSettings": "1", "UITestAppLanguage": "uk",
+            "UITestForceGuestSession": "1", "UITestDirectoryRecentPreview": "1",
+            "UITestDirectoryRecentSectionPreview": "1", "UITestResetAppLock": "1"]
+        app.launch()
+        let tab = app.tabBars.buttons.element(boundBy: 3)
+        XCTAssertTrue(tab.waitForExistence(timeout: 15)); tab.tap()
+        let item = app.buttons["directory.recent.preview-1"].firstMatch
+        for _ in 0..<10 where !item.isHittable { app.swipeUp() }
+        XCTAssertTrue(item.isHittable); item.tap()
+        XCTAssertTrue(app.staticTexts["Живете в когось приватно"].firstMatch.waitForExistence(timeout: 8))
+        let share = app.buttons["detail.header.share"].firstMatch
+        XCTAssertTrue(share.isHittable); share.tap()
+        let copy = app.cells.matching(NSPredicate(format: "label IN %@", ["Kopieren", "Copy", "Копіювати", "Скопіювати"])).firstMatch
+        XCTAssertTrue(copy.waitForExistence(timeout: 8)); copy.tap()
+        XCTAssertTrue(copy.waitForNonExistence(timeout: 5))
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "directory-recent-section-direct-reader"; screenshot.lifetime = .keepAlways; add(screenshot)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(item.waitForExistence(timeout: 5))
+    }
+
 }

@@ -30,7 +30,8 @@ struct DirectoryGuideTopicView: View {
 
                     ForEach(guide.sections) { section in
                         DirectoryGuideSectionCard(section: section, language: language,
-                                                  compactBody: ["first-steps", "registration", "housing", "residence", "documents", "citizenship", "health", "mental-health", "insurance", "work", "qualifications", "education", "family", "transport", "finances", "social-support", "legal", "communication", "digital", "community", "leisure", "accessibility", "care", "seniors"].contains(categoryID))
+                                                  route: .section(categoryID: categoryID, topicID: topic.id,
+                                                                  sectionID: section.id, federalState: nil))
                             .id(section.id)
                     }
 
@@ -59,9 +60,19 @@ struct DirectoryGuideTopicView: View {
             }
         }
         .background(AppBackgroundView())
+        .anchorPreference(key: SeasonalHeaderAnchors.self, value: .bounds) { [.readingSurface: $0] }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                DirectoryInformationShareButton(
+                    title: topic.title.value(for: language),
+                    text: ContentShareText.compose(title: topic.title.value(for: language),
+                        introduction: guide.introduction.value(for: language), body: "",
+                        sources: guide.sources.map { Optional($0.url.absoluteString) }, language: language),
+                    language: language
+                )
+            }
             if contentStore.canEdit {
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink(value: DirectoryRoute.editTopic(categoryID: categoryID, topicID: topic.id)) {

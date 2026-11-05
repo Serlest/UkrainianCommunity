@@ -7,19 +7,12 @@ struct DirectoryGuideBodyView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             let blocks = DirectoryReadingBlocks.from(text)
-            if compact, let first = blocks.first {
-                Text(first)
-                    .font(.body.weight(.medium))
+            if compact {
+                Text(blocks.first ?? "")
+                    .font(.body)
                     .lineSpacing(5)
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                if blocks.count > 1 {
-                    Text(blocks.dropFirst().joined(separator: " "))
-                        .font(.body)
-                        .lineSpacing(5)
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .lineLimit(3)
             } else {
                 ForEach(Array(blocks.enumerated()), id: \.offset) { index, block in
                     Text(block)
@@ -27,6 +20,7 @@ struct DirectoryGuideBodyView: View {
                         .lineSpacing(5)
                         .foregroundStyle(AppTheme.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
                 }
             }
         }

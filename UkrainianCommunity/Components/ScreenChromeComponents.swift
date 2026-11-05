@@ -599,8 +599,9 @@ struct DetailHeaderShareButton: View {
                 } label: {
                     shareLabel
                 }
-                .sheet(isPresented: $isShowingTextShare) {
-                    ContentTextShareSheet(text: contentText, title: title)
+                .background {
+                    ContentTextSharePresenter(isPresented: $isShowingTextShare, text: contentText, title: title)
+                        .allowsHitTesting(false)
                 }
             } else if let url {
                 ShareLink(

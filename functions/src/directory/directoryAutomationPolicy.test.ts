@@ -1,7 +1,7 @@
 import {strict as assert} from "node:assert";
 import {test} from "node:test";
 import {
-  payloadSHA256, validateAutomaticDirectoryChange, type DirectoryAutomationCandidate,
+  officialDirectoryURL, payloadSHA256, validateAutomaticDirectoryChange, type DirectoryAutomationCandidate,
 } from "./directoryAutomationPolicy";
 
 const now = new Date("2026-10-17T12:00:00.000Z");
@@ -80,4 +80,14 @@ test("holds a candidate whose official observation is old", () => {
   const input = candidate((next) => { next.topics[0].sections[0].phoneNumber = "+43 1 99999"; });
   input.evidence.observedAt = "2026-10-01T11:00:00.000Z";
   assert.throws(() => validateAutomaticDirectoryChange(input, before, 2, now), /seven-day/);
+});
+
+
+test("accepts the competent education ministry without accepting lookalikes or arbitrary government domains", () => {
+  assert.equal(officialDirectoryURL("https://www.bmfwf.gv.at/erwachsenenbildung/bb.html", "source").hostname,
+    "www.bmfwf.gv.at");
+  for (const value of ["https://www.bmfwf.gv.at.evil.example/", "https://evil.bmfwf.gv.at/",
+    "http://www.bmfwf.gv.at/", "https://user@www.bmfwf.gv.at/", "https://other.gv.at/"]) {
+    assert.throws(() => officialDirectoryURL(value, "source"), /official HTTPS/);
+  }
 });

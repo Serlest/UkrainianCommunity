@@ -29,6 +29,30 @@ struct DirectoryRecentAdditionsTests {
         }
     }
 
+    @Test func returningToDirectoryRefreshesOldResultsWithoutRepeatedRequests() async {
+        var clock = Date(timeIntervalSince1970: 1000)
+        var requests = 0
+        var fail = false
+        let store = DirectoryRecentAdditionsStore(now: { clock }) { _ in
+            requests += 1
+            if fail { throw AppError.network }
+            return .init(items: [item("version-\(requests)")], nextCursor: nil, hasMore: false)
+        }
+        await store.refreshIfStale()
+        await store.refreshIfStale()
+        #expect(requests == 1)
+        clock = clock.addingTimeInterval(300)
+        fail = true
+        await store.refreshIfStale()
+        #expect(store.items.map(\.id) == ["version-1"])
+        #expect(store.failed)
+        fail = false
+        await store.refreshIfStale()
+        #expect(store.items.map(\.id) == ["version-3"])
+        await store.refreshIfStale()
+        #expect(requests == 3)
+    }
+
     @Test func recentValuesDecodeAndHashAwayFromMainActor() async throws {
         let addition = item("background-route")
         let cursor = DirectoryRecentCursor(seconds: 100, nanoseconds: 42, id: addition.id)

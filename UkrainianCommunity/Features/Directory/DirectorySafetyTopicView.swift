@@ -28,14 +28,14 @@ struct DirectorySafetyTopicView: View {
                     }
 
                     ForEach(guide.sections) { section in
-                        SafetyInfoCard(
-                            title: section.title.value(for: language), symbol: section.symbol
-                        ) {
-                            DirectoryGuideBodyView(text: section.body.value(for: language))
-                            ForEach(section.contacts) { contact in
-                                SafetyCallButton(contact: contact, language: language)
-                            }
-                        }
+                        DirectoryGuideSectionCard(
+                            section: .init(section.id, section.symbol,
+                                           section.title.ukrainian, section.title.german,
+                                           section.body.ukrainian, section.body.german),
+                            language: language,
+                            route: .section(categoryID: "safety", topicID: topic.id, sectionID: section.id, federalState: nil),
+                            compactBody: false, contacts: section.contacts
+                        )
                         .id(section.id)
                     }
                     if DirectoryRegionalContent.applies(categoryID: "safety", topicID: topic.id) {
@@ -56,9 +56,19 @@ struct DirectorySafetyTopicView: View {
             }
         }
         .background(AppBackgroundView())
+        .anchorPreference(key: SeasonalHeaderAnchors.self, value: .bounds) { [.readingSurface: $0] }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                DirectoryInformationShareButton(
+                    title: topic.title.value(for: language),
+                    text: ContentShareText.compose(title: topic.title.value(for: language),
+                        introduction: guide.summary.value(for: language), body: "",
+                        sources: guide.sources.map { Optional($0.url.absoluteString) }, language: language),
+                    language: language
+                )
+            }
             if contentStore.canEdit {
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink(value: DirectoryRoute.editTopic(categoryID: "safety", topicID: topic.id)) {

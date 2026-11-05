@@ -42,6 +42,8 @@ const officialHosts = new Set([
   "ris.bka.gv.at", "www.ris.bka.gv.at", "oesterreich.gv.at", "www.oesterreich.gv.at",
   "bfa.gv.at", "www.bfa.gv.at", "bmi.gv.at", "www.bmi.gv.at",
   "ams.at", "www.ams.at",
+  // Competent federal ministry for adult education and Bildungsberatung.
+  "bmfwf.gv.at", "www.bmfwf.gv.at",
 ]);
 
 function object(value: unknown, label: string): RecordValue {

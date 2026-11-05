@@ -158,6 +158,43 @@ struct DirectoryCatalogTests {
         ])
     }
 
+    @Test func informationRoutesRespectParentVisibilityAndRegionalIdentity() throws {
+        let category = try #require(DirectoryCatalog.categories.first)
+        let topic = try #require(category.topics.first)
+        let section = DirectoryRoute.section(categoryID: category.id, topicID: topic.id,
+                                             sectionID: "item", federalState: "wien")
+        let path: [DirectoryRoute] = [.category(category.id), .topic(categoryID: category.id, topicID: topic.id), section]
+        #expect(DirectoryRoute.visiblePrefix(path, categories: [category]) == path)
+        #expect(DirectoryRoute.visiblePrefix(path, categories: []).isEmpty)
+        let removed: [DirectoryRoute] = [.category(category.id), .section(categoryID: category.id,
+            topicID: "removed", sectionID: "item", federalState: nil)]
+        #expect(DirectoryRoute.visiblePrefix(removed, categories: [category]) == [.category(category.id)])
+        #expect(Set([section, .section(categoryID: category.id, topicID: topic.id,
+                                      sectionID: "item", federalState: "tirol")]).count == 2)
+    }
+
+    @Test func sourceDisplayRejectsCredentialsAndUnsupportedSchemes() {
+        for url in ["http://example.org/", "javascript:alert(1)", "https://name:secret@example.org/", "https://name@example.org/"] {
+            #expect(DirectoryManagedSource(name: "Source", url: url).displaySource == nil)
+        }
+        #expect(DirectoryManagedSource(name: "Source", url: "https://www.oesterreich.gv.at/").displaySource != nil)
+    }
+
+    @Test func individualSharingPreservesConditionsAndSelectedLanguage() {
+        let section = DirectoryGuideSection("test", "info.circle", "Назва", "Titel",
+            "Крок один.\nВиняток: не надсилайте оригінали.", "Schritt eins.\nAusnahme: keine Originale senden.")
+        let source = DirectorySource(name: "Official", url: "https://www.oesterreich.gv.at/")
+        for language in [AppLanguage.ukrainian, .german] {
+            let result = DirectorySectionShareText.compose(section: section, contacts: [], context: "Tirol",
+                sources: [source, source], language: language)
+            #expect(result.contains(section.body.value(for: language)))
+            #expect(result.contains("Tirol"))
+            #expect(result.components(separatedBy: source.url.absoluteString).count == 2)
+            #expect(result.components(separatedBy: ContentShareText.appURL).count == 2)
+            #expect(!result.contains(section.title.value(for: language == .ukrainian ? .german : .ukrainian)))
+        }
+    }
+
     @Test func articleFormattingPreservesEveryLocalizedSection() {
         func check(_ text: String) {
             let original = text.split(whereSeparator: \.isWhitespace).joined(separator: " ")

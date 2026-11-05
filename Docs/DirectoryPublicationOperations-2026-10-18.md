@@ -44,3 +44,10 @@ Each morning/evening run saves an immutable report of directly opened sources, c
 ## First live publication
 
 On 18 October 2026 the block `housing/tenant-rights/subtenant-rights` was published from the Austrian Ministry of Justice page `https://www.oesterreich.gv.at/de/themen/bauen_und_wohnen/wohnen/3/2/Seite.210219`. Housing revision changed from 1 to 2. Anonymous catalog read returned the exact bilingual section; public latest additions returned exactly one corresponding item. Artifacts: `/Users/serlest/.codex/uac-content-automation/artifacts/directory-v1/runs/2026-10-18-activation/`.
+
+
+## Verified education source support — 5 November 2026
+
+The private publication bridge now also accepts the exact hosts `bmfwf.gv.at` and `www.bmfwf.gv.at`, the competent federal ministry for adult education and Bildungsberatung. This is an explicit host addition, not a wildcard for government sites or subdomains. HTTPS, redirect checks, fresh supporting fragments, exact payload review, optimistic revisions and target-only diffs remain mandatory.
+
+The previously held `qualifications/training/bildungsberatung` candidate was independently rechecked against `https://www.bmfwf.gv.at/erwachsenenbildung/bb.html`, published at category revision 2 and read back with exactly one latest-additions entry. All other categories were unchanged. See `Docs/Verification/DirectoryExperienceAudit20261105.json` for delivery evidence and remaining source/content-review limits.

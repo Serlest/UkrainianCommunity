@@ -42,7 +42,7 @@ struct DirectoryManagedTopicView: View {
                             if let selectedFederalState {
                                 ForEach((topic.regionalSections[selectedFederalState.rawValue] ?? [])
                                     .filter { !$0.isHidden }.sorted { $0.order < $1.order }) { section in
-                                    sectionCard(section).id(section.id)
+                                    sectionCard(section, federalState: selectedFederalState).id(section.id)
                                 }
                             } else {
                                 Text(DirectoryText(
@@ -79,9 +79,19 @@ struct DirectoryManagedTopicView: View {
             }
         }
         .background(AppBackgroundView())
+        .anchorPreference(key: SeasonalHeaderAnchors.self, value: .bounds) { [.readingSurface: $0] }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                DirectoryInformationShareButton(
+                    title: topic.title.value(for: language),
+                    text: ContentShareText.compose(title: topic.title.value(for: language),
+                        introduction: topic.summary.value(for: language), body: "",
+                        sources: topic.sources.map { Optional($0.url) }, language: language),
+                    language: language
+                )
+            }
             if contentStore.canEdit {
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink(value: DirectoryRoute.editTopic(categoryID: categoryID, topicID: topic.id)) {
@@ -93,30 +103,20 @@ struct DirectoryManagedTopicView: View {
         }
     }
 
-    @ViewBuilder private func sectionCard(_ section: DirectoryManagedSection) -> some View {
-        if section.contacts.isEmpty {
-            DirectoryGuideSectionCard(
-                section: .init(section.id, section.symbol,
-                               section.title.ukrainian, section.title.german,
-                               section.body.ukrainian, section.body.german,
-                               phoneNumber: section.phoneNumber,
-                               source: section.source?.displaySource),
-                language: language, compactBody: true
-            )
-        } else {
-            SafetyInfoCard(title: section.title.value(for: language), symbol: section.symbol) {
-                DirectoryGuideBodyView(text: section.body.value(for: language))
-                ForEach(Array(section.contacts.enumerated()), id: \.offset) { _, contact in
-                    SafetyCallButton(
-                        contact: SafetyContact(number: contact.number, title: contact.title,
-                                               detail: contact.detail),
-                        language: language
-                    )
-                }
-                if let source = section.source?.displaySource {
-                    Link(source.name, destination: source.url)
-                }
+    @ViewBuilder private func sectionCard(_ section: DirectoryManagedSection, federalState: AustrianFederalState? = nil) -> some View {
+        DirectoryGuideSectionCard(
+            section: .init(section.id, section.symbol,
+                           section.title.ukrainian, section.title.german,
+                           section.body.ukrainian, section.body.german,
+                           phoneNumber: section.phoneNumber,
+                           source: section.source?.displaySource),
+            language: language,
+            route: .section(categoryID: categoryID, topicID: topic.id, sectionID: section.id,
+                            federalState: federalState?.rawValue),
+            compactBody: true,
+            contacts: section.contacts.map {
+                SafetyContact(number: $0.number, title: $0.title, detail: $0.detail)
             }
-        }
+        )
     }
 }

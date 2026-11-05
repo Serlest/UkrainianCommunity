@@ -60,8 +60,11 @@ final class DirectoryRecentAdditionsStore: ObservableObject {
     @Published private(set) var hasLoaded = false
     private var failedReset = true
     private let loader: Loader
+    private let now: () -> Date
+    private var lastLoadedAt: Date?
 
-    init(loader: Loader? = nil) {
+    init(now: @escaping () -> Date = Date.init, loader: Loader? = nil) {
+        self.now = now
 #if DEBUG
         if loader == nil, ProcessInfo.processInfo.arguments.contains("-ui-testing"),
            ProcessInfo.processInfo.environment["UITestDirectoryRecentEmpty"] == "1" {
@@ -70,10 +73,11 @@ final class DirectoryRecentAdditionsStore: ObservableObject {
         }
         if loader == nil, ProcessInfo.processInfo.arguments.contains("-ui-testing"),
            ProcessInfo.processInfo.environment["UITestDirectoryRecentPreview"] == "1" {
+            let sectionPreview = ProcessInfo.processInfo.environment["UITestDirectoryRecentSectionPreview"] == "1"
             self.loader = { _ in
                 .init(items: (1...5).map { index in
-                    .init(id: "preview-\(index)", kind: .topic, categoryID: "registration",
-                          topicID: "housing-types", sectionID: nil, federalState: nil,
+                    .init(id: "preview-\(index)", kind: sectionPreview && index == 1 ? .section : .topic, categoryID: "registration",
+                          topicID: "housing-types", sectionID: sectionPreview && index == 1 ? "private" : nil, federalState: nil,
                           publishedAt: "2026-10-17T12:00:00.000Z", revision: 1,
                           title: .init(ukrainian: index == 1 ? "Як зареєструвати місце проживання після переїзду в іншу федеральну землю" : "Матеріал \(index)",
                                        german: index == 1 ? "Den Wohnsitz nach einem Umzug in ein anderes Bundesland anmelden" : "Beitrag \(index)"),
@@ -99,6 +103,13 @@ final class DirectoryRecentAdditionsStore: ObservableObject {
         await load(reset: true)
     }
 
+    /// A tab revisit or foreground return must discover additions after the initial load.
+    /// Reuse recent results to avoid refetching on every navigation transition.
+    func refreshIfStale(maxAge: TimeInterval = 300) async {
+        guard lastLoadedAt.map({ now().timeIntervalSince($0) >= maxAge }) ?? true else { return }
+        await load(reset: true)
+    }
+
     func retry() async { await load(reset: failedReset) }
 
     func load(reset: Bool) async {
@@ -116,6 +127,7 @@ final class DirectoryRecentAdditionsStore: ObservableObject {
             hasMore = page.hasMore && page.nextCursor != nil && (reset || page.nextCursor != cursor)
             cursor = page.nextCursor
             hasLoaded = true
+            if reset { lastLoadedAt = now() }
         } catch is CancellationError {
         } catch {
             failedReset = reset

@@ -1,9 +1,23 @@
+import FirebaseSharedSwift
 import Foundation
 import Testing
 @testable import UkrainianCommunity
 
 @MainActor
 struct DirectoryEditorAccessStoreTests {
+    @Test func sdkGrantPageDecodesNullableFieldsOnMainActor() throws {
+        let grants: [[String: Any]] = [
+            ["id": "editor", "enabled": true, "revision": "rev-2", "grantedAt": 1234.0],
+            ["id": "disabled", "enabled": false, "revision": NSNull(), "grantedAt": NSNull()]
+        ]
+        let response: [String: Any] = ["grants": grants, "cursor": NSNull()]
+        let page = try FirebaseDataDecoder().decode(DirectoryEditorGrantPage.self, from: response)
+        #expect(page.grants.map(\.id) == ["editor", "disabled"])
+        #expect(page.grants[0].enabled && page.grants[0].grantedAt == 1234)
+        #expect(!page.grants[1].enabled && page.grants[1].revision == nil)
+        #expect(page.cursor == nil)
+    }
+
     @Test func duplicateCandidateAppearanceDoesNotRestartTheSameRead() async {
         var reads = 0
         let model = DirectoryEditorCandidatesStore(page: { _, _, _ in

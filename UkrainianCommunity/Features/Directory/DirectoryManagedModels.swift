@@ -150,7 +150,7 @@ struct DirectoryManagedSource: Codable, Identifiable, Equatable {
 
     var displaySource: DirectorySource? {
         guard let parsed = URL(string: url), parsed.scheme == "https",
-              parsed.host != nil else { return nil }
+              parsed.host?.isEmpty == false, parsed.user == nil, parsed.password == nil else { return nil }
         return DirectorySource(name: name, url: url)
     }
 }

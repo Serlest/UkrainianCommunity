@@ -118,9 +118,14 @@ struct DirectoryRecentDestinationView: View {
     var body: some View {
         if let topic = contentStore.managedTopic(categoryID: item.categoryID, topicID: item.topicID),
            item.isAvailable(in: topic) {
-            DirectoryManagedTopicView(categoryID: item.categoryID, topic: topic,
-                                      selectedFederalState: $region, feedbackRepository: feedbackRepository,
-                                      initialSectionID: item.sectionID)
+            if let sectionID = item.sectionID {
+                DirectorySectionDestination(categoryID: item.categoryID, topicID: item.topicID,
+                                            sectionID: sectionID, federalState: item.federalState)
+            } else {
+                DirectoryManagedTopicView(categoryID: item.categoryID, topic: topic,
+                                          selectedFederalState: $region, feedbackRepository: feedbackRepository,
+                                          initialSectionID: item.sectionID)
+            }
         } else if contentStore.syncState == .loading {
             ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(AppBackgroundView())
