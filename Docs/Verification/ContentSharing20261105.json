@@ -1,0 +1,31 @@
+{
+  "scope": "Full news/event sharing with quiet App Store footer",
+  "version": "1.3.1",
+  "build": "157",
+  "implementation": {
+    "news": "Full localized title, summary and body; repeated lead omitted; official source retained; no 400-character truncation",
+    "events": "Full available description; all occurrences, venue/address, location note, organizer, pricing/currency/note, participation and cancellation",
+    "transport": "Single plain-text UIActivityItemSource with subject/title metadata, presented in native UIActivityViewController. ShareLink custom preview lost Copy on iOS 27; replaced and regression tested.",
+    "footer": {
+      "uk": "Більше інформації — у застосунку UAC",
+      "de": "Weitere Informationen in der UAC-App",
+      "url": "https://apps.apple.com/at/app/uac/id6772565024",
+      "destination": "App Store, not a specific material; universal content links are not configured"
+    }
+  },
+  "verification": {
+    "model": "6 ContentShareTextTests passed, including native item representations for Copy/Mail/Messages and title metadata. EventSchedulePresentationTests regression passed.",
+    "ui": "Final native activity controller: four simulator share/copy/return scenarios passed (news/event, uk/light and de/dark), with title preview. Real copied payloads captured separately; no messages sent.",
+    "storeLink": "Generic countryless URL returned 404; Austria-specific URL returned 200 and Apple lookup confirmed UAC 1.3. Also opened the actual page in Safari.",
+    "releasePreflight": "Actual deployed analytics handlers: ACTIVE, no missing contracts",
+    "archive": "Final signed archive running",
+    "ci": "Pending source commit",
+    "testflight": "Not uploaded yet",
+    "physicalDevice": "Not run; no actual message was sent to recipients",
+    "artifacts": "build/share-20261105/NativeFinal.xcresult, native-summary.json, native-ui-artifacts/, copied-*.txt"
+  },
+  "preservedDirtyFiles": [
+    "UkrainianCommunity.xcodeproj/project.pbxproj original reorder",
+    "UkrainianCommunity/Localization/Localizable.xcstrings"
+  ]
+}

@@ -109,8 +109,8 @@ private struct EventDiscoveryContent {
     let pastEvents: [Event]
 }
 
-func eventScheduleText(for event: Event) -> String {
-    let occurrence = event.nextOccurrence() ?? event.occurrences.first
+func eventScheduleText(for event: Event, occurrence selectedOccurrence: EventOccurrence? = nil) -> String {
+    let occurrence = selectedOccurrence ?? event.nextOccurrence() ?? event.occurrences.first
     let startDate = occurrence?.startDate ?? event.startDate
     let endDate = occurrence?.endDate ?? event.endDate
     let isAllDay = occurrence?.isAllDay ?? event.isAllDay

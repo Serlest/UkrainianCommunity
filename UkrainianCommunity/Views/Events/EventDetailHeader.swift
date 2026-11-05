@@ -22,8 +22,9 @@ extension EventDetailView {
 
                 DetailHeaderShareButton(
                     title: event.localizedTitle,
-                    message: eventShareMessage(for: event),
-                    url: eventShareURL(for: event)
+                    message: "",
+                    url: nil,
+                    contentText: eventShareMessage(for: event)
                 )
 
                 DetailHeaderActionsMenu(
@@ -61,29 +62,23 @@ extension EventDetailView {
         }
 
         func eventShareMessage(for event: Event) -> String {
-            [
-                event.localizedSummary,
-                eventScheduleText(for: event),
-                [event.venue, event.city].filter { !$0.isEmpty }.joined(separator: ", ")
+            var facts = [
+                event.occurrences.map { eventScheduleText(for: event, occurrence: $0) }.joined(separator: "\n"),
+                [event.venue, event.address ?? "", event.city].filter { !$0.isEmpty }.joined(separator: ", "),
+                event.locationNote ?? "",
+                event.organizerName ?? "",
+                ContentShareText.price(event.pricing, language: LocalizationStore.language),
+                event.pricing.note ?? "",
+                event.participationMode.localizedTitle
             ]
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .joined(separator: "\n")
-        }
-
-        func eventShareURL(for event: Event) -> URL? {
-            if let externalURL = event.externalAction?.webURL {
-                return externalURL
+            if event.isCancelled {
+                facts.insert(AppStrings.Events.cancelledNoticeTitle, at: 0)
+                facts.insert(event.cancellationReason ?? "", at: 1)
             }
-            return [event.contactURL, event.organizerURL].compactMap(safeEventShareURL).first
-        }
-
-        private func safeEventShareURL(_ value: String?) -> URL? {
-            guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  let url = URL(string: value),
-                  let scheme = url.scheme?.lowercased(),
-                  scheme == "https" || scheme == "http" else { return nil }
-            return url
+            return ContentShareText.compose(title: event.localizedTitle, introduction: event.localizedSummary,
+                                            body: event.localizedDetails, facts: facts,
+                                            sources: [event.organizerURL, event.externalAction?.webURL?.absoluteString, event.contactURL],
+                                            language: LocalizationStore.language)
         }
 
         @ViewBuilder

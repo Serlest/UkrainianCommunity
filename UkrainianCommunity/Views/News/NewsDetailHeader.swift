@@ -22,8 +22,9 @@ extension NewsDetailView {
 
                 DetailHeaderShareButton(
                     title: post.localizedTitle,
-                    message: newsShareMessage(for: post),
-                    url: safeShareURL(post.sourceURL)
+                    message: "",
+                    url: nil,
+                    contentText: newsShareMessage(for: post)
                 )
 
                 DetailHeaderActionsMenu(
@@ -61,10 +62,9 @@ extension NewsDetailView {
         }
 
         func newsShareMessage(for post: NewsPost) -> String {
-            let subtitle = post.localizedSubtitle.trimmingCharacters(in: .whitespacesAndNewlines)
-            let source = subtitle.isEmpty ? post.localizedBody.trimmingCharacters(in: .whitespacesAndNewlines) : subtitle
-            guard source.count > 400 else { return source }
-            return String(source.prefix(397)).trimmingCharacters(in: .whitespacesAndNewlines) + "…"
+            ContentShareText.compose(title: post.localizedTitle, introduction: post.localizedSubtitle,
+                                     body: post.localizedBody, sources: [post.sourceURL],
+                                     language: LocalizationStore.language)
         }
 
         func safeShareURL(_ value: String?) -> URL? {

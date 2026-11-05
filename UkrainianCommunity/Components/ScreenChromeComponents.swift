@@ -581,6 +581,8 @@ struct DetailHeaderShareButton: View {
     let title: String
     let message: String
     let url: URL?
+    var contentText: String? = nil
+    @State private var isShowingTextShare = false
 
     private var fallbackText: String {
         [title, message]
@@ -591,7 +593,16 @@ struct DetailHeaderShareButton: View {
 
     var body: some View {
         Group {
-            if let url {
+            if let contentText {
+                Button {
+                    isShowingTextShare = true
+                } label: {
+                    shareLabel
+                }
+                .sheet(isPresented: $isShowingTextShare) {
+                    ContentTextShareSheet(text: contentText, title: title)
+                }
+            } else if let url {
                 ShareLink(
                     item: url,
                     subject: Text(title),
