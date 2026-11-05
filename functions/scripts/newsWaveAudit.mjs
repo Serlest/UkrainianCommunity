@@ -84,6 +84,37 @@ export async function auditNewsWave(root, runId) {
       for (const name of ["candidate-batch.json", "decision-batch.json", "decisions.json"])
         artifactPaths.add(join(resolve(report.artifacts), name));
     }
+    // A closed report can be corrected only through a separate immutable
+    // decision-completion amendment. Follow its linked terminal batch so QA
+    // uses the final applied decisions and their evidence instead of stale
+    // pre-guard decisions retained in the original report.
+    let amendmentBatch = null;
+    try {
+      const amendment = await read(`reports/${runId}/${scope}-decision-completion-amendment.json`);
+      if (amendment.scope === scope && amendment.runId === runId &&
+          amendment.candidateDecisionsComplete === true &&
+          Number.isInteger(amendment.candidateCount) &&
+          typeof amendment.decisionBatchPath === "string") {
+        const corrected = JSON.parse(await readFile(resolve(amendment.decisionBatchPath), "utf8"));
+        const entries = corrected.decisions;
+        const validEntries = Array.isArray(entries) && entries.length > 0 &&
+          entries.every((entry) => entry.outcome === "published" || entry.outcome === "rejected");
+        const rejectionCounts = Object.fromEntries([...new Set((entries ?? [])
+          .map((entry) => entry.reason).filter(Boolean))]
+          .map((reason) => [reason, entries.filter((entry) => entry.reason === reason).length]));
+        const published = entries?.filter((entry) => entry.outcome === "published").length;
+        const rejected = entries?.filter((entry) => entry.outcome === "rejected").length;
+        const countsMatch = JSON.stringify(Object.fromEntries(Object.entries(rejectionCounts).sort())) ===
+          JSON.stringify(Object.fromEntries(Object.entries(amendment.rejectionCounts ?? {}).sort()));
+        if (corrected.scope === scope && corrected.runId === runId && validEntries &&
+            entries.length === amendment.candidateCount &&
+            published === amendment.publicationCount && rejected + published === entries.length && countsMatch) {
+          amendmentBatch = {batch: {runId, candidateDecisionsComplete: true,
+            candidates: entries.length, published, rejected}, entries,
+          path: resolve(amendment.decisionBatchPath)};
+        }
+      }
+    } catch (error) { if (error.code !== "ENOENT") throw error; }
     const releasePath = report.locks?.releasePath ?? report.locks?.release ?? report.locks?.releaseReceiptPath ?? report.locks?.releaseArtifact;
     let reportLockReleased = report.locksReleased === true || report.locks?.released === true;
     if (typeof releasePath === "string") {
@@ -137,8 +168,8 @@ export async function auditNewsWave(root, runId) {
           published, rejected}, entries, path: artifactPath};
       } catch (error) { if (error.code !== "ENOENT") throw error; }
     }
-    const batch = reportBatch ?? artifactBatch?.batch ?? currentBatch ?? null;
-    const reportEntries = reportDecisionEntries ?? artifactBatch?.entries ?? null;
+    const batch = amendmentBatch?.batch ?? reportBatch ?? artifactBatch?.batch ?? currentBatch ?? null;
+    const reportEntries = amendmentBatch?.entries ?? reportDecisionEntries ?? artifactBatch?.entries ?? null;
     const reportHasCompleteDecisionList = Boolean(batch) && Array.isArray(reportEntries) &&
       reportEntries.length === batch.candidates &&
       reportEntries.every((entry) => entry.outcome === "published" || entry.outcome === "rejected");
@@ -203,7 +234,7 @@ export async function auditNewsWave(root, runId) {
     const reasons = Object.fromEntries([...new Set(decisions.map((value) => value.reason).filter(Boolean))]
       .map((reason) => [reason, decisions.filter((value) => value.reason === reason).length]));
     scopes.push({scope, reportedStatus: report.status, batch,
-      batchSource: reportBatch ? "closed_report" : artifactBatch ? "closed_artifact" : currentBatch ? "scope_state" : null,
+      batchSource: amendmentBatch ? "decision_amendment" : reportBatch ? "closed_report" : artifactBatch ? "closed_artifact" : currentBatch ? "scope_state" : null,
       decisionLedger: batch ? {
         reportedCandidates: batch.candidates,
         retainedDecisionsForWave: retainedDecisions.length,
@@ -212,7 +243,7 @@ export async function auditNewsWave(root, runId) {
         supersededByLaterRun,
         retainedDecisionCountReconciled: retainedDecisions.length + preservedEarlierPublishedDecisions + supersededByLaterRun === batch.candidates,
         decisionsReadFrom: reportHasCompleteDecisionList
-          ? (artifactBatch && !reportDecisionEntries ? "closed_artifact" : "closed_report")
+          ? (amendmentBatch ? "decision_amendment" : artifactBatch && !reportDecisionEntries ? "closed_artifact" : "closed_report")
           : "scope_state",
       } : undefined,
       evidenceLimits: {unverifiedCandidates: unverified, sourceErrors: report.sourceErrors ?? [],

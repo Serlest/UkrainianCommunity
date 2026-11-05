@@ -374,3 +374,33 @@ test('wave audit flags no-practical-effect decisions without a matching direct a
   assert.equal(scope.editorialReviewFlags[0].suggestedClassification,'unverified');
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('wave audit follows a decision completion amendment to the corrected terminal batch',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'news-wave-audit-decision-amendment-'));const run='news-2026-11-05T09';
+ try{
+  for(const p of ['snapshots','source-policies','scopes',`reports/${run}`])await mkdir(join(root,p),{recursive:true});
+  await writeFile(join(root,`snapshots/${run}.json`),JSON.stringify([{sourceId:'one',sourcePolicyVersion:4,links:[{url:'https://example.at/story'}]}]));
+  await writeFile(join(root,'source-policies/v4.json'),JSON.stringify({sources:[{sourceId:'one',active:true}]}));
+  const url='https://orf.at/fully-read';
+  const oldDecision={url,outcome:'rejected',reason:'no_practical_effect'};
+  await writeFile(join(root,`reports/${run}/kaernten.json`),JSON.stringify({
+   scope:'kaernten',runId:run,status:'partial',closedAt:'2026-11-05T08:41:03Z',
+   candidateDecisionsComplete:true,decidedCandidates:1,published:0,rejected:1,decisions:[oldDecision],
+  }));
+  const batchPath=join(root,'corrected-decision-batch.json');
+  const correctedDecision={url,outcome:'rejected',reason:'unverified',primaryOpened:true,primaryFullTextVerified:true};
+  await writeFile(batchPath,JSON.stringify({scope:'kaernten',runId:run,candidates:1,decisions:[correctedDecision]}));
+  await writeFile(join(root,`reports/${run}/kaernten-decision-completion-amendment.json`),JSON.stringify({
+   scope:'kaernten',runId:run,candidateDecisionsComplete:true,candidateCount:1,
+   publicationCount:0,rejectionCounts:{unverified:1},decisionBatchPath:batchPath,
+  }));
+  await writeFile(join(root,'scopes/kaernten.json'),JSON.stringify({lastCandidateBatch:{runId:run,candidateDecisionsComplete:true,candidates:1,published:0,rejected:1},candidateDecisions:{
+   [url]:{runId:run,outcome:'rejected',reason:'unverified',primaryOpened:true,primaryFullTextVerified:true},
+  }}));
+  const result=await auditNewsWave(root,run);const scope=result.scopes.find(x=>x.scope==='kaernten');
+  assert.equal(scope.batchSource,'decision_amendment');
+  assert.equal(scope.decisionLedger.decisionsReadFrom,'decision_amendment');
+  assert.deepEqual(scope.rejectionReasons,{unverified:1});
+  assert.equal(scope.editorialReviewFlags.length,0);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
