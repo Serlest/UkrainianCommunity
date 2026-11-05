@@ -1,0 +1,79 @@
+{
+  "version": "1.3.1",
+  "build": "158",
+  "sourceRevision": "8af0d5fc1b78ff13b967e6e2cd639a4ac5a87e09",
+  "archive": {
+    "CFBundleIdentifier": "at.serlest.UkrainianCommunity",
+    "CFBundleShortVersionString": "1.3.1",
+    "CFBundleVersion": "158",
+    "ITSAppUsesNonExemptEncryption": false,
+    "sourceRevision": "8af0d5fc1b78ff13b967e6e2cd639a4ac5a87e09",
+    "executableSHA256": "6eb92f1518ec2b27c0bebce2c77e013ef096003f8932c978b1691773fe77507f"
+  },
+  "ci": {
+    "run": 42051863077,
+    "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/42051863077",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "Change classification and static checks",
+        "conclusion": "success"
+      },
+      {
+        "name": "iOS build and unit checks",
+        "conclusion": "success"
+      },
+      {
+        "name": "Firebase and rules",
+        "conclusion": "success"
+      },
+      {
+        "name": "Firebase affected checks",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "iOS build and unit tests",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "delivery": {
+    "processingState": "VALID",
+    "internalBuildState": "IN_BETA_TESTING",
+    "groups": [
+      {
+        "name": "Beta Tester",
+        "internal": true,
+        "containsBuild": true
+      }
+    ],
+    "notesReadback": "Exact intended content in en-US, uk and de-DE after removing helper-trimmed final newline",
+    "externalReviewSubmitted": false,
+    "publicAppStoreReleaseChangedByThisTask": false,
+    "upload": "All three success markers confirmed in export-account.log"
+  },
+  "verification": {
+    "local": {
+      "result": "Passed",
+      "passedTests": 16,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    "cases": [
+      "Preferred short summary, body fallback capped at two sentences/320 characters",
+      "Text-only image disclosure removal; unrelated AI reporting retained",
+      "Roncalli 36 sessions become one period with an explicit individual-session hint",
+      "Exact small schedules, both years on cross-year ranges, all-day exclusive end",
+      "Location without duplicate city; sources and quiet UAC footer retained",
+      "Four iPhone simulator share/copy/return flows: news/event, Ukrainian/light and German/dark"
+    ],
+    "deployedAnalytics": "Actual deployed consent contracts verified for build 158",
+    "physicalPhone": "Not installed or tested in this task; messenger receiving remains user acceptance"
+  },
+  "preserved": "Original dirty localization file and project reordering retained",
+  "artifacts": "build/share-compact-20261105/",
+  "nonBlockingWarnings": [
+    "Existing DirectoryEditorAccessStore isolation warning",
+    "Third-party SDK dSYM warnings; upload and Apple processing succeeded"
+  ]
+}
