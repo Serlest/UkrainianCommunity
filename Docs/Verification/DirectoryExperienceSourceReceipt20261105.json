@@ -1,0 +1,56 @@
+{
+  "recordedAt": "2026-11-05T18:05:25.320840+00:00",
+  "sourceCommit": "7efc619b4cdce49be84c0655ab5c8cc87ab10c2e",
+  "branch": "main",
+  "localVerification": {
+    "phoneSimulator": "Passed",
+    "phonePassed": 101,
+    "phoneFailed": 0,
+    "phoneSkipped": 0,
+    "tabletPassed": 70,
+    "tabletFailed": 0,
+    "tabletSkipped": 0,
+    "physicalDevicePassed": 1,
+    "physicalDeviceFailed": 0,
+    "serverPolicyTestsPassed": 10,
+    "releaseBuild": "BUILD SUCCEEDED",
+    "releaseWarnings": 0,
+    "repositoryValidation": "passed"
+  },
+  "localPhoneInstallation": {
+    "version": "1.3.1",
+    "build": "158",
+    "mode": "Local corrected Release; preserves the existing account",
+    "localBuildExecutableSHA256": "f3270e837087425362e46d3c1b23aad40749465cda5ad8cb725e238f698b7e63"
+  },
+  "hostedCI": {
+    "runID": 42080276214,
+    "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/42080276214",
+    "headSha": "7efc619b4cdce49be84c0655ab5c8cc87ab10c2e",
+    "statusAtRead": "queued",
+    "conclusionAtRead": null,
+    "jobs": [
+      {
+        "name": "Change classification and static checks",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "iOS build and unit checks",
+        "status": "queued",
+        "conclusion": null
+      },
+      {
+        "name": "Firebase affected checks",
+        "status": "in_progress",
+        "conclusion": null
+      }
+    ],
+    "note": "Hosted CI has not been claimed successful. Verify this exact source run before any subsequent TestFlight upload. Main-branch pushes do not cancel an already running quality workflow."
+  },
+  "unchangedOriginalDirtyFiles": [
+    "UkrainianCommunity.xcodeproj/project.pbxproj",
+    "UkrainianCommunity/Localization/Localizable.xcstrings"
+  ],
+  "remainingEditorialWork": "7 source URLs returned HTTP404; source-access restrictions and legal-source conflicts remain explicitly recorded in the audit."
+}
