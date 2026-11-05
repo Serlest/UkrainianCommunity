@@ -1,0 +1,73 @@
+{
+  "version": "1.3.1",
+  "build": "157",
+  "sourceRevision": "7cc54a8680418e832745010ec2d551d25c0e485d",
+  "ci": {
+    "run": 42039886595,
+    "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/42039886595",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "Change classification and static checks",
+        "conclusion": "success"
+      },
+      {
+        "name": "iOS build and unit checks",
+        "conclusion": "success"
+      },
+      {
+        "name": "Firebase and rules",
+        "conclusion": "success"
+      },
+      {
+        "name": "Firebase affected checks",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "iOS build and unit tests",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "archive": {
+    "CFBundleIdentifier": "at.serlest.UkrainianCommunity",
+    "CFBundleShortVersionString": "1.3.1",
+    "CFBundleVersion": "157",
+    "ITSAppUsesNonExemptEncryption": false,
+    "executableSHA256": "f23477cca0045b603b1d08eaeff15bbeef869fc08da8bd9a34db8292268c99e7",
+    "sourceRevision": "7cc54a8680418e832745010ec2d551d25c0e485d"
+  },
+  "delivery": {
+    "processingState": "VALID",
+    "internalBuildState": "IN_BETA_TESTING",
+    "groupReadback": [
+      {
+        "name": "Beta Tester",
+        "internal": true,
+        "containsBuild": true
+      }
+    ],
+    "notesReadback": "Exact intended content in all three locales; helper removes final newline",
+    "notesLocales": [
+      "de-DE",
+      "uk",
+      "en-US"
+    ],
+    "externalBetaReviewSubmitted": false,
+    "publicAppStoreReleaseChanged": false,
+    "upload": "All three success markers present in export-account.log",
+    "groupAssignment": "Apple returned 422/500 to assignment attempts, but subsequent independent read-back confirmed group relationship and IN_BETA_TESTING; no further mutation repeated."
+  },
+  "verification": {
+    "iPhoneSimulator": "NativeFinal.xcresult: passed, 0 failures/0 skips; news/event, Ukrainian/light and German/dark, Copy and return",
+    "iPadSimulator": "iPadFinal.xcresult: four equivalent UI flows passed using recorded navigation-only harness patch",
+    "repeatSharing": "RepeatSharing.xcresult: reopen and Copy again within the same detail passed in all four flows",
+    "deployedAnalytics": "Release preflight passed for build 157, all deployed consent contracts accepted",
+    "physicalPhone": "Not installed or tested in this task; user should verify receiving in their preferred messenger"
+  },
+  "nonBlockingWarnings": [
+    "Pre-existing DirectoryEditorAccessStore generic isolation warning",
+    "Apple reported missing dSYMs for prebuilt third-party SDK frameworks; upload and VALID processing succeeded"
+  ],
+  "artifacts": "build/share-20261105/"
+}

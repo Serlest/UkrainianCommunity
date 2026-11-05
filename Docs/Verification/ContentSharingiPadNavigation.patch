@@ -1,0 +1,16 @@
+diff --git a/UkrainianCommunityUITests/ContentSharingUITests.swift b/UkrainianCommunityUITests/ContentSharingUITests.swift
+index 8dd20392..23e46fe7 100644
+--- a/UkrainianCommunityUITests/ContentSharingUITests.swift
++++ b/UkrainianCommunityUITests/ContentSharingUITests.swift
+@@ -12,8 +12,9 @@ import XCTest
+                     "UITestAppLanguage": language, "UITestAppAppearance": language == "uk" ? "light" : "dark",
+                     "UITestForceGuestSession": "1", event ? "UITestEventsAudit" : "UITestNewsAudit": "1"]
+                 app.launch()
+-                XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))
+-                if event { app.tabBars.buttons.element(boundBy: 1).tap() }
++                // iPad exposes the same root controls in a top toolbar, not a TabBar.
++                XCTAssertTrue(app.buttons["tab.home"].firstMatch.waitForExistence(timeout: 20))
++                if event { app.buttons["tab.events"].firstMatch.tap() }
+                 let card = app.descendants(matching: .any).matching(identifier:
+                     event ? "event.card.audit-event-own" : "home.card.news-audit-own").firstMatch
+                 XCTAssertTrue(card.waitForExistence(timeout: 10))

@@ -1,0 +1,16 @@
+diff --git a/UkrainianCommunityUITests/ContentSharingUITests.swift b/UkrainianCommunityUITests/ContentSharingUITests.swift
+index 8dd20392..ca517c56 100644
+--- a/UkrainianCommunityUITests/ContentSharingUITests.swift
++++ b/UkrainianCommunityUITests/ContentSharingUITests.swift
+@@ -32,6 +32,11 @@ import XCTest
+                 copy.tap()
+                 XCTAssertTrue(copy.waitForNonExistence(timeout: 5))
+                 XCTAssertTrue(share.isHittable)
++                share.tap()
++                XCTAssertTrue(copy.waitForExistence(timeout: 8), "Share must reopen after copying")
++                copy.tap()
++                XCTAssertTrue(copy.waitForNonExistence(timeout: 5))
++                XCTAssertTrue(share.isHittable)
+                 app.buttons["navigation.back"].firstMatch.tap()
+                 XCTAssertTrue(card.waitForExistence(timeout: 8))
+                 app.terminate()

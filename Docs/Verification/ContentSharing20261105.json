@@ -18,11 +18,13 @@
     "ui": "Final native activity controller: four simulator share/copy/return scenarios passed (news/event, uk/light and de/dark), with title preview. Real copied payloads captured separately; no messages sent.",
     "storeLink": "Generic countryless URL returned 404; Austria-specific URL returned 200 and Apple lookup confirmed UAC 1.3. Also opened the actual page in Safari.",
     "releasePreflight": "Actual deployed analytics handlers: ACTIVE, no missing contracts",
-    "archive": "Final signed archive running",
-    "ci": "Pending source commit",
-    "testflight": "Not uploaded yet",
+    "archive": "Signed Release 1.3.1 (157), ITSAppUsesNonExemptEncryption=false; source 7cc54a8680418e832745010ec2d551d25c0e485d; build/share-20261105/UAC-157-native.xcarchive",
+    "ci": "Exact archive-source run 42039886595 completed successfully; Debug, Release, main and isolated Swift tests passed.",
+    "testflight": "1.3.1 (157): VALID, IN_BETA_TESTING, Beta Tester group membership confirmed; localized notes read back.",
     "physicalDevice": "Not run; no actual message was sent to recipients",
-    "artifacts": "build/share-20261105/NativeFinal.xcresult, native-summary.json, native-ui-artifacts/, copied-*.txt"
+    "artifacts": "build/share-20261105/NativeFinal.xcresult, native-summary.json, native-ui-artifacts/, copied-*.txt",
+    "ipad": "Four share/copy/return scenarios passed on iPad Pro 13-inch (M5), iOS 27.0 simulator. Phone-specific TabBar readiness was replaced for this run with the same identified top/root tab controls; reusable harness-only patch retained in ContentSharingiPadNavigation.patch. No application code changed for the tablet run.",
+    "repeatSharing": "Four more iPhone scenarios passed: Copy, reopen Share in the same detail without relaunching, Copy again, return to feed. Harness-only extension retained in ContentSharingRepeatNavigation.patch; production source unchanged."
   },
   "preservedDirtyFiles": [
     "UkrainianCommunity.xcodeproj/project.pbxproj original reorder",
