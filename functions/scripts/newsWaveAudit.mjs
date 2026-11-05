@@ -51,6 +51,16 @@ export async function auditNewsWave(root, runId) {
     const derivedTerminalCounts = report.workflowComplete === true &&
       Array.isArray(report.decisions) && report.decisions.length > 0 &&
       report.decisions.every((entry) => entry.outcome === "published" || entry.outcome === "rejected");
+    // Kärnten's closed zero-publication reports use `closedAt`,
+    // `locksAcquired: false`, an integer `decidedCandidates`, and the full
+    // terminal `decisions` list. Recognize that immutable report schema even
+    // after an emergency pass replaces the mutable scope checkpoint.
+    const derivedClosedNoLockDecisionLedger = Boolean(report.closedAt) &&
+      report.locksAcquired === false && Number.isInteger(report.decidedCandidates) &&
+      Number.isInteger(report.publicationCount) && Array.isArray(report.decisions) &&
+      report.decisions.length === report.decidedCandidates &&
+      report.decisions.every((entry) => entry.outcome === "published" || entry.outcome === "rejected") &&
+      report.decisions.filter((entry) => entry.outcome === "published").length === report.publicationCount;
     // Tirol's closed partial reports use a parallel candidates/decisions
     // schema. `completedAt` plus released locks and explicit no-draft/no-queue
     // fields prove the executor reached terminal closure even when source
@@ -61,9 +71,9 @@ export async function auditNewsWave(root, runId) {
       isTerminalDecisionList(report.decisions) && report.candidates.length === report.decisions.length &&
       report.candidates.every((candidate, index) => candidate.url === report.decisions[index].url);
     const derivedCandidateCounts = isTerminalDecisionList(report.decidedCandidates);
-    const derivedEntries = derivedTerminalCounts || derivedClosedCandidateDecisionList
+    const derivedEntries = derivedTerminalCounts || derivedClosedNoLockDecisionLedger || derivedClosedCandidateDecisionList
       ? report.decisions : derivedCandidateCounts ? report.decidedCandidates : null;
-    const reportHasTerminalCounts = explicitTerminalCounts || derivedTerminalCounts || derivedClosedCandidateDecisionList || derivedCandidateCounts;
+    const reportHasTerminalCounts = explicitTerminalCounts || derivedTerminalCounts || derivedClosedNoLockDecisionLedger || derivedClosedCandidateDecisionList || derivedCandidateCounts;
     const terminalCandidates = explicitTerminalCounts ? report.decidedCandidates : derivedEntries?.length ?? 0;
     const terminalPublished = explicitTerminalCounts ? report.published : derivedEntries?.filter((entry) => entry.outcome === "published").length ?? 0;
     const terminalRejected = explicitTerminalCounts ? report.rejected : derivedEntries?.filter((entry) => entry.outcome === "rejected").length ?? 0;

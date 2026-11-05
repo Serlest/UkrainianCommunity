@@ -404,3 +404,29 @@ test('wave audit follows a decision completion amendment to the corrected termin
   assert.equal(scope.editorialReviewFlags.length,0);
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('wave audit recognizes a closed no-lock Kärnten report after an emergency batch replaces scope state',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'news-wave-audit-kaernten-no-lock-'));const run='news-2026-11-05T21';
+ try{
+  for(const p of ['snapshots','source-policies','scopes',`reports/${run}`])await mkdir(join(root,p),{recursive:true});
+  await writeFile(join(root,`snapshots/${run}.json`),JSON.stringify([{sourceId:'one',sourcePolicyVersion:4,links:[{url:'https://example.at/story'}]}]));
+  await writeFile(join(root,'source-policies/v4.json'),JSON.stringify({sources:[{sourceId:'one',active:true}]}));
+  const decisions=[
+   {url:'https://orf.at/read',outcome:'rejected',reason:'no_practical_effect',primaryOpened:true,primaryFullTextVerified:true},
+   {url:'https://orf.at/routine',outcome:'rejected',reason:'no_practical_effect',routineLowRelevanceTriage:'clear_routine_award_or_event',ongoingPracticalImpactSignal:false},
+  ];
+  await writeFile(join(root,`reports/${run}/kaernten.json`),JSON.stringify({
+   scope:'kaernten',runId:run,status:'partial',closedAt:'2026-11-05T20:53:04.501Z',
+   locksAcquired:false,decidedCandidates:2,publicationCount:0,decisions,
+  }));
+  await writeFile(join(root,'scopes/kaernten.json'),JSON.stringify({lastCandidateBatch:{
+   runId:'emergency-2026-11-05T22-30',candidateDecisionsComplete:true,candidates:1,published:1,rejected:0,
+  },candidateDecisions:{}}));
+  const result=await auditNewsWave(root,run);const scope=result.scopes.find(x=>x.scope==='kaernten');
+  assert.deepEqual(scope.batch,{runId:run,candidateDecisionsComplete:true,candidates:2,published:0,rejected:2});
+  assert.equal(scope.batchSource,'closed_report');
+  assert.equal(scope.decisionLedger.decisionsReadFrom,'closed_report');
+  assert.deepEqual(scope.rejectionReasons,{no_practical_effect:2});
+  assert.equal(scope.editorialReviewFlags.length,0);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
