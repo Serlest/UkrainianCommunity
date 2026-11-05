@@ -13,6 +13,14 @@ const rejectionReasons = new Set([
 ]);
 const runPattern = /^(?:news-\d{4}-\d{2}-\d{2}T\d{2}|emergency-\d{4}-\d{2}-\d{2}T\d{2}-(?:00|30))$/;
 
+function rejectionNoteSaysPrimaryIsMissing(decision) {
+  const note = [decision.note, decision.explanation, decision.reasonDetail]
+    .filter((value) => typeof value === "string").join(" ");
+  return /\bno\b[^.!?]{0,80}\b(?:approved|open|full|verified|dated|today)\b[^.!?]{0,40}\bprimary\b/i.test(note) ||
+    /\b(?:missing|without|unavailable)\b[^.!?]{0,40}\bprimary\b/i.test(note) ||
+    /\bprimary\b[^.!?]{0,40}\b(?:not found|unavailable|missing|not verified)\b/i.test(note);
+}
+
 // This closes an editorial candidate batch, not source coverage. A source
 // failure must still make the overall run partial, with its cursor unchanged.
 export function closeNewsCandidateBatch(registry, state, input, decidedAt = new Date().toISOString()) {
@@ -49,6 +57,9 @@ export function closeNewsCandidateBatch(registry, state, input, decidedAt = new 
     if (!candidateByURL.has(url)) throw new Error(`Decision without observed candidate: ${url}`);
     if (decision.outcome === "rejected") {
       if (!rejectionReasons.has(decision.reason)) throw new Error(`Invalid rejection reason for ${url}`);
+      if (decision.reason === "no_practical_effect" && rejectionNoteSaysPrimaryIsMissing(decision)) {
+        throw new Error(`Missing primary evidence is unverified, not no_practical_effect: ${url}`);
+      }
     } else if (decision.outcome === "published") {
       if (typeof decision.contentId !== "string" || !decision.contentId.trim() ||
           decision.productionReadback?.verified !== true ||

@@ -36,6 +36,18 @@ test("rejection closes the pass with a minimal terminal technical trace", () => 
   assert.equal("pending" in result.candidateDecisions["https://example.gv.at/story"], false);
 });
 
+test("missing approved-primary evidence cannot be recorded as no practical effect", () => {
+  const layout = buildNewsScopeLayout(legacy);
+  const decision = {url: candidate.url, outcome: "rejected", reason: "no_practical_effect",
+    note: "No newly verified approved primary found; this community lead remains unread."};
+  assert.throws(() => closeNewsCandidateBatch(layout.registry, layout.scopeStates.wien,
+    receipt([decision])), /Missing primary evidence is unverified/);
+  const verifiedLowImpact = {url: candidate.url, outcome: "rejected", reason: "no_practical_effect",
+    note: "Full article read: routine award ceremony, no continuing service or reader impact."};
+  assert.equal(closeNewsCandidateBatch(layout.registry, layout.scopeStates.wien,
+    receipt([verifiedLowImpact])).lastCandidateBatch.rejected, 1);
+});
+
 test("a manually checked adapter source can be closed without adding it to shared scans", () => {
   const layout = buildNewsScopeLayout(legacy);
   const registry = applyNewsEditorialSources(layout.registry, [{url: "https://example.gv.at/news",
