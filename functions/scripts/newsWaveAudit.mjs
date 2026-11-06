@@ -220,17 +220,26 @@ export async function auditNewsWave(root, runId) {
       ...(openedArticleDecisions ?? []),
       ...(Array.isArray(report.additionalOpenedArticles) ? report.additionalOpenedArticles : []),
     ].map((entry) => canonicalUrl(entry?.url ?? entry?.sourceURL ?? entry?.primaryURL)).filter(Boolean));
-    const noPracticalEffectWithoutRead = decisions.filter((decision) =>
-      decision.outcome === "rejected" && decision.reason === "no_practical_effect" &&
-      !openedUrls.has(canonicalUrl(decision.url)) && decision.primaryOpened !== true &&
-      decision.primaryFullTextVerified !== true &&
-      !(decision.routineLowRelevanceTriage === "clear_routine_award_or_event" &&
-        decision.ongoingPracticalImpactSignal === false) &&
-      ![decision.evidencePath, decision.articleReadPath, decision.fullTextEvidencePath].some((value) => typeof value === "string" && value.length > 0))
-      .map((decision) => ({url: decision.url, reason: decision.reason,
-        finding: "no_practical_effect_without_direct_read_evidence",
-        suggestedClassification: "unverified",
-        note: "The terminal reason asserts low relevance, but the report has no matching opened-article evidence. Review the lead; do not treat it as a verified zero-impact story."}));
+    const noPracticalEffectWithoutRead = decisions.filter((decision) => {
+      if (decision.outcome !== "rejected" || decision.reason !== "no_practical_effect") return false;
+      const routineTriage = decision.routineLowRelevanceTriage === "clear_routine_award_or_event" &&
+        decision.ongoingPracticalImpactSignal === false;
+      // A routine headline-only triage cannot establish zero practical impact
+      // when the lead itself signals access, health, housing, work, costs,
+      // services or safety. Keep such leads reviewable even when the executor
+      // has marked them as a routine award/event (for example a sponsored
+      // MeinBezirk health-service feature).
+      const potentialImpactSignal = /(?:gesund|hoer|hör|pflege|barriere|mobil|wege-zu-schwer|arbeits|job|miet|wohn|kosten|preis|schule|sperr|ausfall|versorgung|zugang|beratung|hilfe|service)/i
+        .test(String(decision.url ?? ""));
+      const directRead = openedUrls.has(canonicalUrl(decision.url)) || decision.primaryOpened === true ||
+        decision.primaryFullTextVerified === true ||
+        [decision.evidencePath, decision.articleReadPath, decision.fullTextEvidencePath]
+          .some((value) => typeof value === "string" && value.length > 0);
+      return !directRead && !(routineTriage && !potentialImpactSignal);
+    }).map((decision) => ({url: decision.url, reason: decision.reason,
+      finding: "no_practical_effect_without_direct_read_evidence",
+      suggestedClassification: "unverified",
+      note: "The terminal reason asserts low relevance, but the report has no matching opened-article evidence or the lead URL signals a potentially practical topic. Review the lead; do not treat it as a verified zero-impact story."}));
     const publications = [];
     for (const decision of decisions.filter((value) => value.outcome === "published")) {
       try {

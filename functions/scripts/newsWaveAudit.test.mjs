@@ -359,19 +359,23 @@ test('wave audit flags no-practical-effect decisions without a matching direct a
   await writeFile(join(root,'source-policies/v4.json'),JSON.stringify({sources:[{sourceId:'one',active:true}]}));
   const decisions=[
    {url:'https://www.meinbezirk.at/unread-lead',outcome:'rejected',reason:'no_practical_effect'},
+   {url:'https://www.meinbezirk.at/steyr-steyr-land/c-gesundheit/fachkompetente-hoerakustik-wenn-wege-zu-schwer-werden_a8994378',outcome:'rejected',reason:'no_practical_effect',
+    routineLowRelevanceTriage:'clear_routine_award_or_event',ongoingPracticalImpactSignal:false},
    {url:'https://orf.at/read-article',outcome:'rejected',reason:'no_practical_effect'},
    {url:'https://orf.at/routine-award',outcome:'rejected',reason:'no_practical_effect',
     routineLowRelevanceTriage:'clear_routine_award_or_event',ongoingPracticalImpactSignal:false},
   ];
   await writeFile(join(root,`reports/${run}/oberoesterreich.json`),JSON.stringify({
-   status:'partial',candidateDecisionsComplete:true,decidedCandidates:3,published:0,rejected:3,
+   status:'partial',candidateDecisionsComplete:true,decidedCandidates:4,published:0,rejected:4,
    decisions,openedArticles:[{url:'https://orf.at/read-article',evidencePath:'/article-read.json'}],
   }));
   await writeFile(join(root,'scopes/oberoesterreich.json'),JSON.stringify({candidateDecisions:{}}));
   const result=await auditNewsWave(root,run);const scope=result.scopes.find(x=>x.scope==='oberoesterreich');
-  assert.equal(scope.editorialReviewFlags.length,1);
+  assert.equal(scope.editorialReviewFlags.length,2);
   assert.equal(scope.editorialReviewFlags[0].url,'https://www.meinbezirk.at/unread-lead');
   assert.equal(scope.editorialReviewFlags[0].suggestedClassification,'unverified');
+  assert.equal(scope.editorialReviewFlags[1].url,'https://www.meinbezirk.at/steyr-steyr-land/c-gesundheit/fachkompetente-hoerakustik-wenn-wege-zu-schwer-werden_a8994378');
+  assert.match(scope.editorialReviewFlags[1].note,/potentially practical topic/);
  }finally{await rm(root,{recursive:true,force:true});}
 });
 
